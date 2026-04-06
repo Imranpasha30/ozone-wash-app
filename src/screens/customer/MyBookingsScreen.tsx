@@ -7,6 +7,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { bookingAPI } from '../../services/api';
 import { COLORS } from '../../utils/constants';
 import { Booking } from '../../types';
+import { Drop, ClipboardText, ArrowRight, Calendar, MapPin } from '../../components/Icons';
 
 const FILTERS = ['All', 'Pending', 'Confirmed', 'Completed', 'Cancelled'];
 
@@ -60,9 +61,9 @@ const MyBookingsScreen = () => {
       onPress={() => navigation.navigate('BookingDetail', { booking_id: item.id })}
     >
       <View style={styles.cardTop}>
-        <Text style={styles.tankIcon}>
-          {item.tank_type === 'overhead' ? '🏠' : item.tank_type === 'underground' ? '🏗️' : '🏊'}
-        </Text>
+        <View style={styles.tankIconContainer}>
+          <Drop size={22} weight="fill" color={COLORS.primary} />
+        </View>
         <View style={styles.cardInfo}>
           <Text style={styles.tankType}>
             {item.tank_type?.replace('_', ' ').toUpperCase()} — {item.tank_size_litres}L
@@ -77,7 +78,7 @@ const MyBookingsScreen = () => {
       <View style={styles.cardBottom}>
         <Text style={styles.amount}>{fmt(item.amount_paise)}</Text>
         <Text style={styles.payStatus}>{item.payment_method?.toUpperCase()} · {item.payment_status}</Text>
-        <Text style={styles.arrow}>→</Text>
+        <ArrowRight size={16} weight="bold" color={COLORS.primary} />
       </View>
     </TouchableOpacity>
   );
@@ -122,7 +123,9 @@ const MyBookingsScreen = () => {
           }
           ListEmptyComponent={
             <View style={styles.emptyBox}>
-              <Text style={styles.emptyIcon}>📋</Text>
+              <View style={styles.emptyIconContainer}>
+                <ClipboardText size={40} weight="regular" color={COLORS.muted} />
+              </View>
               <Text style={styles.emptyTitle}>No {filter !== 'All' ? filter.toLowerCase() : ''} bookings</Text>
               <Text style={styles.emptySub}>Book a service to see it here</Text>
               <TouchableOpacity
@@ -188,7 +191,15 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 },
-  tankIcon: { fontSize: 28, marginRight: 12 },
+  tankIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: COLORS.primaryBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
   cardInfo: { flex: 1 },
   tankType: { fontSize: 13, fontWeight: 'bold', color: COLORS.foreground },
   date: { fontSize: 12, color: COLORS.muted, marginTop: 2 },
@@ -198,9 +209,16 @@ const styles = StyleSheet.create({
   cardBottom: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 10 },
   amount: { fontSize: 16, fontWeight: 'bold', color: COLORS.foreground, marginRight: 8 },
   payStatus: { flex: 1, fontSize: 12, color: COLORS.muted },
-  arrow: { fontSize: 18, color: COLORS.primary },
   emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
+  emptyIconContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 16,
+    backgroundColor: COLORS.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
   emptyTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground, marginBottom: 6 },
   emptySub: { fontSize: 14, color: COLORS.muted, marginBottom: 20, textAlign: 'center' },
   bookBtn: {
@@ -208,10 +226,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
   bookBtnText: { color: COLORS.primaryFg, fontWeight: 'bold', fontSize: 15 },
 });

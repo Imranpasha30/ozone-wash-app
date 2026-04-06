@@ -6,6 +6,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { jobAPI } from '../../services/api';
 import { COLORS } from '../../utils/constants';
+import { ArrowLeft, Check, ArrowsClockwise } from '../../components/Icons';
 
 const REASONS = [
   'Unwell / Sick leave',
@@ -78,14 +79,17 @@ const JobTransferScreen = () => {
     <View style={styles.root}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
+          <ArrowLeft size={22} weight="regular" color={COLORS.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Transfer Job</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.body}>
         {/* Reason */}
-        <Text style={styles.label}>Reason for Transfer</Text>
+        <View style={styles.labelRow}>
+          <ArrowsClockwise size={16} weight="regular" color={COLORS.foreground} />
+          <Text style={styles.label}>Reason for Transfer</Text>
+        </View>
         {REASONS.map(r => (
           <TouchableOpacity
             key={r}
@@ -93,6 +97,7 @@ const JobTransferScreen = () => {
             onPress={() => setReason(r)}
           >
             <Text style={[styles.reasonText, reason === r && styles.reasonTextActive]}>{r}</Text>
+            {reason === r && <Check size={16} weight="bold" color={COLORS.primary} />}
           </TouchableOpacity>
         ))}
         {reason === 'Other' && (
@@ -106,7 +111,7 @@ const JobTransferScreen = () => {
         )}
 
         {/* Team List */}
-        <Text style={styles.label}>Select Team Member</Text>
+        <Text style={styles.labelStandalone}>Select Team Member</Text>
         {teams.length === 0 ? (
           <Text style={styles.emptyText}>No other team members available</Text>
         ) : (
@@ -123,7 +128,11 @@ const JobTransferScreen = () => {
                 <Text style={styles.teamName}>{t.name}</Text>
                 <Text style={styles.teamPhone}>{t.phone}</Text>
               </View>
-              {selectedTeam === t.id && <Text style={styles.checkMark}>✓</Text>}
+              {selectedTeam === t.id && (
+                <View style={styles.checkMarkContainer}>
+                  <Check size={18} weight="bold" color={COLORS.primary} />
+                </View>
+              )}
             </TouchableOpacity>
           ))
         )}
@@ -153,13 +162,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: COLORS.border,
   },
   backBtn: { marginRight: 12 },
-  backText: { fontSize: 24, color: COLORS.primary },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground },
   body: { padding: 20, paddingBottom: 40 },
-  label: { fontSize: 14, fontWeight: '700', color: COLORS.foreground, marginBottom: 10, marginTop: 16 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10, marginTop: 16 },
+  label: { fontSize: 14, fontWeight: '700', color: COLORS.foreground },
+  labelStandalone: { fontSize: 14, fontWeight: '700', color: COLORS.foreground, marginBottom: 10, marginTop: 16 },
   reasonChip: {
     backgroundColor: COLORS.surface, borderRadius: 10, padding: 14, marginBottom: 8,
-    borderWidth: 1, borderColor: COLORS.border,
+    borderWidth: 1, borderColor: COLORS.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
   reasonActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryBg },
   reasonText: { fontSize: 14, color: COLORS.muted },
@@ -180,7 +190,10 @@ const styles = StyleSheet.create({
   teamInitial: { fontSize: 18, fontWeight: 'bold', color: COLORS.primary },
   teamName: { fontSize: 15, fontWeight: '600', color: COLORS.foreground },
   teamPhone: { fontSize: 12, color: COLORS.muted, marginTop: 2 },
-  checkMark: { fontSize: 20, color: COLORS.primary, fontWeight: 'bold' },
+  checkMarkContainer: {
+    width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.primaryBg,
+    justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderActive,
+  },
   emptyText: { fontSize: 14, color: COLORS.muted, textAlign: 'center', padding: 20 },
   submitBtn: {
     backgroundColor: COLORS.primary, borderRadius: 16, padding: 18, alignItems: 'center', marginTop: 24,

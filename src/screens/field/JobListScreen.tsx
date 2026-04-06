@@ -8,6 +8,7 @@ import { jobAPI } from '../../services/api';
 import { COLORS } from '../../utils/constants';
 import { Job } from '../../types';
 import useAuthStore from '../../store/auth.store';
+import { Clock, Wrench, ArrowRight, HandPalm } from '../../components/Icons';
 
 const FILTERS = ['All', 'Scheduled', 'In Progress', 'Completed'];
 
@@ -75,7 +76,10 @@ const JobListScreen = () => {
           </Text>
           <Text style={styles.customer}>{item.customer_name || 'Customer'} · {item.customer_phone}</Text>
           <Text style={styles.address} numberOfLines={1}>{item.address}</Text>
-          <Text style={styles.time}>🕐 {formatDate(item.scheduled_at)}</Text>
+          <View style={styles.timeRow}>
+            <Clock size={14} weight="regular" color={COLORS.primary} />
+            <Text style={styles.time}>{formatDate(item.scheduled_at)}</Text>
+          </View>
         </View>
         <View style={[styles.badge, { backgroundColor: statusColor(item.status) }]}>
           <Text style={styles.badgeText}>{item.status === 'in_progress' ? 'ACTIVE' : item.status?.toUpperCase()}</Text>
@@ -84,12 +88,14 @@ const JobListScreen = () => {
 
       {item.status === 'scheduled' && (
         <View style={styles.actionHint}>
-          <Text style={styles.actionHintText}>Tap to start checklist →</Text>
+          <Text style={styles.actionHintText}>Tap to start checklist</Text>
+          <ArrowRight size={14} weight="bold" color={COLORS.success} />
         </View>
       )}
       {item.status === 'in_progress' && (
         <View style={[styles.actionHint, { backgroundColor: COLORS.primaryBg }]}>
-          <Text style={[styles.actionHintText, { color: COLORS.primary }]}>In progress — tap to continue checklist →</Text>
+          <Text style={[styles.actionHintText, { color: COLORS.primary }]}>In progress — tap to continue checklist</Text>
+          <ArrowRight size={14} weight="bold" color={COLORS.primary} />
         </View>
       )}
     </TouchableOpacity>
@@ -100,7 +106,10 @@ const JobListScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>Good day, {user?.name || 'Team'} 👋</Text>
+          <View style={styles.greetingRow}>
+            <Text style={styles.greeting}>Good day, {user?.name || 'Team'}</Text>
+            <HandPalm size={20} weight="fill" color={COLORS.warning} />
+          </View>
           <Text style={styles.headerSub}>Your assigned jobs</Text>
         </View>
         {stats && (
@@ -149,7 +158,9 @@ const JobListScreen = () => {
           }
           ListEmptyComponent={
             <View style={styles.emptyBox}>
-              <Text style={styles.emptyIcon}>🔧</Text>
+              <View style={styles.emptyIconContainer}>
+                <Wrench size={32} weight="regular" color={COLORS.muted} />
+              </View>
               <Text style={styles.emptyTitle}>No jobs assigned</Text>
               <Text style={styles.emptySub}>Your upcoming jobs will appear here</Text>
             </View>
@@ -181,6 +192,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
+  greetingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   greeting: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground },
   headerSub: { fontSize: 13, color: COLORS.muted, marginTop: 2 },
   statsBox: { alignItems: 'center', backgroundColor: COLORS.primaryBg, borderRadius: 12, padding: 10, borderWidth: 1, borderColor: COLORS.borderActive },
@@ -234,7 +246,8 @@ const styles = StyleSheet.create({
   jobType: { fontSize: 13, fontWeight: 'bold', color: COLORS.foreground },
   customer: { fontSize: 12, color: COLORS.muted, marginTop: 2 },
   address: { fontSize: 11, color: COLORS.muted, marginTop: 2 },
-  time: { fontSize: 12, color: COLORS.primary, fontWeight: '600', marginTop: 4 },
+  timeRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  time: { fontSize: 12, color: COLORS.primary, fontWeight: '600' },
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, marginLeft: 8 },
   badgeText: { color: COLORS.primaryFg, fontSize: 9, fontWeight: 'bold' },
   actionHint: {
@@ -243,10 +256,23 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   actionHintText: { fontSize: 12, color: COLORS.success, fontWeight: '600' },
   emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
-  emptyIcon: { fontSize: 52, marginBottom: 12 },
+  emptyIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    backgroundColor: COLORS.surfaceElevated,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
   emptyTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground, marginBottom: 6 },
   emptySub: { fontSize: 14, color: COLORS.muted, textAlign: 'center' },
 });

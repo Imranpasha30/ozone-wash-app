@@ -57,49 +57,49 @@ export const COMPLIANCE_STEPS = [
 ];
 
 export const COLORS = {
-  // Backgrounds
-  background: '#0B0C18',          // Deep space dark
-  surface: '#12131E',             // Card/surface
-  surfaceElevated: '#181926',     // Elevated card
-  surfaceHighlight: '#1F2033',    // Hover/highlight state
+  // Backgrounds — clean light palette
+  background: '#F8FAFC',
+  surface: '#FFFFFF',
+  surfaceElevated: '#F1F5F9',
+  surfaceHighlight: '#E2E8F0',
 
-  // Brand — Electric Cyan
-  primary: '#2DD4BF',             // Electric teal-cyan
-  primaryBg: 'rgba(45,212,191,0.12)',
-  primaryDim: 'rgba(45,212,191,0.20)',
-  primaryFg: '#0B0C18',           // Text on primary bg
+  // Brand — Professional Cyan (water/clean/trust)
+  primary: '#0891B2',
+  primaryBg: 'rgba(8,145,178,0.08)',
+  primaryDim: 'rgba(8,145,178,0.15)',
+  primaryFg: '#FFFFFF',
 
   // Foreground
-  foreground: '#F1F2F8',          // Primary text
-  muted: '#8A8FA8',               // Secondary text
-  border: 'rgba(255,255,255,0.10)',
-  borderActive: 'rgba(45,212,191,0.35)',
+  foreground: '#0F172A',
+  muted: '#64748B',
+  border: '#E2E8F0',
+  borderActive: 'rgba(8,145,178,0.30)',
 
   // Status
-  success: '#4ADE80',
-  successBg: 'rgba(74,222,128,0.12)',
-  warning: '#FBBF24',
-  warningBg: 'rgba(251,191,36,0.12)',
-  danger: '#F87171',
-  dangerBg: 'rgba(248,113,113,0.12)',
-  info: '#60A5FA',
-  infoBg: 'rgba(96,165,250,0.12)',
+  success: '#059669',
+  successBg: 'rgba(5,150,105,0.08)',
+  warning: '#D97706',
+  warningBg: 'rgba(217,119,6,0.08)',
+  danger: '#DC2626',
+  dangerBg: 'rgba(220,38,38,0.08)',
+  info: '#2563EB',
+  infoBg: 'rgba(37,99,235,0.08)',
 
   // Badge levels
-  gold: '#F59E0B',
-  goldBg: 'rgba(245,158,11,0.12)',
-  silver: '#94A3B8',
-  silverBg: 'rgba(148,163,184,0.12)',
-  bronze: '#C2773A',
-  bronzeBg: 'rgba(194,119,58,0.12)',
-  platinum: '#E2E8F0',
-  platinumBg: 'rgba(226,232,240,0.12)',
+  gold: '#D97706',
+  goldBg: 'rgba(217,119,6,0.08)',
+  silver: '#64748B',
+  silverBg: 'rgba(100,116,139,0.08)',
+  bronze: '#B45309',
+  bronzeBg: 'rgba(180,83,9,0.08)',
+  platinum: '#475569',
+  platinumBg: 'rgba(71,85,105,0.08)',
 
-  // Legacy aliases — keep for backward compatibility
-  secondary: '#2DD4BF',
-  accent: '#FBBF24',
-  gray: '#8A8FA8',
-  lightGray: 'rgba(255,255,255,0.08)',
-  white: '#F1F2F8',
-  black: '#0B0C18',
+  // Aliases
+  secondary: '#0EA5E9',
+  accent: '#059669',
+  gray: '#64748B',
+  lightGray: '#F1F5F9',
+  white: '#FFFFFF',
+  black: '#0F172A',
 };

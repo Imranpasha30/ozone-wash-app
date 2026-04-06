@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Alert, TextInput,
+  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import useAuthStore from '../../store/auth.store';
 import { COLORS } from '../../utils/constants';
+import {
+  ClipboardText, Trophy, FileText, Wrench,
+  CaretRight, SignOut, Phone, User, Eye, EyeSlash,
+} from '../../components/Icons';
 
 const ProfileScreen = () => {
   const navigation = useNavigation<any>();
@@ -27,15 +31,15 @@ const ProfileScreen = () => {
   };
 
   const initials = user?.name
-    ? user.name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
+    ? user.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2)
     : user?.phone?.slice(-2) || '??';
 
   const menuItems = user?.role === 'customer' ? [
-    { icon: '📋', label: 'My Bookings', onPress: () => navigation.navigate('MyBookings') },
-    { icon: '🏆', label: 'Certificates', onPress: () => navigation.navigate('Certificates') },
-    { icon: '📃', label: 'AMC Plans', onPress: () => navigation.navigate('AmcPlans') },
+    { icon: <ClipboardText size={20} weight="regular" color={COLORS.primary} />, label: 'My Bookings', onPress: () => navigation.navigate('MyBookings') },
+    { icon: <Trophy size={20} weight="regular" color={COLORS.primary} />, label: 'Certificates', onPress: () => navigation.navigate('Certificates') },
+    { icon: <FileText size={20} weight="regular" color={COLORS.primary} />, label: 'AMC Plans', onPress: () => navigation.navigate('AmcPlans') },
   ] : user?.role === 'field_team' ? [
-    { icon: '🔧', label: 'My Jobs', onPress: () => navigation.navigate('Jobs') },
+    { icon: <Wrench size={20} weight="regular" color={COLORS.primary} />, label: 'My Jobs', onPress: () => navigation.navigate('Jobs') },
   ] : [];
 
   return (
@@ -56,9 +60,9 @@ const ProfileScreen = () => {
       <View style={styles.menuCard}>
         {menuItems.map((item, i) => (
           <TouchableOpacity key={i} style={styles.menuItem} onPress={item.onPress}>
-            <Text style={styles.menuIcon}>{item.icon}</Text>
+            <View style={styles.menuIconWrap}>{item.icon}</View>
             <Text style={styles.menuLabel}>{item.label}</Text>
-            <Text style={styles.menuArrow}>→</Text>
+            <CaretRight size={18} weight="regular" color={COLORS.muted} />
           </TouchableOpacity>
         ))}
       </View>
@@ -76,9 +80,14 @@ const ProfileScreen = () => {
         </View>
         <TouchableOpacity style={styles.infoRow} onPress={() => setShowId(!showId)}>
           <Text style={styles.infoLabel}>User ID</Text>
-          <Text style={styles.infoValue} numberOfLines={1}>
-            {showId ? user?.id : '•••••••• (tap to reveal)'}
-          </Text>
+          <View style={styles.infoValueRow}>
+            <Text style={styles.infoValue} numberOfLines={1}>
+              {showId ? user?.id : '(tap to reveal)'}
+            </Text>
+            {showId
+              ? <EyeSlash size={16} weight="regular" color={COLORS.muted} />
+              : <Eye size={16} weight="regular" color={COLORS.muted} />}
+          </View>
         </TouchableOpacity>
       </View>
 
@@ -100,7 +109,10 @@ const ProfileScreen = () => {
 
       {/* Logout */}
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-        <Text style={styles.logoutText}>🚪  Logout</Text>
+        <View style={styles.logoutInner}>
+          <SignOut size={20} weight="bold" color={COLORS.danger} />
+          <Text style={styles.logoutText}>Logout</Text>
+        </View>
       </TouchableOpacity>
 
       <View style={{ height: 32 }} />
@@ -158,9 +170,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  menuIcon: { fontSize: 20, marginRight: 14 },
+  menuIconWrap: { marginRight: 14 },
   menuLabel: { flex: 1, fontSize: 15, color: COLORS.foreground, fontWeight: '600' },
-  menuArrow: { fontSize: 18, color: COLORS.primary },
   infoCard: {
     marginHorizontal: 16,
     marginBottom: 12,
@@ -174,6 +185,7 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   infoLabel: { width: 70, fontSize: 13, color: COLORS.muted, fontWeight: '600' },
   infoValue: { flex: 1, fontSize: 13, color: COLORS.foreground, fontWeight: '600' },
+  infoValueRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
   appInfoCard: {
     marginHorizontal: 16,
     marginBottom: 12,
@@ -196,6 +208,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: COLORS.danger,
   },
+  logoutInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   logoutText: { fontSize: 16, fontWeight: 'bold', color: COLORS.danger },
 });
 

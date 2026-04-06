@@ -7,6 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import useBookingStore from '../../store/booking.store';
 import { bookingAPI } from '../../services/api';
 import { COLORS } from '../../utils/constants';
+import { ArrowLeft, ArrowRight, Calendar, Clock, HandPalm, Info } from '../../components/Icons';
 
 const DateTimeScreen = () => {
   const navigation = useNavigation<any>();
@@ -77,7 +78,7 @@ const DateTimeScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
+          <ArrowLeft size={22} weight="regular" color={COLORS.foreground} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Date & Time</Text>
         <Text style={styles.stepText}>Step 2 / 4</Text>
@@ -90,7 +91,10 @@ const DateTimeScreen = () => {
 
       <ScrollView contentContainerStyle={styles.body}>
         {/* Date Picker */}
-        <Text style={styles.label}>Select Date</Text>
+        <View style={styles.labelRow}>
+          <Calendar size={16} weight="regular" color={COLORS.primary} />
+          <Text style={styles.label}>Select Date</Text>
+        </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateScroll}>
           {days.map((d) => {
             const key = formatDateKey(d);
@@ -110,16 +114,21 @@ const DateTimeScreen = () => {
         </ScrollView>
 
         {/* Time Slots */}
-        <Text style={styles.label}>Available Slots</Text>
+        <View style={styles.labelRow}>
+          <Clock size={16} weight="regular" color={COLORS.primary} />
+          <Text style={styles.label}>Available Slots</Text>
+        </View>
         {!selectedDate ? (
           <View style={styles.hintBox}>
-            <Text style={styles.hintText}>👆 Select a date to see available slots</Text>
+            <HandPalm size={24} weight="regular" color={COLORS.muted} />
+            <Text style={styles.hintText}>Select a date to see available slots</Text>
           </View>
         ) : loading ? (
           <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 20 }} />
         ) : slots.length === 0 ? (
           <View style={styles.hintBox}>
-            <Text style={styles.hintText}>😔 No slots available for this date</Text>
+            <Info size={24} weight="regular" color={COLORS.muted} />
+            <Text style={styles.hintText}>No slots available for this date</Text>
             <Text style={styles.hintSub}>Try another date</Text>
           </View>
         ) : (
@@ -145,10 +154,16 @@ const DateTimeScreen = () => {
         {selectedDate && selectedSlot && (
           <View style={styles.summaryBox}>
             <Text style={styles.summaryLabel}>Selected Appointment</Text>
-            <Text style={styles.summaryValue}>
-              {new Date(selectedDate).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
-            </Text>
-            <Text style={styles.summarySlot}>{formatSlot(selectedSlot)}</Text>
+            <View style={styles.summaryRow}>
+              <Calendar size={16} weight="regular" color={COLORS.primary} />
+              <Text style={styles.summaryValue}>
+                {new Date(selectedDate).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+              </Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Clock size={16} weight="regular" color={COLORS.primary} />
+              <Text style={styles.summarySlot}>{formatSlot(selectedSlot)}</Text>
+            </View>
           </View>
         )}
 
@@ -157,7 +172,8 @@ const DateTimeScreen = () => {
           onPress={handleNext}
           disabled={!selectedDate || !selectedSlot}
         >
-          <Text style={styles.nextText}>Continue to Add-ons →</Text>
+          <Text style={styles.nextText}>Continue to Add-ons</Text>
+          <ArrowRight size={18} weight="bold" color={COLORS.primaryFg} />
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -177,13 +193,13 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   backBtn: { marginRight: 12 },
-  backText: { fontSize: 24, color: COLORS.primary },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground, flex: 1 },
   stepText: { fontSize: 13, color: COLORS.muted },
   progressBar: { height: 4, backgroundColor: COLORS.border },
   progressFill: { height: 4, backgroundColor: COLORS.primary },
   body: { padding: 20, paddingBottom: 40 },
-  label: { fontSize: 14, fontWeight: '700', color: COLORS.foreground, marginBottom: 12, marginTop: 8 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12, marginTop: 8 },
+  label: { fontSize: 14, fontWeight: '700', color: COLORS.foreground },
   dateScroll: { marginBottom: 8 },
   dayBtn: {
     width: 64,
@@ -209,6 +225,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.border,
+    gap: 8,
   },
   hintText: { fontSize: 15, color: COLORS.foreground, fontWeight: '600' },
   hintSub: { fontSize: 12, color: COLORS.muted, marginTop: 4 },
@@ -232,20 +249,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.borderActive,
+    gap: 6,
   },
   summaryLabel: { fontSize: 11, color: COLORS.muted, textTransform: 'uppercase' },
-  summaryValue: { fontSize: 17, fontWeight: 'bold', color: COLORS.foreground, marginTop: 4 },
-  summarySlot: { fontSize: 22, fontWeight: 'bold', color: COLORS.primary, marginTop: 2 },
+  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  summaryValue: { fontSize: 17, fontWeight: 'bold', color: COLORS.foreground },
+  summarySlot: { fontSize: 22, fontWeight: 'bold', color: COLORS.primary },
   nextBtn: {
     backgroundColor: COLORS.primary,
     borderRadius: 16,
     padding: 18,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     marginTop: 20,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
   nextBtnDisabled: { backgroundColor: COLORS.surfaceElevated, borderWidth: 1, borderColor: COLORS.border },
   nextText: { color: COLORS.primaryFg, fontWeight: 'bold', fontSize: 16 },

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { COLORS } from '../../utils/constants';
+import { CheckCircle, Phone, Wrench, Trophy } from '../../components/Icons';
 
 const BookingConfirmedScreen = () => {
   const navigation = useNavigation<any>();
@@ -13,7 +14,7 @@ const BookingConfirmedScreen = () => {
       <View style={styles.card}>
         {/* Success Icon */}
         <View style={styles.iconCircle}>
-          <Text style={styles.icon}>✅</Text>
+          <CheckCircle size={40} weight="fill" color={COLORS.success} />
         </View>
 
         <Text style={styles.title}>Booking Confirmed!</Text>
@@ -27,15 +28,21 @@ const BookingConfirmedScreen = () => {
         </View>
 
         <View style={styles.infoRow}>
-          <Text style={styles.infoIcon}>📱</Text>
+          <View style={styles.infoIconContainer}>
+            <Phone size={18} weight="regular" color={COLORS.primary} />
+          </View>
           <Text style={styles.infoText}>You will receive an SMS & WhatsApp confirmation shortly</Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.infoIcon}>🧑‍🔧</Text>
+          <View style={styles.infoIconContainer}>
+            <Wrench size={18} weight="regular" color={COLORS.primary} />
+          </View>
           <Text style={styles.infoText}>Our field team will be assigned within 2 hours</Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.infoIcon}>🏆</Text>
+          <View style={styles.infoIconContainer}>
+            <Trophy size={18} weight="fill" color={COLORS.warning} />
+          </View>
           <Text style={styles.infoText}>Your hygiene certificate will be ready after service</Text>
         </View>
 
@@ -81,7 +88,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 20,
   },
-  icon: { fontSize: 40 },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -109,8 +115,16 @@ const styles = StyleSheet.create({
   idLabel: { fontSize: 11, color: COLORS.muted, textTransform: 'uppercase', fontWeight: '600' },
   idValue: { fontSize: 13, color: COLORS.primary, fontWeight: 'bold', marginTop: 4 },
   infoRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12, width: '100%' },
-  infoIcon: { fontSize: 18, marginRight: 10, marginTop: 2 },
-  infoText: { flex: 1, fontSize: 13, color: COLORS.muted, lineHeight: 20 },
+  infoIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: COLORS.primaryBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  infoText: { flex: 1, fontSize: 13, color: COLORS.muted, lineHeight: 20, paddingTop: 6 },
   primaryBtn: {
     backgroundColor: COLORS.primary,
     borderRadius: 16,
@@ -118,10 +132,6 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     marginTop: 8,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
   primaryBtnText: { color: COLORS.primaryFg, fontWeight: 'bold', fontSize: 16 },
   secondaryBtn: { padding: 14, width: '100%', alignItems: 'center', marginTop: 4 },

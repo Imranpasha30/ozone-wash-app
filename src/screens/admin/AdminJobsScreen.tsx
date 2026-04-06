@@ -6,6 +6,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { adminAPI } from '../../services/api';
 import { COLORS } from '../../utils/constants';
+import { Wrench, Users } from '../../components/Icons';
 
 const FILTERS = ['All', 'Scheduled', 'In Progress', 'Completed', 'Cancelled'];
 
@@ -106,7 +107,12 @@ const AdminJobsScreen = () => {
         >
           {assignLoading === item.id
             ? <ActivityIndicator size="small" color={COLORS.primary} />
-            : <Text style={styles.assignText}>👤 {item.assigned_team_id ? 'Reassign Team' : 'Assign Team'}</Text>}
+            : (
+              <View style={styles.assignBtnInner}>
+                <Users size={16} weight="bold" color={COLORS.primary} />
+                <Text style={styles.assignText}> {item.assigned_team_id ? 'Reassign Team' : 'Assign Team'}</Text>
+              </View>
+            )}
         </TouchableOpacity>
       )}
     </View>
@@ -151,7 +157,7 @@ const AdminJobsScreen = () => {
           }
           ListEmptyComponent={
             <View style={styles.emptyBox}>
-              <Text style={styles.emptyIcon}>🔧</Text>
+              <Wrench size={48} weight="regular" color={COLORS.muted} />
               <Text style={styles.emptyTitle}>No {filter !== 'All' ? filter.toLowerCase() : ''} jobs</Text>
             </View>
           }
@@ -195,9 +201,9 @@ const styles = StyleSheet.create({
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, borderWidth: 1, alignSelf: 'flex-start' },
   badgeText: { fontSize: 10, fontWeight: 'bold' },
   assignBtn: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: COLORS.border, alignItems: 'center', paddingVertical: 8, backgroundColor: COLORS.primaryBg, borderRadius: 10 },
+  assignBtnInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   assignText: { color: COLORS.primary, fontWeight: 'bold', fontSize: 13 },
-  emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
+  emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, gap: 12 },
   emptyTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground },
 });
 

@@ -6,6 +6,7 @@ import {
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { bookingAPI } from '../../services/api';
 import { COLORS } from '../../utils/constants';
+import { Trophy, Info, ArrowRight } from '../../components/Icons';
 
 const BADGE_COLORS: Record<string, string> = {
   platinum: COLORS.platinum,
@@ -49,7 +50,9 @@ const CertificatesScreen = () => {
       onPress={() => navigation.navigate('CertificateView', { job_id: item.job_id })}
     >
       <View style={styles.cardLeft}>
-        <Text style={styles.certIcon}>🏆</Text>
+        <View style={styles.certIconContainer}>
+          <Trophy size={24} weight="fill" color={COLORS.warning} />
+        </View>
       </View>
       <View style={styles.cardInfo}>
         <Text style={styles.tankType}>
@@ -59,7 +62,10 @@ const CertificatesScreen = () => {
         <Text style={styles.date}>Completed: {formatDate(item.slot_time)}</Text>
       </View>
       <View style={styles.cardRight}>
-        <Text style={styles.viewText}>View →</Text>
+        <View style={styles.viewRow}>
+          <Text style={styles.viewText}>View</Text>
+          <ArrowRight size={14} weight="bold" color={COLORS.primary} />
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -86,7 +92,9 @@ const CertificatesScreen = () => {
           }
           ListHeaderComponent={
             <View style={styles.infoBox}>
-              <Text style={styles.infoIcon}>ℹ️</Text>
+              <View style={styles.infoIconContainer}>
+                <Info size={16} weight="fill" color={COLORS.success} />
+              </View>
               <Text style={styles.infoText}>
                 Certificates are issued after each completed cleaning service. Share them with your housing society or authorities.
               </Text>
@@ -94,7 +102,9 @@ const CertificatesScreen = () => {
           }
           ListEmptyComponent={
             <View style={styles.emptyBox}>
-              <Text style={styles.emptyIcon}>🏆</Text>
+              <View style={styles.emptyIconContainer}>
+                <Trophy size={40} weight="fill" color={COLORS.warning} />
+              </View>
               <Text style={styles.emptyTitle}>No certificates yet</Text>
               <Text style={styles.emptySub}>
                 Certificates are generated after each completed cleaning service
@@ -138,7 +148,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.success,
   },
-  infoIcon: { fontSize: 16, marginRight: 8 },
+  infoIconContainer: {
+    marginRight: 8,
+    marginTop: 1,
+  },
   infoText: { flex: 1, fontSize: 12, color: COLORS.success, lineHeight: 18 },
   card: {
     backgroundColor: COLORS.surface,
@@ -153,15 +166,31 @@ const styles = StyleSheet.create({
     borderLeftColor: COLORS.warning,
   },
   cardLeft: { marginRight: 14 },
-  certIcon: { fontSize: 32 },
+  certIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: COLORS.warningBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   cardInfo: { flex: 1 },
   tankType: { fontSize: 13, fontWeight: 'bold', color: COLORS.foreground },
   address: { fontSize: 12, color: COLORS.muted, marginTop: 2 },
   date: { fontSize: 11, color: COLORS.muted, marginTop: 2 },
   cardRight: {},
+  viewRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   viewText: { fontSize: 14, color: COLORS.primary, fontWeight: 'bold' },
   emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
-  emptyIcon: { fontSize: 52, marginBottom: 12 },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 16,
+    backgroundColor: COLORS.warningBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
   emptyTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground, marginBottom: 6 },
   emptySub: { fontSize: 14, color: COLORS.muted, textAlign: 'center', marginBottom: 20, lineHeight: 22 },
   bookBtn: {
@@ -169,10 +198,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
   bookBtnText: { color: COLORS.primaryFg, fontWeight: 'bold', fontSize: 15 },
 });

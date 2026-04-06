@@ -4,6 +4,9 @@ import {
 } from 'react-native';
 import { jobAPI } from '../../services/api';
 import { COLORS } from '../../utils/constants';
+import {
+  CheckCircle, ArrowsClockwise, Hourglass, ChartBar, Fire, Trophy,
+} from '../../components/Icons';
 
 const PERIODS = ['This Week', 'This Month', 'All Time'] as const;
 
@@ -69,15 +72,37 @@ const PerformanceScreen = () => {
 
         {/* KPI Grid */}
         <View style={styles.kpiGrid}>
-          <KPICard icon="✅" label="Jobs Done" value={String(completed)} color={COLORS.success} />
-          <KPICard icon="🔄" label="In Progress" value={String(inProgress)} color={COLORS.primary} />
-          <KPICard icon="⏳" label="Pending" value={String(pending)} color={COLORS.warning} />
-          <KPICard icon="📊" label="Total" value={String(total)} color={COLORS.info} />
+          <KPICard
+            icon={<CheckCircle size={22} weight="fill" color={COLORS.success} />}
+            label="Jobs Done"
+            value={String(completed)}
+            color={COLORS.success}
+          />
+          <KPICard
+            icon={<ArrowsClockwise size={22} weight="regular" color={COLORS.primary} />}
+            label="In Progress"
+            value={String(inProgress)}
+            color={COLORS.primary}
+          />
+          <KPICard
+            icon={<Hourglass size={22} weight="regular" color={COLORS.warning} />}
+            label="Pending"
+            value={String(pending)}
+            color={COLORS.warning}
+          />
+          <KPICard
+            icon={<ChartBar size={22} weight="fill" color={COLORS.info} />}
+            label="Total"
+            value={String(total)}
+            color={COLORS.info}
+          />
         </View>
 
         {/* Quick Stats */}
         <View style={styles.streakCard}>
-          <Text style={styles.streakIcon}>🔥</Text>
+          <View style={styles.streakIconContainer}>
+            <Fire size={24} weight="fill" color={COLORS.warning} />
+          </View>
           <View>
             <Text style={styles.streakTitle}>Keep it up!</Text>
             <Text style={styles.streakSub}>{completed} jobs completed today</Text>
@@ -88,9 +113,11 @@ const PerformanceScreen = () => {
   );
 };
 
-const KPICard = ({ icon, label, value, color }: { icon: string; label: string; value: string; color: string }) => (
+const KPICard = ({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string; color: string }) => (
   <View style={styles.kpiCard}>
-    <Text style={styles.kpiIcon}>{icon}</Text>
+    <View style={styles.kpiIconContainer}>
+      {icon}
+    </View>
     <Text style={[styles.kpiValue, { color }]}>{value}</Text>
     <Text style={styles.kpiLabel}>{label}</Text>
   </View>
@@ -130,14 +157,22 @@ const styles = StyleSheet.create({
     width: '47%', backgroundColor: COLORS.surface, borderRadius: 14, padding: 16,
     alignItems: 'center', borderWidth: 1, borderColor: COLORS.border,
   },
-  kpiIcon: { fontSize: 24, marginBottom: 8 },
+  kpiIconContainer: {
+    width: 44, height: 44, borderRadius: 12, backgroundColor: COLORS.surfaceElevated,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 8,
+    borderWidth: 1, borderColor: COLORS.border,
+  },
   kpiValue: { fontSize: 28, fontWeight: 'bold' },
   kpiLabel: { fontSize: 12, color: COLORS.muted, marginTop: 4 },
   streakCard: {
     backgroundColor: COLORS.surface, borderRadius: 14, padding: 16,
     flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: COLORS.border,
   },
-  streakIcon: { fontSize: 36, marginRight: 14 },
+  streakIconContainer: {
+    width: 48, height: 48, borderRadius: 14, backgroundColor: COLORS.warningBg,
+    justifyContent: 'center', alignItems: 'center', marginRight: 14,
+    borderWidth: 1, borderColor: COLORS.warning,
+  },
   streakTitle: { fontSize: 16, fontWeight: 'bold', color: COLORS.foreground },
   streakSub: { fontSize: 13, color: COLORS.muted, marginTop: 2 },
 });

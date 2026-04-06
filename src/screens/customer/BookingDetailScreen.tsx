@@ -6,6 +6,9 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { bookingAPI, complianceAPI, certificateAPI, jobAPI } from '../../services/api';
 import { COLORS } from '../../utils/constants';
+import {
+  ArrowLeft, ArrowRight, Key, CheckCircle, Hourglass, Trophy,
+} from '../../components/Icons';
 
 const STATUS_STEPS = ['pending', 'confirmed', 'in_progress', 'completed'];
 
@@ -101,8 +104,9 @@ const BookingDetailScreen = () => {
     return (
       <View style={styles.center}>
         <Text style={styles.errorText}>Booking not found</Text>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.link}>← Go Back</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.goBackRow}>
+          <ArrowLeft size={18} weight="regular" color={COLORS.primary} />
+          <Text style={styles.link}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -114,7 +118,7 @@ const BookingDetailScreen = () => {
     <View style={styles.root}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
+          <ArrowLeft size={22} weight="regular" color={COLORS.foreground} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Booking Details</Text>
         <View style={[styles.statusBadge, { backgroundColor: statusColor(booking.status) }]}>
@@ -161,7 +165,9 @@ const BookingDetailScreen = () => {
           <>
             <Text style={styles.sectionTitle}>Start Verification Code</Text>
             <View style={styles.otpCard}>
-              <Text style={styles.otpIcon}>🔑</Text>
+              <View style={styles.otpIconContainer}>
+                <Key size={24} weight="fill" color={COLORS.primary} />
+              </View>
               <View style={styles.otpContent}>
                 <Text style={styles.otpCode}>{job.start_otp}</Text>
                 <Text style={styles.otpHint}>Show this code to your technician to start the service</Text>
@@ -173,7 +179,9 @@ const BookingDetailScreen = () => {
           <>
             <Text style={styles.sectionTitle}>Completion Verification Code</Text>
             <View style={[styles.otpCard, { borderLeftColor: COLORS.success }]}>
-              <Text style={styles.otpIcon}>✅</Text>
+              <View style={[styles.otpIconContainer, { backgroundColor: COLORS.successBg }]}>
+                <CheckCircle size={24} weight="fill" color={COLORS.success} />
+              </View>
               <View style={styles.otpContent}>
                 <Text style={[styles.otpCode, { color: COLORS.success }]}>{job.end_otp}</Text>
                 <Text style={styles.otpHint}>Show this code to your technician to confirm job completion</Text>
@@ -198,7 +206,10 @@ const BookingDetailScreen = () => {
               </View>
               {compliance.checklist?.map((step: any) => (
                 <View key={step.step_number} style={styles.stepRow}>
-                  <Text style={styles.stepIcon}>{step.completed ? '✅' : '⏳'}</Text>
+                  {step.completed
+                    ? <CheckCircle size={18} weight="fill" color={COLORS.success} />
+                    : <Hourglass size={18} weight="regular" color={COLORS.warning} />
+                  }
                   <Text style={[styles.stepName, step.completed && styles.stepNameDone]}>
                     {step.step_name}
                   </Text>
@@ -216,11 +227,16 @@ const BookingDetailScreen = () => {
               style={styles.certCard}
               onPress={() => navigation.navigate('CertificateView', { job_id: booking.job_id })}
             >
-              <Text style={styles.certIcon}>🏆</Text>
+              <View style={styles.certIconContainer}>
+                <Trophy size={24} weight="fill" color={COLORS.warning} />
+              </View>
               <View style={styles.certInfo}>
                 <Text style={styles.certTitle}>Certificate Issued</Text>
                 <Text style={styles.certSub}>EcoScore: {certificate.eco_score} / 100</Text>
-                <Text style={styles.certLink}>View Certificate →</Text>
+                <View style={styles.certLinkRow}>
+                  <Text style={styles.certLink}>View Certificate</Text>
+                  <ArrowRight size={14} weight="bold" color={COLORS.primary} />
+                </View>
               </View>
             </TouchableOpacity>
           </>
@@ -255,6 +271,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: COLORS.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
   errorText: { fontSize: 16, color: COLORS.muted, marginBottom: 12 },
+  goBackRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
   header: {
     backgroundColor: COLORS.surface,
     paddingTop: 56,
@@ -266,7 +283,6 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   backBtn: { marginRight: 12 },
-  backText: { fontSize: 24, color: COLORS.primary },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground, flex: 1 },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   statusText: { color: COLORS.primaryFg, fontSize: 10, fontWeight: 'bold' },
@@ -312,8 +328,7 @@ const styles = StyleSheet.create({
   complianceSub: { fontSize: 13, color: COLORS.muted },
   progressBarContainer: { height: 8, backgroundColor: COLORS.surfaceHighlight, borderRadius: 4, marginBottom: 14 },
   progressBarFill: { height: 8, backgroundColor: COLORS.primary, borderRadius: 4 },
-  stepRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  stepIcon: { fontSize: 16, marginRight: 10 },
+  stepRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 10 },
   stepName: { fontSize: 14, color: COLORS.muted },
   stepNameDone: { color: COLORS.foreground, fontWeight: '600' },
   certCard: {
@@ -327,11 +342,20 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: COLORS.warning,
   },
-  certIcon: { fontSize: 32, marginRight: 14 },
+  certIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: COLORS.warningBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
   certInfo: { flex: 1 },
   certTitle: { fontSize: 15, fontWeight: 'bold', color: COLORS.foreground },
   certSub: { fontSize: 13, color: COLORS.muted, marginTop: 2 },
-  certLink: { fontSize: 13, color: COLORS.primary, fontWeight: '600', marginTop: 4 },
+  certLinkRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  certLink: { fontSize: 13, color: COLORS.primary, fontWeight: '600' },
   otpCard: {
     backgroundColor: COLORS.surface,
     borderRadius: 16,
@@ -343,7 +367,15 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: COLORS.primary,
   },
-  otpIcon: { fontSize: 32, marginRight: 14 },
+  otpIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: COLORS.primaryBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
   otpContent: { flex: 1 },
   otpCode: {
     fontSize: 36,

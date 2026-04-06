@@ -5,6 +5,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '../../utils/constants';
+import { ArrowLeft, Bell } from '../../components/Icons';
 
 const STORAGE_KEY = 'ozone_notifications';
 
@@ -91,7 +92,7 @@ const NotificationsScreen = () => {
     <View style={styles.root}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
+          <ArrowLeft size={22} weight="regular" color={COLORS.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
         {unreadCount > 0 && (
@@ -116,7 +117,7 @@ const NotificationsScreen = () => {
 
       {notifications.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>🔔</Text>
+          <Bell size={48} weight="regular" color={COLORS.muted} />
           <Text style={styles.emptyTitle}>No notifications yet</Text>
           <Text style={styles.emptySub}>
             You'll receive updates about your bookings, service progress, and certificates here.
@@ -157,7 +158,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: COLORS.border,
   },
   backBtn: { marginRight: 12 },
-  backText: { fontSize: 24, color: COLORS.primary },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground, flex: 1 },
   unreadBadge: {
     backgroundColor: COLORS.danger, borderRadius: 12, minWidth: 24, height: 24,
@@ -183,9 +183,8 @@ const styles = StyleSheet.create({
   cardTitleUnread: { fontWeight: 'bold' },
   cardTime: { fontSize: 11, color: COLORS.muted, marginLeft: 8 },
   cardBody: { fontSize: 13, color: COLORS.muted, lineHeight: 18 },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
-  emptyIcon: { fontSize: 48, marginBottom: 16 },
-  emptyTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground, marginBottom: 8 },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, gap: 12 },
+  emptyTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground },
   emptySub: { fontSize: 14, color: COLORS.muted, textAlign: 'center', lineHeight: 20 },
 });
 

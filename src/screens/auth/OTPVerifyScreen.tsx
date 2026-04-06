@@ -7,6 +7,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import useAuthStore from '../../store/auth.store';
 import { COLORS } from '../../utils/constants';
+import { ArrowLeft } from '../../components/Icons';
 
 const OTPVerifyScreen = () => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -90,8 +91,9 @@ const OTPVerifyScreen = () => {
 
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={styles.back}>← Back</Text>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <ArrowLeft size={22} weight="regular" color={COLORS.primary} />
+            <Text style={styles.back}>Back</Text>
           </TouchableOpacity>
         </View>
 
@@ -175,6 +177,11 @@ const styles = StyleSheet.create({
     marginTop: 50,
     marginBottom: 20,
   },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   back: {
     color: COLORS.primary,
     fontSize: 16,
@@ -205,10 +212,6 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     backgroundColor: COLORS.primary,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.55,
-    shadowRadius: 12,
-    elevation: 6,
   },
   brand: {
     fontSize: 22,
@@ -273,15 +276,9 @@ const styles = StyleSheet.create({
     height: 56,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
   buttonDisabled: {
     backgroundColor: COLORS.surfaceElevated,
-    shadowOpacity: 0,
-    elevation: 0,
   },
   buttonText: {
     color: COLORS.primaryFg,

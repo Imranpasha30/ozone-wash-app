@@ -7,6 +7,10 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { jobAPI, complianceAPI } from '../../services/api';
 import { COLORS } from '../../utils/constants';
 import { Job } from '../../types';
+import {
+  ArrowLeft, Calendar, Phone, CheckCircle, ArrowsClockwise,
+  Hourglass, Key, ClipboardText, Siren, ArrowRight,
+} from '../../components/Icons';
 
 const JobDetailScreen = () => {
   const navigation = useNavigation<any>();
@@ -98,8 +102,9 @@ const JobDetailScreen = () => {
     return (
       <View style={styles.center}>
         <Text style={styles.errorText}>Job not found</Text>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.link}>← Go Back</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.goBackRow}>
+          <ArrowLeft size={18} weight="regular" color={COLORS.primary} />
+          <Text style={styles.link}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -109,7 +114,7 @@ const JobDetailScreen = () => {
     <View style={styles.root}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
+          <ArrowLeft size={22} weight="regular" color={COLORS.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Job Details</Text>
         <View style={[styles.badge, { backgroundColor: statusColor(job.status) }]}>
@@ -124,7 +129,10 @@ const JobDetailScreen = () => {
             {job.tank_type?.replace('_', ' ').toUpperCase() || 'CLEANING JOB'}
           </Text>
           <Text style={styles.jobSize}>{job.tank_size_litres} Litres</Text>
-          <Text style={styles.scheduledAt}>📅 {formatDate(job.scheduled_at)}</Text>
+          <View style={styles.scheduledRow}>
+            <Calendar size={16} weight="regular" color={COLORS.primary} />
+            <Text style={styles.scheduledAt}>{formatDate(job.scheduled_at)}</Text>
+          </View>
         </View>
 
         {/* Customer Info */}
@@ -133,7 +141,8 @@ const JobDetailScreen = () => {
           <View style={styles.customerRow}>
             <Text style={styles.customerName}>{job.customer_name || 'Customer'}</Text>
             <TouchableOpacity style={styles.callBtn} onPress={callCustomer}>
-              <Text style={styles.callText}>📞 Call</Text>
+              <Phone size={14} weight="regular" color={COLORS.primary} />
+              <Text style={styles.callText}>Call</Text>
             </TouchableOpacity>
           </View>
           <Text style={styles.customerPhone}>{job.customer_phone}</Text>
@@ -154,7 +163,15 @@ const JobDetailScreen = () => {
               </View>
               {compliance.checklist?.map((step: any) => (
                 <View key={step.step_number} style={styles.stepRow}>
-                  <Text style={styles.stepIcon}>{step.completed ? '✅' : step.logged ? '🔄' : '⏳'}</Text>
+                  <View style={styles.stepIconContainer}>
+                    {step.completed ? (
+                      <CheckCircle size={18} weight="fill" color={COLORS.success} />
+                    ) : step.logged ? (
+                      <ArrowsClockwise size={18} weight="regular" color={COLORS.primary} />
+                    ) : (
+                      <Hourglass size={18} weight="regular" color={COLORS.warning} />
+                    )}
+                  </View>
                   <Text style={[styles.stepName, step.completed && styles.stepDone]}>
                     {step.step_number}. {step.step_name}
                   </Text>
@@ -171,10 +188,14 @@ const JobDetailScreen = () => {
             onPress={handleGenerateStartOtp}
             disabled={starting}
           >
-            {starting
-              ? <ActivityIndicator color={COLORS.primaryFg} />
-              : <Text style={styles.actionBtnText}>🔑 Start Job (OTP)</Text>
-            }
+            {starting ? (
+              <ActivityIndicator color={COLORS.primaryFg} />
+            ) : (
+              <View style={styles.actionBtnContent}>
+                <Key size={18} weight="fill" color={COLORS.primaryFg} />
+                <Text style={styles.actionBtnText}>Start Job (OTP)</Text>
+              </View>
+            )}
           </TouchableOpacity>
         )}
 
@@ -184,21 +205,28 @@ const JobDetailScreen = () => {
               style={[styles.actionBtn, styles.checklistBtn]}
               onPress={() => navigation.navigate('Checklist', { job_id: job.id })}
             >
-              <Text style={styles.actionBtnText}>
-                📋 Open Compliance Checklist ({compliance?.completion_percentage ?? 0}%)
-              </Text>
+              <View style={styles.actionBtnContent}>
+                <ClipboardText size={18} weight="regular" color={COLORS.primaryFg} />
+                <Text style={styles.actionBtnText}>
+                  Open Compliance Checklist ({compliance?.completion_percentage ?? 0}%)
+                </Text>
+              </View>
             </TouchableOpacity>
 
             {compliance?.completion_percentage === 100 && (
               <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: COLORS.success, shadowColor: COLORS.success }, starting && styles.btnDisabled]}
+                style={[styles.actionBtn, { backgroundColor: COLORS.success }, starting && styles.btnDisabled]}
                 onPress={handleGenerateEndOtp}
                 disabled={starting}
               >
-                {starting
-                  ? <ActivityIndicator color={COLORS.primaryFg} />
-                  : <Text style={styles.actionBtnText}>🔑 Complete Job (End OTP)</Text>
-                }
+                {starting ? (
+                  <ActivityIndicator color={COLORS.primaryFg} />
+                ) : (
+                  <View style={styles.actionBtnContent}>
+                    <Key size={18} weight="fill" color={COLORS.primaryFg} />
+                    <Text style={styles.actionBtnText}>Complete Job (End OTP)</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             )}
           </>
@@ -206,7 +234,7 @@ const JobDetailScreen = () => {
 
         {job.status === 'completed' && (
           <View style={styles.completedBox}>
-            <Text style={styles.completedIcon}>✅</Text>
+            <CheckCircle size={40} weight="fill" color={COLORS.success} />
             <Text style={styles.completedText}>Job Completed</Text>
             {job.completed_at && (
               <Text style={styles.completedTime}>{formatDate(job.completed_at)}</Text>
@@ -214,21 +242,25 @@ const JobDetailScreen = () => {
           </View>
         )}
 
-        {/* Secondary Actions — visible when job is not completed/cancelled */}
+        {/* Secondary Actions -- visible when job is not completed/cancelled */}
         {job.status !== 'completed' && job.status !== 'cancelled' && (
           <View style={styles.secondaryActions}>
             <TouchableOpacity
               style={styles.secondaryBtn}
               onPress={() => navigation.navigate('IncidentReport', { job_id: job.id })}
             >
-              <Text style={styles.secondaryBtnIcon}>🚨</Text>
+              <View style={styles.secondaryIconContainer}>
+                <Siren size={20} weight="fill" color={COLORS.danger} />
+              </View>
               <Text style={styles.secondaryBtnText}>Report Incident</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.secondaryBtn}
               onPress={() => navigation.navigate('JobTransfer', { job_id: job.id })}
             >
-              <Text style={styles.secondaryBtnIcon}>🔄</Text>
+              <View style={styles.secondaryIconContainer}>
+                <ArrowsClockwise size={20} weight="regular" color={COLORS.primary} />
+              </View>
               <Text style={styles.secondaryBtnText}>Transfer Job</Text>
             </TouchableOpacity>
           </View>
@@ -242,6 +274,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: COLORS.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
   errorText: { fontSize: 16, color: COLORS.muted, marginBottom: 12 },
+  goBackRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 },
   header: {
     backgroundColor: COLORS.surface,
     paddingTop: 56,
@@ -253,7 +286,6 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   backBtn: { marginRight: 12 },
-  backText: { fontSize: 24, color: COLORS.primary },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground, flex: 1 },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   badgeText: { color: COLORS.primaryFg, fontSize: 10, fontWeight: 'bold' },
@@ -269,7 +301,8 @@ const styles = StyleSheet.create({
   },
   jobTitle: { fontSize: 20, fontWeight: 'bold', color: COLORS.foreground },
   jobSize: { fontSize: 14, color: COLORS.muted, marginTop: 4 },
-  scheduledAt: { fontSize: 14, color: COLORS.primary, marginTop: 8, fontWeight: '600' },
+  scheduledRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
+  scheduledAt: { fontSize: 14, color: COLORS.primary, fontWeight: '600' },
   customerCard: {
     backgroundColor: COLORS.surface,
     borderRadius: 16,
@@ -279,7 +312,10 @@ const styles = StyleSheet.create({
   },
   customerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
   customerName: { fontSize: 16, fontWeight: 'bold', color: COLORS.foreground },
-  callBtn: { backgroundColor: COLORS.primaryBg, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: COLORS.borderActive },
+  callBtn: {
+    backgroundColor: COLORS.primaryBg, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8,
+    borderWidth: 1, borderColor: COLORS.borderActive, flexDirection: 'row', alignItems: 'center', gap: 6,
+  },
   callText: { fontSize: 13, color: COLORS.primary, fontWeight: 'bold' },
   customerPhone: { fontSize: 13, color: COLORS.muted, marginBottom: 6 },
   address: { fontSize: 13, color: COLORS.muted, lineHeight: 20 },
@@ -296,7 +332,7 @@ const styles = StyleSheet.create({
   progressBarContainer: { height: 8, backgroundColor: COLORS.border, borderRadius: 4, marginBottom: 14 },
   progressBarFill: { height: 8, backgroundColor: COLORS.primary, borderRadius: 4 },
   stepRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  stepIcon: { fontSize: 16, marginRight: 8 },
+  stepIconContainer: { marginRight: 8, width: 20, alignItems: 'center' },
   stepName: { fontSize: 13, color: COLORS.muted },
   stepDone: { color: COLORS.success, fontWeight: '600' },
   actionBtn: {
@@ -304,13 +340,11 @@ const styles = StyleSheet.create({
     padding: 18,
     alignItems: 'center',
     marginTop: 16,
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
-  startBtn: { backgroundColor: COLORS.primary, shadowColor: COLORS.primary },
-  checklistBtn: { backgroundColor: COLORS.primary, shadowColor: COLORS.primary },
-  btnDisabled: { backgroundColor: COLORS.muted, shadowOpacity: 0 },
+  actionBtnContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  startBtn: { backgroundColor: COLORS.primary },
+  checklistBtn: { backgroundColor: COLORS.primary },
+  btnDisabled: { backgroundColor: COLORS.muted },
   actionBtnText: { color: COLORS.primaryFg, fontWeight: 'bold', fontSize: 16 },
   completedBox: {
     backgroundColor: COLORS.successBg,
@@ -321,10 +355,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.success,
   },
-  completedIcon: { fontSize: 40, marginBottom: 8 },
-  completedText: { fontSize: 18, fontWeight: 'bold', color: COLORS.success },
+  completedText: { fontSize: 18, fontWeight: 'bold', color: COLORS.success, marginTop: 8 },
   completedTime: { fontSize: 13, color: COLORS.muted, marginTop: 4 },
-  link: { color: COLORS.primary, fontWeight: '600', marginTop: 8 },
+  link: { color: COLORS.primary, fontWeight: '600' },
   secondaryActions: {
     flexDirection: 'row', gap: 12, marginTop: 16,
   },
@@ -332,7 +365,11 @@ const styles = StyleSheet.create({
     flex: 1, backgroundColor: COLORS.surface, borderRadius: 12,
     padding: 14, alignItems: 'center', borderWidth: 1, borderColor: COLORS.border,
   },
-  secondaryBtnIcon: { fontSize: 22, marginBottom: 4 },
+  secondaryIconContainer: {
+    width: 40, height: 40, borderRadius: 12, backgroundColor: COLORS.surfaceElevated,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 6,
+    borderWidth: 1, borderColor: COLORS.border,
+  },
   secondaryBtnText: { fontSize: 12, color: COLORS.muted, fontWeight: '600' },
 });
 

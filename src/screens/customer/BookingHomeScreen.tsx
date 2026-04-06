@@ -8,6 +8,10 @@ import useAuthStore from '../../store/auth.store';
 import { bookingAPI, amcAPI, ecoScoreAPI } from '../../services/api';
 import { COLORS } from '../../utils/constants';
 import { Booking, AmcContract } from '../../types';
+import {
+  Bell, Drop, ArrowRight, ClipboardText, Trophy, UserCircle,
+  ShieldCheck, FileText, MapPin, Calendar,
+} from '../../components/Icons';
 
 const BADGE_COLORS: Record<string, string> = {
   platinum: COLORS.platinum,
@@ -90,22 +94,24 @@ const BookingHomeScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>Hello, {user?.name || 'Customer'} 👋</Text>
+          <Text style={styles.greeting}>Hello, {user?.name || 'Customer'}</Text>
           <Text style={styles.subGreeting}>Keep your water safe & clean</Text>
         </View>
         <TouchableOpacity style={styles.bellBtn} onPress={() => navigation.navigate('Notifications')}>
-          <Text style={styles.bellIcon}>🔔</Text>
+          <Bell size={24} weight="regular" color={COLORS.foreground} />
         </TouchableOpacity>
       </View>
 
       {/* Book Now CTA */}
       <TouchableOpacity style={styles.bookBtn} onPress={() => navigation.navigate('TankDetails')}>
-        <Text style={styles.bookBtnIcon}>🚿</Text>
-        <View>
+        <View style={styles.bookBtnIconWrap}>
+          <Drop size={28} weight="fill" color={COLORS.primaryFg} />
+        </View>
+        <View style={{ flex: 1 }}>
           <Text style={styles.bookBtnTitle}>Book a Cleaning</Text>
           <Text style={styles.bookBtnSub}>Schedule tank & sump hygiene service</Text>
         </View>
-        <Text style={styles.bookBtnArrow}>→</Text>
+        <ArrowRight size={22} weight="bold" color={COLORS.primaryFg} />
       </TouchableOpacity>
 
       {/* EcoScore Card */}
@@ -113,9 +119,9 @@ const BookingHomeScreen = () => {
         <View style={[styles.card, { borderLeftColor: BADGE_COLORS[ecoScore.badge_level] || COLORS.secondary }]}>
           <Text style={styles.cardLabel}>Your EcoScore</Text>
           <View style={styles.ecoRow}>
-            <Text style={styles.ecoScore}>{ecoScore.avg_score ?? '—'}</Text>
+            <Text style={styles.ecoScore}>{ecoScore.avg_score ?? '--'}</Text>
             <View style={[styles.ecoBadge, { backgroundColor: BADGE_COLORS[ecoScore.badge_level] || COLORS.secondary }]}>
-              <Text style={styles.ecoBadgeText}>{ecoScore.badge_level?.toUpperCase() || '—'}</Text>
+              <Text style={styles.ecoBadgeText}>{ecoScore.badge_level?.toUpperCase() || '--'}</Text>
             </View>
           </View>
           <Text style={styles.cardSub}>Based on your last cleaning service</Text>
@@ -127,18 +133,20 @@ const BookingHomeScreen = () => {
         <Text style={styles.cardLabel}>AMC Contract</Text>
         {amc ? (
           <>
-            <Text style={styles.amcPlan}>{amc.plan_type?.toUpperCase()} Plan — Active</Text>
+            <Text style={styles.amcPlan}>{amc.plan_type?.toUpperCase()} Plan -- Active</Text>
             <Text style={styles.cardSub}>Valid till {formatDate(amc.end_date)}</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('AmcPlans')}>
-              <Text style={styles.link}>Manage AMC →</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('AmcPlans')} style={styles.linkRow}>
+              <Text style={styles.link}>Manage AMC</Text>
+              <ArrowRight size={14} weight="bold" color={COLORS.primary} />
             </TouchableOpacity>
           </>
         ) : (
           <>
             <Text style={styles.amcPlan}>No active AMC</Text>
             <Text style={styles.cardSub}>Get up to 25% off with an annual plan</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('AmcPlans')}>
-              <Text style={styles.link}>View Plans →</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('AmcPlans')} style={styles.linkRow}>
+              <Text style={styles.link}>View Plans</Text>
+              <ArrowRight size={14} weight="bold" color={COLORS.primary} />
             </TouchableOpacity>
           </>
         )}
@@ -148,13 +156,14 @@ const BookingHomeScreen = () => {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Recent Bookings</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('MyBookings')}>
-            <Text style={styles.link}>See all →</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('MyBookings')} style={styles.linkRow}>
+            <Text style={styles.link}>See all</Text>
+            <ArrowRight size={14} weight="bold" color={COLORS.primary} />
           </TouchableOpacity>
         </View>
         {bookings.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyIcon}>📋</Text>
+            <ClipboardText size={40} weight="light" color={COLORS.muted} />
             <Text style={styles.emptyText}>No bookings yet</Text>
             <Text style={styles.emptySub}>Your cleaning history will appear here</Text>
           </View>
@@ -166,9 +175,9 @@ const BookingHomeScreen = () => {
               onPress={() => navigation.navigate('BookingDetail', { booking_id: b.id })}
             >
               <View style={styles.bookingRow}>
-                <Text style={styles.bookingIcon}>
-                  {b.tank_type === 'overhead' ? '🏠' : b.tank_type === 'underground' ? '🏗️' : '🏊'}
-                </Text>
+                <View style={styles.bookingIconWrap}>
+                  <Drop size={22} weight="fill" color={COLORS.primary} />
+                </View>
                 <View style={styles.bookingInfo}>
                   <Text style={styles.bookingType}>{b.tank_type?.replace('_', ' ').toUpperCase()} TANK</Text>
                   <Text style={styles.bookingDate}>{formatDate(b.slot_time)}</Text>
@@ -186,15 +195,15 @@ const BookingHomeScreen = () => {
       {/* Quick Links */}
       <View style={styles.quickLinks}>
         <TouchableOpacity style={styles.quickLink} onPress={() => navigation.navigate('Certificates')}>
-          <Text style={styles.quickIcon}>🏆</Text>
+          <Trophy size={26} weight="regular" color={COLORS.primary} />
           <Text style={styles.quickLabel}>Certificates</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.quickLink} onPress={() => navigation.navigate('AmcPlans')}>
-          <Text style={styles.quickIcon}>📃</Text>
+          <FileText size={26} weight="regular" color={COLORS.primary} />
           <Text style={styles.quickLabel}>AMC Plans</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.quickLink} onPress={() => navigation.navigate('Profile')}>
-          <Text style={styles.quickIcon}>👤</Text>
+          <UserCircle size={26} weight="regular" color={COLORS.primary} />
           <Text style={styles.quickLabel}>Profile</Text>
         </TouchableOpacity>
       </View>
@@ -220,8 +229,7 @@ const styles = StyleSheet.create({
   },
   greeting: { fontSize: 20, fontWeight: 'bold', color: COLORS.foreground },
   subGreeting: { fontSize: 13, color: COLORS.muted, marginTop: 2 },
-  bellBtn: { padding: 6 },
-  bellIcon: { fontSize: 24 },
+  bellBtn: { padding: 8 },
   bookBtn: {
     margin: 16,
     backgroundColor: COLORS.primary,
@@ -229,15 +237,14 @@ const styles = StyleSheet.create({
     padding: 18,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
-  bookBtnIcon: { fontSize: 32, marginRight: 12 },
+  bookBtnIconWrap: {
+    width: 48, height: 48, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center', alignItems: 'center', marginRight: 14,
+  },
   bookBtnTitle: { fontSize: 17, fontWeight: 'bold', color: COLORS.primaryFg },
   bookBtnSub: { fontSize: 12, color: COLORS.primaryFg, opacity: 0.8, marginTop: 2 },
-  bookBtnArrow: { fontSize: 22, color: COLORS.primaryFg, marginLeft: 'auto' },
   card: {
     marginHorizontal: 16,
     marginBottom: 12,
@@ -255,7 +262,8 @@ const styles = StyleSheet.create({
   ecoBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   ecoBadgeText: { color: COLORS.primaryFg, fontWeight: 'bold', fontSize: 12 },
   amcPlan: { fontSize: 16, fontWeight: 'bold', color: COLORS.foreground, marginBottom: 2 },
-  link: { fontSize: 13, color: COLORS.primary, fontWeight: '600', marginTop: 6 },
+  link: { fontSize: 13, color: COLORS.primary, fontWeight: '600' },
+  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
   section: { marginHorizontal: 16, marginBottom: 12 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   sectionTitle: { fontSize: 16, fontWeight: 'bold', color: COLORS.foreground },
@@ -266,10 +274,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.border,
+    gap: 6,
   },
-  emptyIcon: { fontSize: 36, marginBottom: 8 },
   emptyText: { fontSize: 15, fontWeight: '600', color: COLORS.foreground },
-  emptySub: { fontSize: 12, color: COLORS.muted, marginTop: 4 },
+  emptySub: { fontSize: 12, color: COLORS.muted },
   bookingCard: {
     backgroundColor: COLORS.surface,
     borderRadius: 16,
@@ -279,7 +287,11 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   bookingRow: { flexDirection: 'row', alignItems: 'center' },
-  bookingIcon: { fontSize: 28, marginRight: 12 },
+  bookingIconWrap: {
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: COLORS.primaryBg,
+    justifyContent: 'center', alignItems: 'center', marginRight: 12,
+  },
   bookingInfo: { flex: 1 },
   bookingType: { fontSize: 13, fontWeight: 'bold', color: COLORS.foreground },
   bookingDate: { fontSize: 12, color: COLORS.muted, marginTop: 2 },
@@ -301,8 +313,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
     borderWidth: 1,
     borderColor: COLORS.border,
+    gap: 6,
   },
-  quickIcon: { fontSize: 26, marginBottom: 4 },
   quickLabel: { fontSize: 11, color: COLORS.primary, fontWeight: '600' },
 });
 

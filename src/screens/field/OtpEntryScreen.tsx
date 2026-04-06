@@ -6,6 +6,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { jobAPI } from '../../services/api';
 import { COLORS } from '../../utils/constants';
+import { ArrowLeft, Key, Lock, Numpad } from '../../components/Icons';
 
 const OtpEntryScreen = () => {
   const navigation = useNavigation<any>();
@@ -69,13 +70,18 @@ const OtpEntryScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
+          <ArrowLeft size={22} weight="regular" color={COLORS.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{title}</Text>
       </View>
 
-      {/* Subtitle */}
-      <Text style={styles.subtitle}>{subtitle}</Text>
+      {/* Icon + Subtitle */}
+      <View style={styles.subtitleSection}>
+        <View style={[styles.otpIconContainer, { backgroundColor: isStart ? COLORS.primaryBg : COLORS.successBg }]}>
+          <Key size={24} weight="fill" color={accentColor} />
+        </View>
+        <Text style={styles.subtitle}>{subtitle}</Text>
+      </View>
 
       {/* OTP Display */}
       <View style={styles.otpContainer}>
@@ -90,7 +96,7 @@ const OtpEntryScreen = () => {
             ]}
           >
             <Text style={[styles.otpDigit, { color: otp[i] ? accentColor : COLORS.muted }]}>
-              {otp[i] || '—'}
+              {otp[i] || '\u2014'}
             </Text>
           </View>
         ))}
@@ -111,7 +117,7 @@ const OtpEntryScreen = () => {
             }}
           >
             <Text style={[styles.numKeyText, d === 'DEL' && styles.delText]}>
-              {d === 'DEL' ? '⌫' : d}
+              {d === 'DEL' ? '\u232B' : d}
             </Text>
           </TouchableOpacity>
         ))}
@@ -126,9 +132,12 @@ const OtpEntryScreen = () => {
         {loading ? (
           <ActivityIndicator color={COLORS.primaryFg} />
         ) : (
-          <Text style={styles.submitText}>
-            {isStart ? 'Verify & Start Job' : 'Verify & Complete'}
-          </Text>
+          <View style={styles.submitContent}>
+            <Lock size={18} weight="fill" color={COLORS.primaryFg} />
+            <Text style={styles.submitText}>
+              {isStart ? 'Verify & Start Job' : 'Verify & Complete'}
+            </Text>
+          </View>
         )}
       </TouchableOpacity>
     </View>
@@ -144,15 +153,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: COLORS.border,
   },
   backBtn: { marginRight: 12 },
-  backText: { fontSize: 24, color: COLORS.primary },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground },
+  subtitleSection: { alignItems: 'center', marginTop: 24 },
+  otpIconContainer: {
+    width: 56, height: 56, borderRadius: 16,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 12,
+    borderWidth: 1, borderColor: COLORS.borderActive,
+  },
   subtitle: {
     fontSize: 14, color: COLORS.muted, textAlign: 'center',
-    marginTop: 24, marginHorizontal: 32, lineHeight: 20,
+    marginHorizontal: 32, lineHeight: 20,
   },
   otpContainer: {
     flexDirection: 'row', justifyContent: 'center',
-    marginTop: 32, marginBottom: 8, gap: 10,
+    marginTop: 24, marginBottom: 8, gap: 10,
   },
   otpBox: {
     width: 48, height: 56, borderRadius: 12,
@@ -179,9 +193,9 @@ const styles = StyleSheet.create({
   submitBtn: {
     marginHorizontal: 32, marginTop: 16,
     borderRadius: 16, padding: 18, alignItems: 'center',
-    shadowOpacity: 0.3, shadowRadius: 16, elevation: 8,
   },
   submitDisabled: { opacity: 0.4 },
+  submitContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   submitText: { color: COLORS.primaryFg, fontWeight: 'bold', fontSize: 17 },
 });
 

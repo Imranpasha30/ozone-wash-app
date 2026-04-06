@@ -7,6 +7,10 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { certificateAPI } from '../../services/api';
 import { COLORS } from '../../utils/constants';
 import { Certificate } from '../../types';
+import {
+  ArrowLeft, Trophy, Medal, Star, Shield,
+  DownloadSimple, MagnifyingGlass, QrCode, ShieldCheck,
+} from '../../components/Icons';
 
 const BADGE_COLORS: Record<string, string> = {
   platinum: COLORS.platinum,
@@ -15,11 +19,22 @@ const BADGE_COLORS: Record<string, string> = {
   bronze: COLORS.bronze,
 };
 
-const BADGE_ICONS: Record<string, string> = {
-  platinum: '💎',
-  gold: '🥇',
-  silver: '🥈',
-  bronze: '🥉',
+const BADGE_BG_COLORS: Record<string, string> = {
+  platinum: COLORS.platinumBg,
+  gold: COLORS.goldBg,
+  silver: COLORS.silverBg,
+  bronze: COLORS.bronzeBg,
+};
+
+const BadgeIcon = ({ badge }: { badge: string }) => {
+  const color = BADGE_COLORS[badge] || COLORS.muted;
+  switch (badge) {
+    case 'platinum': return <Shield size={48} weight="fill" color={color} />;
+    case 'gold': return <Trophy size={48} weight="fill" color={color} />;
+    case 'silver': return <Medal size={48} weight="fill" color={color} />;
+    case 'bronze': return <Star size={48} weight="fill" color={color} />;
+    default: return <Star size={48} weight="fill" color={color} />;
+  }
 };
 
 const CertificateScreen = () => {
@@ -61,8 +76,9 @@ const CertificateScreen = () => {
     return (
       <View style={styles.center}>
         <Text style={styles.notFoundText}>Certificate not found</Text>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.link}>← Go Back</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.goBackBtn}>
+          <ArrowLeft size={18} weight="regular" color={COLORS.primary} />
+          <Text style={styles.link}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -74,7 +90,7 @@ const CertificateScreen = () => {
     <View style={styles.root}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
+          <ArrowLeft size={22} weight="regular" color={COLORS.foreground} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Hygiene Certificate</Text>
       </View>
@@ -90,7 +106,9 @@ const CertificateScreen = () => {
 
           {/* Badge */}
           <View style={styles.badgeSection}>
-            <Text style={styles.badgeIcon}>{BADGE_ICONS[badge]}</Text>
+            <View style={[styles.badgeIconWrap, { backgroundColor: BADGE_BG_COLORS[badge] }]}>
+              <BadgeIcon badge={badge} />
+            </View>
             <Text style={[styles.badgeLevel, { color: BADGE_COLORS[badge] }]}>
               {badge.toUpperCase()} BADGE
             </Text>
@@ -124,7 +142,7 @@ const CertificateScreen = () => {
 
           {/* QR placeholder */}
           <View style={styles.qrBox}>
-            <Text style={styles.qrIcon}>◼◻◼{'\n'}◻◼◻{'\n'}◼◻◼</Text>
+            <QrCode size={56} weight="regular" color={COLORS.foreground} />
             <Text style={styles.qrLabel}>Scan to verify authenticity</Text>
           </View>
 
@@ -142,7 +160,8 @@ const CertificateScreen = () => {
             style={styles.downloadBtn}
             onPress={() => Linking.openURL(cert.certificate_url)}
           >
-            <Text style={styles.downloadText}>⬇️  Download PDF Certificate</Text>
+            <DownloadSimple size={20} weight="bold" color={COLORS.primaryFg} />
+            <Text style={styles.downloadText}>Download PDF Certificate</Text>
           </TouchableOpacity>
         )}
 
@@ -150,7 +169,8 @@ const CertificateScreen = () => {
           style={styles.verifyBtn}
           onPress={() => Alert.alert('Verify', `Certificate ID: ${cert.id}\nStatus: ${cert.status}`)}
         >
-          <Text style={styles.verifyText}>🔍  Verify Certificate</Text>
+          <ShieldCheck size={20} weight="regular" color={COLORS.primary} />
+          <Text style={styles.verifyText}>Verify Certificate</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -168,6 +188,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: COLORS.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
   notFoundText: { fontSize: 16, color: COLORS.muted, marginBottom: 12 },
+  goBackBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   header: {
     backgroundColor: COLORS.surface,
     paddingTop: 56,
@@ -179,7 +200,6 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   backBtn: { marginRight: 12 },
-  backText: { fontSize: 24, color: COLORS.primary },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground },
   body: { padding: 16, paddingBottom: 40 },
   certCard: {
@@ -190,10 +210,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   certHeader: { padding: 20, alignItems: 'center' },
-  certHeaderText: { fontSize: 22, fontWeight: 'bold', color: COLORS.foreground, letterSpacing: 3 },
-  certSubHeader: { fontSize: 13, color: COLORS.muted, marginTop: 2 },
+  certHeaderText: { fontSize: 22, fontWeight: 'bold', color: COLORS.white, letterSpacing: 3 },
+  certSubHeader: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
   badgeSection: { alignItems: 'center', paddingVertical: 20 },
-  badgeIcon: { fontSize: 52, marginBottom: 6 },
+  badgeIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
   badgeLevel: { fontSize: 16, fontWeight: 'bold', letterSpacing: 2 },
   scoreSection: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 16 },
   scoreLabel: { fontSize: 14, color: COLORS.muted, marginRight: 8, marginBottom: 4 },
@@ -207,9 +234,18 @@ const styles = StyleSheet.create({
   certIdBox: { alignItems: 'center', paddingHorizontal: 20, marginBottom: 16 },
   certIdLabel: { fontSize: 11, color: COLORS.muted, textTransform: 'uppercase', marginBottom: 4 },
   certId: { fontSize: 11, color: COLORS.primary, fontFamily: 'monospace' },
-  qrBox: { alignItems: 'center', paddingVertical: 16, backgroundColor: COLORS.surfaceElevated, marginHorizontal: 20, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: COLORS.border },
-  qrIcon: { fontSize: 40, textAlign: 'center', lineHeight: 44, letterSpacing: 4, color: COLORS.foreground },
-  qrLabel: { fontSize: 11, color: COLORS.muted, marginTop: 8 },
+  qrBox: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    backgroundColor: COLORS.surfaceElevated,
+    marginHorizontal: 20,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    gap: 8,
+  },
+  qrLabel: { fontSize: 11, color: COLORS.muted },
   sigSection: { alignItems: 'center', padding: 20 },
   sigLine: { width: 120, height: 1, backgroundColor: COLORS.border, marginBottom: 8 },
   sigName: { fontSize: 12, fontWeight: 'bold', color: COLORS.foreground },
@@ -218,24 +254,26 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: 16,
     padding: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     marginBottom: 10,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
   downloadText: { color: COLORS.primaryFg, fontWeight: 'bold', fontSize: 15 },
   verifyBtn: {
     backgroundColor: COLORS.surfaceElevated,
     borderRadius: 16,
     padding: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     borderWidth: 1.5,
     borderColor: COLORS.primary,
   },
   verifyText: { color: COLORS.primary, fontWeight: 'bold', fontSize: 15 },
-  link: { color: COLORS.primary, fontWeight: '600', marginTop: 8 },
+  link: { color: COLORS.primary, fontWeight: '600' },
 });
 
 export default CertificateScreen;

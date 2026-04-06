@@ -6,6 +6,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { adminAPI } from '../../services/api';
 import { COLORS } from '../../utils/constants';
+import { ClipboardText, Check, X } from '../../components/Icons';
 
 const FILTERS = ['All', 'Pending', 'Confirmed', 'Completed', 'Cancelled'];
 
@@ -101,7 +102,12 @@ const AdminBookingsScreen = () => {
           >
             {actionLoading === item.id + '_confirm'
               ? <ActivityIndicator size="small" color={COLORS.primaryFg} />
-              : <Text style={styles.confirmText}>✓ Confirm</Text>}
+              : (
+                <View style={styles.actionBtnInner}>
+                  <Check size={16} weight="bold" color={COLORS.primary} />
+                  <Text style={styles.confirmText}> Confirm</Text>
+                </View>
+              )}
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionBtn, styles.cancelBtn]}
@@ -110,7 +116,12 @@ const AdminBookingsScreen = () => {
           >
             {actionLoading === item.id + '_cancel'
               ? <ActivityIndicator size="small" color={COLORS.danger} />
-              : <Text style={styles.cancelText}>✕ Cancel</Text>}
+              : (
+                <View style={styles.actionBtnInner}>
+                  <X size={16} weight="bold" color={COLORS.danger} />
+                  <Text style={styles.cancelText}> Cancel</Text>
+                </View>
+              )}
           </TouchableOpacity>
         </View>
       )}
@@ -156,7 +167,7 @@ const AdminBookingsScreen = () => {
           }
           ListEmptyComponent={
             <View style={styles.emptyBox}>
-              <Text style={styles.emptyIcon}>📋</Text>
+              <ClipboardText size={48} weight="regular" color={COLORS.muted} />
               <Text style={styles.emptyTitle}>No {filter !== 'All' ? filter.toLowerCase() : ''} bookings</Text>
             </View>
           }
@@ -208,12 +219,12 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 10, fontWeight: 'bold' },
   actions: { flexDirection: 'row', gap: 10, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: COLORS.border },
   actionBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center', borderWidth: 1 },
+  actionBtnInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   confirmBtn: { backgroundColor: COLORS.primaryBg, borderColor: COLORS.primary },
   cancelBtn: { backgroundColor: COLORS.dangerBg, borderColor: COLORS.danger },
   confirmText: { color: COLORS.primary, fontWeight: 'bold', fontSize: 13 },
   cancelText: { color: COLORS.danger, fontWeight: 'bold', fontSize: 13 },
-  emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
+  emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, gap: 12 },
   emptyTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground },
 });
 

@@ -1,8 +1,8 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { Text } from 'react-native';
 import { COLORS } from '../utils/constants';
+import { Drop, ClipboardText, Trophy, UserCircle } from '../components/Icons';
 
 // Tab screens
 import BookingHomeScreen from '../screens/customer/BookingHomeScreen';
@@ -23,10 +23,6 @@ import NotificationsScreen from '../screens/customer/NotificationsScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
-
-const TabIcon = ({ emoji, focused }: { emoji: string; focused: boolean }) => (
-  <Text style={{ fontSize: focused ? 26 : 22 }}>{emoji}</Text>
-);
 
 const CustomerTabs = () => (
   <Tab.Navigator
@@ -52,7 +48,9 @@ const CustomerTabs = () => (
       component={BookingHomeScreen}
       options={{
         tabBarLabel: 'Book',
-        tabBarIcon: ({ focused }) => <TabIcon emoji="🚿" focused={focused} />,
+        tabBarIcon: ({ focused }) => (
+          <Drop size={24} weight={focused ? 'fill' : 'regular'} color={focused ? COLORS.primary : COLORS.muted} />
+        ),
       }}
     />
     <Tab.Screen
@@ -60,7 +58,9 @@ const CustomerTabs = () => (
       component={MyBookingsScreen}
       options={{
         tabBarLabel: 'Bookings',
-        tabBarIcon: ({ focused }) => <TabIcon emoji="📋" focused={focused} />,
+        tabBarIcon: ({ focused }) => (
+          <ClipboardText size={24} weight={focused ? 'fill' : 'regular'} color={focused ? COLORS.primary : COLORS.muted} />
+        ),
       }}
     />
     <Tab.Screen
@@ -68,7 +68,9 @@ const CustomerTabs = () => (
       component={CertificatesScreen}
       options={{
         tabBarLabel: 'Certs',
-        tabBarIcon: ({ focused }) => <TabIcon emoji="🏆" focused={focused} />,
+        tabBarIcon: ({ focused }) => (
+          <Trophy size={24} weight={focused ? 'fill' : 'regular'} color={focused ? COLORS.primary : COLORS.muted} />
+        ),
       }}
     />
     <Tab.Screen
@@ -76,7 +78,9 @@ const CustomerTabs = () => (
       component={ProfileScreen}
       options={{
         tabBarLabel: 'Profile',
-        tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} />,
+        tabBarIcon: ({ focused }) => (
+          <UserCircle size={24} weight={focused ? 'fill' : 'regular'} color={focused ? COLORS.primary : COLORS.muted} />
+        ),
       }}
     />
   </Tab.Navigator>

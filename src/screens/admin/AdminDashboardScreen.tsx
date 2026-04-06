@@ -6,6 +6,10 @@ import {
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { adminAPI } from '../../services/api';
 import { COLORS } from '../../utils/constants';
+import {
+  CalendarBlank, CheckCircle, Wrench, Warning,
+  ClipboardText, Receipt,
+} from '../../components/Icons';
 
 const AdminDashboardScreen = () => {
   const navigation = useNavigation<any>();
@@ -60,21 +64,21 @@ const AdminDashboardScreen = () => {
 
       {/* Stats Grid */}
       <View style={styles.statsGrid}>
-        <StatCard label="Today's Jobs" value={stats?.today_total || '0'} icon="📅" color={COLORS.primary} />
-        <StatCard label="Completed" value={stats?.today_completed || '0'} icon="✅" color={COLORS.success} />
-        <StatCard label="In Progress" value={stats?.today_inprogress || '0'} icon="🔧" color={COLORS.warning} />
-        <StatCard label="Overdue" value={stats?.overdue || '0'} icon="⚠️" color={COLORS.danger} />
+        <StatCard label="Today's Jobs" value={stats?.today_total || '0'} icon={<CalendarBlank size={28} weight="regular" color={COLORS.primary} />} color={COLORS.primary} />
+        <StatCard label="Completed" value={stats?.today_completed || '0'} icon={<CheckCircle size={28} weight="regular" color={COLORS.success} />} color={COLORS.success} />
+        <StatCard label="In Progress" value={stats?.today_inprogress || '0'} icon={<Wrench size={28} weight="regular" color={COLORS.warning} />} color={COLORS.warning} />
+        <StatCard label="Overdue" value={stats?.overdue || '0'} icon={<Warning size={28} weight="regular" color={COLORS.danger} />} color={COLORS.danger} />
       </View>
 
       {/* Quick Actions */}
       <Text style={styles.sectionTitle}>Quick Actions</Text>
       <View style={styles.actionsRow}>
         <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('AdminBookings')}>
-          <Text style={styles.actionIcon}>📋</Text>
+          <ClipboardText size={32} weight="regular" color={COLORS.primary} />
           <Text style={styles.actionLabel}>All Bookings</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('AdminJobs')}>
-          <Text style={styles.actionIcon}>🔧</Text>
+          <Wrench size={32} weight="regular" color={COLORS.primary} />
           <Text style={styles.actionLabel}>All Jobs</Text>
         </TouchableOpacity>
       </View>
@@ -108,9 +112,9 @@ const AdminDashboardScreen = () => {
   );
 };
 
-const StatCard = ({ label, value, icon, color }: { label: string; value: string; icon: string; color: string }) => (
+const StatCard = ({ label, value, icon, color }: { label: string; value: string; icon: React.ReactNode; color: string }) => (
   <View style={[styles.statCard, { borderColor: color + '40' }]}>
-    <Text style={styles.statIcon}>{icon}</Text>
+    <View style={styles.statIconWrap}>{icon}</View>
     <Text style={[styles.statValue, { color }]}>{value}</Text>
     <Text style={styles.statLabel}>{label}</Text>
   </View>
@@ -144,7 +148,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
   },
-  statIcon: { fontSize: 28, marginBottom: 6 },
+  statIconWrap: { marginBottom: 6 },
   statValue: { fontSize: 28, fontWeight: 'bold' },
   statLabel: { fontSize: 12, color: COLORS.muted, marginTop: 2, textAlign: 'center' },
   sectionTitle: { fontSize: 13, fontWeight: '700', color: COLORS.muted, textTransform: 'uppercase', paddingHorizontal: 16, marginBottom: 10, marginTop: 4 },
@@ -157,8 +161,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.border,
+    gap: 8,
   },
-  actionIcon: { fontSize: 32, marginBottom: 8 },
   actionLabel: { fontSize: 13, color: COLORS.foreground, fontWeight: '600' },
   bookingCard: {
     marginHorizontal: 16,

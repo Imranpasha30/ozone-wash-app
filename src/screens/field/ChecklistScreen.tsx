@@ -6,6 +6,9 @@ import {
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { complianceAPI, jobAPI, ecoScoreAPI, certificateAPI } from '../../services/api';
 import { COLORS, COMPLIANCE_STEPS } from '../../utils/constants';
+import {
+  ArrowLeft, Check, Lock, CheckCircle, ArrowRight, Confetti,
+} from '../../components/Icons';
 
 const ChecklistScreen = () => {
   const navigation = useNavigation<any>();
@@ -62,7 +65,7 @@ const ChecklistScreen = () => {
               await certificateAPI.generate(jobId);
 
               Alert.alert(
-                '🎉 Job Complete!',
+                'Job Complete!',
                 'EcoScore calculated and certificate generated.',
                 [
                   {
@@ -99,7 +102,7 @@ const ChecklistScreen = () => {
     <View style={styles.root}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
+          <ArrowLeft size={22} weight="regular" color={COLORS.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Compliance Checklist</Text>
         <Text style={styles.headerCount}>{completedCount}/{totalCount}</Text>
@@ -148,9 +151,13 @@ const ChecklistScreen = () => {
                   isCompleted && styles.stepCircleDone,
                   isLocked && styles.stepCircleLocked,
                 ]}>
-                  <Text style={styles.stepCircleText}>
-                    {isCompleted ? '✓' : isLocked ? '🔒' : step.step_number}
-                  </Text>
+                  {isCompleted ? (
+                    <Check size={16} weight="bold" color={COLORS.primaryFg} />
+                  ) : isLocked ? (
+                    <Lock size={14} weight="fill" color={COLORS.muted} />
+                  ) : (
+                    <Text style={styles.stepCircleText}>{step.step_number}</Text>
+                  )}
                 </View>
                 {i < steps.length - 1 && (
                   <View style={[styles.stepConnector, isCompleted && styles.stepConnectorDone]} />
@@ -161,13 +168,24 @@ const ChecklistScreen = () => {
                 <Text style={[styles.stepName, isCompleted && styles.stepNameDone, isLocked && styles.stepNameLocked]}>
                   {step.step_name}
                 </Text>
-                <Text style={styles.stepFields}>
-                  {isCompleted ? '✅ Completed' : isLocked ? 'Complete previous step first' : `Required: ${step.required_fields?.join(', ') || 'photo, GPS'}`}
-                </Text>
+                <View style={styles.stepFieldsRow}>
+                  {isCompleted ? (
+                    <>
+                      <CheckCircle size={14} weight="fill" color={COLORS.success} />
+                      <Text style={[styles.stepFields, { color: COLORS.success }]}>Completed</Text>
+                    </>
+                  ) : (
+                    <Text style={styles.stepFields}>
+                      {isLocked ? 'Complete previous step first' : `Required: ${step.required_fields?.join(', ') || 'photo, GPS'}`}
+                    </Text>
+                  )}
+                </View>
               </View>
 
               {!isCompleted && !isLocked && (
-                <Text style={styles.stepArrow}>→</Text>
+                <View style={styles.stepArrowContainer}>
+                  <ArrowRight size={16} weight="bold" color={COLORS.primary} />
+                </View>
               )}
             </TouchableOpacity>
           );
@@ -186,9 +204,12 @@ const ChecklistScreen = () => {
           {completing ? (
             <ActivityIndicator color={COLORS.primaryFg} />
           ) : (
-            <Text style={styles.completeBtnText}>
-              {pct < 100 ? `Complete ${8 - completedCount} more steps to finish` : '🎉 Complete Job & Generate Certificate'}
-            </Text>
+            <View style={styles.completeBtnContent}>
+              {pct >= 100 && <Confetti size={18} weight="fill" color={COLORS.primaryFg} />}
+              <Text style={styles.completeBtnText}>
+                {pct < 100 ? `Complete ${8 - completedCount} more steps to finish` : 'Complete Job & Generate Certificate'}
+              </Text>
+            </View>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -210,7 +231,6 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   backBtn: { marginRight: 12 },
-  backText: { fontSize: 24, color: COLORS.primary },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground, flex: 1 },
   headerCount: { fontSize: 16, color: COLORS.primary, fontWeight: 'bold' },
   progressSection: {
@@ -255,20 +275,18 @@ const styles = StyleSheet.create({
   stepName: { fontSize: 14, fontWeight: '700', color: COLORS.foreground, marginBottom: 4 },
   stepNameDone: { color: COLORS.success },
   stepNameLocked: { color: COLORS.muted },
+  stepFieldsRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   stepFields: { fontSize: 12, color: COLORS.muted, lineHeight: 18 },
-  stepArrow: { fontSize: 18, color: COLORS.primary, alignSelf: 'center' },
+  stepArrowContainer: { alignSelf: 'center' },
   completeBtn: {
     backgroundColor: COLORS.primary,
     borderRadius: 16,
     padding: 18,
     alignItems: 'center',
     marginTop: 16,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
-  completeBtnDisabled: { backgroundColor: COLORS.muted, shadowOpacity: 0 },
+  completeBtnDisabled: { backgroundColor: COLORS.muted },
+  completeBtnContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   completeBtnText: { color: COLORS.primaryFg, fontWeight: 'bold', fontSize: 15, textAlign: 'center' },
 });
 

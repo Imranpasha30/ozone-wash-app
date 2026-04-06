@@ -7,6 +7,21 @@ import { useNavigation } from '@react-navigation/native';
 import useBookingStore from '../../store/booking.store';
 import { bookingAPI } from '../../services/api';
 import { COLORS, ADDONS, AMC_PLANS, PAYMENT_METHODS } from '../../utils/constants';
+import {
+  ArrowLeft, ArrowRight, Check, CreditCard, Wallet, CurrencyInr,
+  Receipt, Tag, Phone,
+} from '../../components/Icons';
+
+const PaymentMethodIcon = ({ method, active }: { method: string; active: boolean }) => {
+  const color = active ? COLORS.primary : COLORS.muted;
+  switch (method) {
+    case 'upi': return <Phone size={18} weight="regular" color={color} />;
+    case 'card': return <CreditCard size={18} weight="regular" color={color} />;
+    case 'wallet': return <Wallet size={18} weight="regular" color={color} />;
+    case 'cod': return <CurrencyInr size={18} weight="regular" color={color} />;
+    default: return <CreditCard size={18} weight="regular" color={color} />;
+  }
+};
 
 const AddonsScreen = () => {
   const navigation = useNavigation<any>();
@@ -58,7 +73,7 @@ const AddonsScreen = () => {
     <View style={styles.root}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
+          <ArrowLeft size={22} weight="regular" color={COLORS.foreground} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add-ons & Payment</Text>
         <Text style={styles.stepText}>Step 3 / 4</Text>
@@ -79,7 +94,7 @@ const AddonsScreen = () => {
               onPress={() => toggleAddon(a.value)}
             >
               <View style={[styles.checkbox, selected && styles.checkboxActive]}>
-                {selected && <Text style={styles.checkmark}>✓</Text>}
+                {selected && <Check size={14} weight="bold" color={COLORS.primaryFg} />}
               </View>
               <View style={styles.addonInfo}>
                 <Text style={styles.addonName}>{a.label}</Text>
@@ -90,7 +105,10 @@ const AddonsScreen = () => {
         })}
 
         {/* AMC Plan */}
-        <Text style={styles.label}>AMC Plan (Optional)</Text>
+        <View style={styles.labelRow}>
+          <Tag size={16} weight="regular" color={COLORS.primary} />
+          <Text style={styles.labelText}>AMC Plan (Optional)</Text>
+        </View>
         <Text style={styles.hint}>Get up to 25% off on your base price</Text>
         <TouchableOpacity
           style={[styles.addonRow, amcPlan === '' && styles.addonRowActive]}
@@ -116,25 +134,29 @@ const AddonsScreen = () => {
         {/* Payment Method */}
         <Text style={styles.label}>Payment Method</Text>
         <View style={styles.payRow}>
-          {PAYMENT_METHODS.map((m) => (
-            <TouchableOpacity
-              key={m.value}
-              style={[styles.payBtn, paymentMethod === m.value && styles.payBtnActive]}
-              onPress={() => setPaymentMethod(m.value as any)}
-            >
-              <Text style={styles.payIcon}>
-                {m.value === 'upi' ? '📱' : m.value === 'card' ? '💳' : m.value === 'wallet' ? '👛' : '💵'}
-              </Text>
-              <Text style={[styles.payLabel, paymentMethod === m.value && styles.payLabelActive]}>
-                {m.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {PAYMENT_METHODS.map((m) => {
+            const active = paymentMethod === m.value;
+            return (
+              <TouchableOpacity
+                key={m.value}
+                style={[styles.payBtn, active && styles.payBtnActive]}
+                onPress={() => setPaymentMethod(m.value as any)}
+              >
+                <PaymentMethodIcon method={m.value} active={active} />
+                <Text style={[styles.payLabel, active && styles.payLabelActive]}>
+                  {m.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Price Breakdown */}
         <View style={styles.priceCard}>
-          <Text style={styles.priceTitle}>Price Breakdown</Text>
+          <View style={styles.priceTitleRow}>
+            <Receipt size={18} weight="regular" color={COLORS.foreground} />
+            <Text style={styles.priceTitle}>Price Breakdown</Text>
+          </View>
           {loading ? (
             <ActivityIndicator color={COLORS.primary} style={{ marginVertical: 12 }} />
           ) : pricing ? (
@@ -171,7 +193,8 @@ const AddonsScreen = () => {
         </View>
 
         <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
-          <Text style={styles.nextText}>Proceed to Payment →</Text>
+          <Text style={styles.nextText}>Proceed to Payment</Text>
+          <ArrowRight size={18} weight="bold" color={COLORS.primaryFg} />
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -191,13 +214,14 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   backBtn: { marginRight: 12 },
-  backText: { fontSize: 24, color: COLORS.primary },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground, flex: 1 },
   stepText: { fontSize: 13, color: COLORS.muted },
   progressBar: { height: 4, backgroundColor: COLORS.border },
   progressFill: { height: 4, backgroundColor: COLORS.primary },
   body: { padding: 20, paddingBottom: 40 },
   label: { fontSize: 14, fontWeight: '700', color: COLORS.foreground, marginBottom: 10, marginTop: 16 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10, marginTop: 16 },
+  labelText: { fontSize: 14, fontWeight: '700', color: COLORS.foreground },
   hint: { fontSize: 12, color: COLORS.muted, marginBottom: 10, marginTop: -6 },
   addonRow: {
     flexDirection: 'row',
@@ -221,7 +245,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primary },
-  checkmark: { color: COLORS.primaryFg, fontSize: 13, fontWeight: 'bold' },
   radio: {
     width: 20,
     height: 20,
@@ -244,9 +267,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: COLORS.border,
+    gap: 6,
   },
   payBtnActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryBg },
-  payIcon: { fontSize: 18, marginRight: 6 },
   payLabel: { fontSize: 13, color: COLORS.muted, fontWeight: '600' },
   payLabelActive: { color: COLORS.primary },
   priceCard: {
@@ -257,7 +280,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  priceTitle: { fontSize: 15, fontWeight: 'bold', color: COLORS.foreground, marginBottom: 12 },
+  priceTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  priceTitle: { fontSize: 15, fontWeight: 'bold', color: COLORS.foreground },
   priceRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   priceKey: { fontSize: 14, color: COLORS.muted },
   priceVal: { fontSize: 14, color: COLORS.foreground, fontWeight: '600' },
@@ -269,12 +293,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: 16,
     padding: 18,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     marginTop: 20,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
   nextText: { color: COLORS.primaryFg, fontWeight: 'bold', fontSize: 16 },
 });

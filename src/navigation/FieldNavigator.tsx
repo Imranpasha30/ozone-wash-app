@@ -1,8 +1,8 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { Text } from 'react-native';
 import { COLORS } from '../utils/constants';
+import { Wrench, ChartBar, UserCircle } from '../components/Icons';
 
 // Tab screens
 import JobListScreen from '../screens/field/JobListScreen';
@@ -19,10 +19,6 @@ import PerformanceScreen from '../screens/field/PerformanceScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
-
-const TabIcon = ({ emoji, focused }: { emoji: string; focused: boolean }) => (
-  <Text style={{ fontSize: focused ? 26 : 22 }}>{emoji}</Text>
-);
 
 const FieldTabs = () => (
   <Tab.Navigator
@@ -48,7 +44,9 @@ const FieldTabs = () => (
       component={JobListScreen}
       options={{
         tabBarLabel: 'My Jobs',
-        tabBarIcon: ({ focused }) => <TabIcon emoji="🔧" focused={focused} />,
+        tabBarIcon: ({ focused }) => (
+          <Wrench size={24} weight={focused ? 'fill' : 'regular'} color={focused ? COLORS.primary : COLORS.muted} />
+        ),
       }}
     />
     <Tab.Screen
@@ -56,7 +54,9 @@ const FieldTabs = () => (
       component={PerformanceScreen}
       options={{
         tabBarLabel: 'Stats',
-        tabBarIcon: ({ focused }) => <TabIcon emoji="📊" focused={focused} />,
+        tabBarIcon: ({ focused }) => (
+          <ChartBar size={24} weight={focused ? 'fill' : 'regular'} color={focused ? COLORS.primary : COLORS.muted} />
+        ),
       }}
     />
     <Tab.Screen
@@ -64,7 +64,9 @@ const FieldTabs = () => (
       component={ProfileScreen}
       options={{
         tabBarLabel: 'Profile',
-        tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} />,
+        tabBarIcon: ({ focused }) => (
+          <UserCircle size={24} weight={focused ? 'fill' : 'regular'} color={focused ? COLORS.primary : COLORS.muted} />
+        ),
       }}
     />
   </Tab.Navigator>

@@ -6,8 +6,16 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import useBookingStore from '../../store/booking.store';
 import { COLORS, TANK_TYPES } from '../../utils/constants';
+import { ArrowLeft, ArrowRight, House, Wrench, Drop, MapPin, CurrencyInr } from '../../components/Icons';
 
 const TANK_SIZES = [500, 1000, 1500, 2000, 3000, 5000];
+
+const TankTypeIcon = ({ type, active }: { type: string; active: boolean }) => {
+  const color = active ? COLORS.primary : COLORS.muted;
+  if (type === 'overhead') return <House size={26} weight="regular" color={color} />;
+  if (type === 'underground') return <Wrench size={26} weight="regular" color={color} />;
+  return <Drop size={26} weight="fill" color={color} />;
+};
 
 const TankDetailsScreen = () => {
   const navigation = useNavigation<any>();
@@ -43,7 +51,7 @@ const TankDetailsScreen = () => {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={styles.backText}>←</Text>
+            <ArrowLeft size={22} weight="regular" color={COLORS.foreground} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Tank Details</Text>
           <Text style={styles.stepText}>Step 1 / 4</Text>
@@ -58,20 +66,23 @@ const TankDetailsScreen = () => {
           {/* Tank Type */}
           <Text style={styles.label}>Tank Type</Text>
           <View style={styles.typeRow}>
-            {TANK_TYPES.map((t) => (
-              <TouchableOpacity
-                key={t.value}
-                style={[styles.typeBtn, tankType === t.value && styles.typeBtnActive]}
-                onPress={() => setTankType(t.value as any)}
-              >
-                <Text style={styles.typeIcon}>
-                  {t.value === 'overhead' ? '🏠' : t.value === 'underground' ? '🏗️' : '🏊'}
-                </Text>
-                <Text style={[styles.typeLabel, tankType === t.value && styles.typeLabelActive]}>
-                  {t.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {TANK_TYPES.map((t) => {
+              const active = tankType === t.value;
+              return (
+                <TouchableOpacity
+                  key={t.value}
+                  style={[styles.typeBtn, active && styles.typeBtnActive]}
+                  onPress={() => setTankType(t.value as any)}
+                >
+                  <View style={[styles.typeIconWrap, active && styles.typeIconWrapActive]}>
+                    <TankTypeIcon type={t.value} active={active} />
+                  </View>
+                  <Text style={[styles.typeLabel, active && styles.typeLabelActive]}>
+                    {t.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
           {/* Tank Size */}
@@ -99,7 +110,10 @@ const TankDetailsScreen = () => {
           />
 
           {/* Address */}
-          <Text style={styles.label}>Service Address</Text>
+          <View style={styles.labelRow}>
+            <MapPin size={16} weight="regular" color={COLORS.primary} />
+            <Text style={styles.labelWithIcon}>Service Address</Text>
+          </View>
           <TextInput
             style={[styles.input, styles.textArea]}
             placeholder="Enter full address including flat / house number, street, area"
@@ -114,13 +128,17 @@ const TankDetailsScreen = () => {
           {/* Price Preview */}
           <View style={styles.priceBox}>
             <Text style={styles.priceLabel}>Estimated base price</Text>
-            <Text style={styles.priceValue}>₹{basePrice()}</Text>
+            <View style={styles.priceRow}>
+              <CurrencyInr size={24} weight="bold" color={COLORS.primary} />
+              <Text style={styles.priceValue}>{basePrice()}</Text>
+            </View>
             <Text style={styles.priceSub}>+ addons & GST at next step</Text>
           </View>
 
           {/* Next */}
           <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
-            <Text style={styles.nextText}>Continue to Date & Time →</Text>
+            <Text style={styles.nextText}>Continue to Date & Time</Text>
+            <ArrowRight size={18} weight="bold" color={COLORS.primaryFg} />
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -142,13 +160,14 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   backBtn: { marginRight: 12 },
-  backText: { fontSize: 24, color: COLORS.primary },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground, flex: 1 },
   stepText: { fontSize: 13, color: COLORS.muted },
   progressBar: { height: 4, backgroundColor: COLORS.border },
   progressFill: { height: 4, backgroundColor: COLORS.primary },
   body: { padding: 20 },
   label: { fontSize: 14, fontWeight: '700', color: COLORS.foreground, marginBottom: 10, marginTop: 18 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10, marginTop: 18 },
+  labelWithIcon: { fontSize: 14, fontWeight: '700', color: COLORS.foreground },
   typeRow: { flexDirection: 'row', gap: 10 },
   typeBtn: {
     flex: 1,
@@ -160,7 +179,18 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   typeBtnActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryBg },
-  typeIcon: { fontSize: 26, marginBottom: 4 },
+  typeIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: COLORS.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  typeIconWrapActive: {
+    backgroundColor: COLORS.primaryDim,
+  },
   typeLabel: { fontSize: 11, color: COLORS.muted, fontWeight: '600', textAlign: 'center' },
   typeLabelActive: { color: COLORS.primary },
   sizeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
@@ -196,18 +226,18 @@ const styles = StyleSheet.create({
     borderColor: COLORS.borderActive,
   },
   priceLabel: { fontSize: 12, color: COLORS.muted },
-  priceValue: { fontSize: 32, fontWeight: 'bold', color: COLORS.primary, marginTop: 4 },
+  priceRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  priceValue: { fontSize: 32, fontWeight: 'bold', color: COLORS.primary },
   priceSub: { fontSize: 12, color: COLORS.muted, marginTop: 2 },
   nextBtn: {
     backgroundColor: COLORS.primary,
     borderRadius: 16,
     padding: 18,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     marginTop: 20,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
   nextText: { color: COLORS.primaryFg, fontWeight: 'bold', fontSize: 16 },
 });

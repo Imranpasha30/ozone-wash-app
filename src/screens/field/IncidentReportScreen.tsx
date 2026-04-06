@@ -7,6 +7,9 @@ import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { incidentAPI, uploadAPI } from '../../services/api';
 import { COLORS } from '../../utils/constants';
+import {
+  ArrowLeft, Camera, CheckCircle, Warning,
+} from '../../components/Icons';
 
 const SEVERITIES = [
   { label: 'Low', value: 'low', color: COLORS.info },
@@ -70,14 +73,17 @@ const IncidentReportScreen = () => {
     <View style={styles.root}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
+          <ArrowLeft size={22} weight="regular" color={COLORS.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Report Incident</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.body}>
         {/* Severity */}
-        <Text style={styles.label}>Severity</Text>
+        <View style={styles.labelRow}>
+          <Warning size={16} weight="fill" color={COLORS.foreground} />
+          <Text style={styles.label}>Severity</Text>
+        </View>
         <View style={styles.severityRow}>
           {SEVERITIES.map(s => (
             <TouchableOpacity
@@ -97,7 +103,7 @@ const IncidentReportScreen = () => {
         </View>
 
         {/* Description */}
-        <Text style={styles.label}>Description</Text>
+        <Text style={styles.labelStandalone}>Description</Text>
         <TextInput
           style={styles.textArea}
           placeholder="Describe the incident in detail..."
@@ -110,11 +116,22 @@ const IncidentReportScreen = () => {
         />
 
         {/* Photo */}
-        <Text style={styles.label}>Photo Evidence</Text>
+        <View style={styles.labelRow}>
+          <Camera size={16} weight="regular" color={COLORS.foreground} />
+          <Text style={styles.label}>Photo Evidence</Text>
+        </View>
         <TouchableOpacity style={styles.photoBtn} onPress={pickPhoto}>
-          <Text style={styles.photoBtnText}>
-            {photoUri ? '✅ Photo attached — tap to retake' : '📷 Take Photo'}
-          </Text>
+          {photoUri ? (
+            <View style={styles.photoAttachedRow}>
+              <CheckCircle size={18} weight="fill" color={COLORS.success} />
+              <Text style={[styles.photoBtnText, { color: COLORS.success }]}>Photo attached — tap to retake</Text>
+            </View>
+          ) : (
+            <View style={styles.photoAttachedRow}>
+              <Camera size={18} weight="regular" color={COLORS.primary} />
+              <Text style={styles.photoBtnText}>Take Photo</Text>
+            </View>
+          )}
         </TouchableOpacity>
 
         {/* Submit */}
@@ -141,10 +158,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: COLORS.border,
   },
   backBtn: { marginRight: 12 },
-  backText: { fontSize: 24, color: COLORS.primary },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground },
   body: { padding: 20, paddingBottom: 40 },
-  label: { fontSize: 14, fontWeight: '700', color: COLORS.foreground, marginBottom: 10, marginTop: 16 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10, marginTop: 16 },
+  label: { fontSize: 14, fontWeight: '700', color: COLORS.foreground },
+  labelStandalone: { fontSize: 14, fontWeight: '700', color: COLORS.foreground, marginBottom: 10, marginTop: 16 },
   severityRow: { flexDirection: 'row', gap: 8 },
   severityChip: {
     flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center',
@@ -160,6 +178,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, alignItems: 'center',
     borderWidth: 1, borderColor: COLORS.border, borderStyle: 'dashed',
   },
+  photoAttachedRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   photoBtnText: { fontSize: 14, color: COLORS.primary, fontWeight: '600' },
   submitBtn: {
     backgroundColor: COLORS.danger, borderRadius: 16, padding: 18, alignItems: 'center', marginTop: 24,

@@ -7,6 +7,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import useAuthStore from '../../store/auth.store';
 import { COLORS } from '../../utils/constants';
+import { Phone } from '../../components/Icons';
 
 const PhoneInputScreen = () => {
   const [phone, setPhone] = useState('');
@@ -51,7 +52,8 @@ const PhoneInputScreen = () => {
           <Text style={styles.subtitle}>We'll send you a verification code</Text>
 
           <View style={styles.phoneInput}>
-            <Text style={styles.countryCode}>🇮🇳 +91</Text>
+            <Phone size={18} weight="regular" color={COLORS.muted} />
+            <Text style={styles.countryCode}> +91</Text>
             <TextInput
               style={styles.input}
               placeholder="9876543210"
@@ -120,10 +122,6 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     backgroundColor: COLORS.primary,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.55,
-    shadowRadius: 16,
-    elevation: 8,
   },
   brand: {
     fontSize: 28,
@@ -183,15 +181,9 @@ const styles = StyleSheet.create({
     height: 56,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
   buttonDisabled: {
     backgroundColor: COLORS.surfaceElevated,
-    shadowOpacity: 0,
-    elevation: 0,
   },
   buttonText: {
     color: COLORS.primaryFg,
