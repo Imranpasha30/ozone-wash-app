@@ -7,29 +7,89 @@ import { WebView } from 'react-native-webview';
 import { useNavigation } from '@react-navigation/native';
 import useBookingStore from '../../store/booking.store';
 import { bookingAPI, paymentAPI } from '../../services/api';
-import { COLORS, API_URL } from '../../utils/constants';
+import { API_URL } from '../../utils/constants';
+import { useTheme } from '../../hooks/useTheme';
 import {
   ArrowLeft, CheckCircle, CreditCard, Wallet, CurrencyInr,
   Phone, X, House, Wrench, Drop, Receipt, ShieldCheck,
 } from '../../components/Icons';
 
-const PaymentMethodIcon = ({ method }: { method: string }) => {
-  switch (method) {
-    case 'upi': return <Phone size={24} weight="regular" color={COLORS.primary} />;
-    case 'card': return <CreditCard size={24} weight="regular" color={COLORS.primary} />;
-    case 'wallet': return <Wallet size={24} weight="regular" color={COLORS.primary} />;
-    case 'cod': return <CurrencyInr size={24} weight="regular" color={COLORS.primary} />;
-    default: return <CreditCard size={24} weight="regular" color={COLORS.primary} />;
-  }
-};
-
-const TankIcon = ({ type }: { type: string }) => {
-  if (type === 'overhead') return <House size={16} weight="regular" color={COLORS.primary} />;
-  if (type === 'underground') return <Wrench size={16} weight="regular" color={COLORS.primary} />;
-  return <Drop size={16} weight="fill" color={COLORS.primary} />;
-};
+const makeStyles = (C: any) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.background },
+  header: {
+    backgroundColor: C.surface,
+    paddingTop: 56,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  backBtn: { marginRight: 12 },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: C.foreground, flex: 1 },
+  stepText: { fontSize: 13, color: C.muted },
+  progressBar: { height: 4, backgroundColor: C.border },
+  progressFill: { height: 4, backgroundColor: C.primary },
+  body: { padding: 20, paddingBottom: 40 },
+  sectionTitle: { fontSize: 14, fontWeight: '700', color: C.foreground, marginBottom: 10, marginTop: 16 },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 16, marginBottom: 10 },
+  summaryCard: {
+    backgroundColor: C.surface,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  row: { flexDirection: 'row', marginBottom: 10 },
+  rowLabel: { width: 100, fontSize: 13, color: C.muted, fontWeight: '600' },
+  rowValueWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  rowValue: { fontSize: 13, color: C.foreground, fontWeight: '600', flexShrink: 1 },
+  priceCard: {
+    backgroundColor: C.surface,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  priceRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  priceLabel: { fontSize: 14, color: C.muted },
+  priceValue: { fontSize: 14, color: C.foreground, fontWeight: '600' },
+  divider: { height: 1, backgroundColor: C.border, marginVertical: 8 },
+  totalLabel: { fontSize: 16, fontWeight: 'bold', color: C.foreground },
+  totalValue: { fontSize: 20, fontWeight: 'bold', color: C.primary },
+  payMethodCard: {
+    backgroundColor: C.surface,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: C.border,
+    gap: 12,
+  },
+  payMethodText: { fontSize: 16, fontWeight: 'bold', color: C.foreground },
+  confirmBtn: {
+    backgroundColor: C.primary,
+    borderRadius: 16,
+    padding: 18,
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  confirmBtnDisabled: { backgroundColor: C.surfaceElevated, borderWidth: 1, borderColor: C.border },
+  confirmInner: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  confirmText: { color: C.primaryFg, fontWeight: 'bold', fontSize: 17 },
+  disclaimerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 16, justifyContent: 'center' },
+  disclaimer: { fontSize: 11, color: C.muted, textAlign: 'center', lineHeight: 16, flex: 1 },
+  razorpayContainer: { flex: 1, backgroundColor: C.background, paddingTop: 44 },
+  razorpayClose: { padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
+  razorpayCloseText: { color: C.danger, fontSize: 16, fontWeight: '600' },
+});
 
 const PaymentScreen = () => {
+  const C = useTheme();
+  const styles = React.useMemo(() => makeStyles(C), [C]);
+
   const navigation = useNavigation<any>();
   const { draft, reset } = useBookingStore();
   const [loading, setLoading] = useState(false);
@@ -37,7 +97,40 @@ const PaymentScreen = () => {
   const [razorpayHtml, setRazorpayHtml] = useState('');
   const bookingIdRef = useRef<string | null>(null);
 
-  const fmt = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+  const PaymentMethodIcon = ({ method }: { method: string }) => {
+    switch (method) {
+      case 'upi': return <Phone size={24} weight="regular" color={C.primary} />;
+      case 'card': return <CreditCard size={24} weight="regular" color={C.primary} />;
+      case 'wallet': return <Wallet size={24} weight="regular" color={C.primary} />;
+      case 'cod': return <CurrencyInr size={24} weight="regular" color={C.primary} />;
+      default: return <CreditCard size={24} weight="regular" color={C.primary} />;
+    }
+  };
+
+  const TankIcon = ({ type }: { type: string }) => {
+    if (type === 'overhead') return <House size={16} weight="regular" color={C.primary} />;
+    if (type === 'underground') return <Wrench size={16} weight="regular" color={C.primary} />;
+    return <Drop size={16} weight="fill" color={C.primary} />;
+  };
+
+  const Row = ({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) => (
+    <View style={styles.row}>
+      <Text style={styles.rowLabel}>{label}</Text>
+      <View style={styles.rowValueWrap}>
+        {icon}
+        <Text style={styles.rowValue}>{value}</Text>
+      </View>
+    </View>
+  );
+
+  const PriceRow = ({ label, value, isTotal }: { label: string; value: string; isTotal?: boolean }) => (
+    <View style={styles.priceRow}>
+      <Text style={[styles.priceLabel, isTotal && styles.totalLabel]}>{label}</Text>
+      <Text style={[styles.priceValue, isTotal && styles.totalValue]}>{value}</Text>
+    </View>
+  );
+
+  const fmt = (n: number) => `\u20B9${n.toLocaleString('en-IN')}`;
 
   const tankLabel = draft.tank_type === 'overhead'
     ? 'Overhead Tank'
@@ -58,7 +151,7 @@ const PaymentScreen = () => {
     <!DOCTYPE html><html><head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-    <style>body{background:#0B0C18;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:sans-serif;color:#F1F2F8;}
+    <style>body{background:${C.background};display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:sans-serif;color:#F1F2F8;}
     .loading{font-size:18px;}</style>
     </head><body><p class="loading">Opening payment...</p><script>
     var options = {
@@ -168,7 +261,7 @@ const PaymentScreen = () => {
     <View style={styles.root}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ArrowLeft size={22} weight="regular" color={COLORS.foreground} />
+          <ArrowLeft size={22} weight="regular" color={C.foreground} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Review & Pay</Text>
         <Text style={styles.stepText}>Step 4 / 4</Text>
@@ -193,7 +286,7 @@ const PaymentScreen = () => {
 
         {/* Price Breakdown */}
         <View style={styles.sectionTitleRow}>
-          <Receipt size={16} weight="regular" color={COLORS.foreground} />
+          <Receipt size={16} weight="regular" color={C.foreground} />
           <Text style={styles.sectionTitle}>Price Breakdown</Text>
         </View>
         <View style={styles.priceCard}>
@@ -218,13 +311,13 @@ const PaymentScreen = () => {
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color={COLORS.primaryFg} />
+            <ActivityIndicator color={C.primaryFg} />
           ) : (
             <View style={styles.confirmInner}>
               {draft.payment_method === 'cod' ? (
-                <CheckCircle size={20} weight="fill" color={COLORS.primaryFg} />
+                <CheckCircle size={20} weight="fill" color={C.primaryFg} />
               ) : (
-                <CreditCard size={20} weight="regular" color={COLORS.primaryFg} />
+                <CreditCard size={20} weight="regular" color={C.primaryFg} />
               )}
               <Text style={styles.confirmText}>
                 {draft.payment_method === 'cod' ? 'Confirm Booking' : `Pay ${fmt(draft.grand_total)}`}
@@ -234,7 +327,7 @@ const PaymentScreen = () => {
         </TouchableOpacity>
 
         <View style={styles.disclaimerRow}>
-          <ShieldCheck size={14} weight="regular" color={COLORS.muted} />
+          <ShieldCheck size={14} weight="regular" color={C.muted} />
           <Text style={styles.disclaimer}>
             By confirming, you agree to our terms of service. Cancellations must be made 24 hours in advance.
           </Text>
@@ -245,7 +338,7 @@ const PaymentScreen = () => {
       <Modal visible={showRazorpay} animationType="slide" onRequestClose={() => setShowRazorpay(false)}>
         <View style={styles.razorpayContainer}>
           <TouchableOpacity style={styles.razorpayClose} onPress={() => setShowRazorpay(false)}>
-            <X size={20} weight="bold" color={COLORS.danger} />
+            <X size={20} weight="bold" color={C.danger} />
             <Text style={styles.razorpayCloseText}>Close</Text>
           </TouchableOpacity>
           <WebView
@@ -254,101 +347,12 @@ const PaymentScreen = () => {
             onMessage={handleRazorpayMessage}
             javaScriptEnabled
             domStorageEnabled
-            style={{ flex: 1, backgroundColor: COLORS.background }}
+            style={{ flex: 1, backgroundColor: C.background }}
           />
         </View>
       </Modal>
     </View>
   );
 };
-
-const Row = ({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) => (
-  <View style={styles.row}>
-    <Text style={styles.rowLabel}>{label}</Text>
-    <View style={styles.rowValueWrap}>
-      {icon}
-      <Text style={styles.rowValue}>{value}</Text>
-    </View>
-  </View>
-);
-
-const PriceRow = ({ label, value, isTotal }: { label: string; value: string; isTotal?: boolean }) => (
-  <View style={styles.priceRow}>
-    <Text style={[styles.priceLabel, isTotal && styles.totalLabel]}>{label}</Text>
-    <Text style={[styles.priceValue, isTotal && styles.totalValue]}>{value}</Text>
-  </View>
-);
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    backgroundColor: COLORS.surface,
-    paddingTop: 56,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  backBtn: { marginRight: 12 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground, flex: 1 },
-  stepText: { fontSize: 13, color: COLORS.muted },
-  progressBar: { height: 4, backgroundColor: COLORS.border },
-  progressFill: { height: 4, backgroundColor: COLORS.primary },
-  body: { padding: 20, paddingBottom: 40 },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: COLORS.foreground, marginBottom: 10, marginTop: 16 },
-  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 16, marginBottom: 10 },
-  summaryCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  row: { flexDirection: 'row', marginBottom: 10 },
-  rowLabel: { width: 100, fontSize: 13, color: COLORS.muted, fontWeight: '600' },
-  rowValueWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  rowValue: { fontSize: 13, color: COLORS.foreground, fontWeight: '600', flexShrink: 1 },
-  priceCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  priceRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  priceLabel: { fontSize: 14, color: COLORS.muted },
-  priceValue: { fontSize: 14, color: COLORS.foreground, fontWeight: '600' },
-  divider: { height: 1, backgroundColor: COLORS.border, marginVertical: 8 },
-  totalLabel: { fontSize: 16, fontWeight: 'bold', color: COLORS.foreground },
-  totalValue: { fontSize: 20, fontWeight: 'bold', color: COLORS.primary },
-  payMethodCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    gap: 12,
-  },
-  payMethodText: { fontSize: 16, fontWeight: 'bold', color: COLORS.foreground },
-  confirmBtn: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 16,
-    padding: 18,
-    alignItems: 'center',
-    marginTop: 24,
-  },
-  confirmBtnDisabled: { backgroundColor: COLORS.surfaceElevated, borderWidth: 1, borderColor: COLORS.border },
-  confirmInner: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  confirmText: { color: COLORS.primaryFg, fontWeight: 'bold', fontSize: 17 },
-  disclaimerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 16, justifyContent: 'center' },
-  disclaimer: { fontSize: 11, color: COLORS.muted, textAlign: 'center', lineHeight: 16, flex: 1 },
-  razorpayContainer: { flex: 1, backgroundColor: COLORS.background, paddingTop: 44 },
-  razorpayClose: { padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
-  razorpayCloseText: { color: COLORS.danger, fontSize: 16, fontWeight: '600' },
-});
 
 export default PaymentScreen;

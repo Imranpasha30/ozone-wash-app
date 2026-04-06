@@ -5,13 +5,108 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import useAuthStore from '../../store/auth.store';
-import { COLORS } from '../../utils/constants';
+import { useTheme } from '../../hooks/useTheme';
 import {
   ClipboardText, Trophy, FileText, Wrench,
   CaretRight, SignOut, Phone, User, Eye, EyeSlash,
 } from '../../components/Icons';
 
+const makeStyles = (C: any) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.background },
+  container: { paddingBottom: 40 },
+  header: {
+    backgroundColor: C.surface,
+    paddingTop: 56,
+    paddingBottom: 32,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  avatarCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: C.primaryDim,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: C.primary,
+  },
+  avatarText: { fontSize: 28, fontWeight: 'bold', color: C.primary },
+  name: { fontSize: 20, fontWeight: 'bold', color: C.foreground, marginBottom: 4 },
+  phone: { fontSize: 14, color: C.muted, marginBottom: 8 },
+  roleBadge: {
+    backgroundColor: C.primaryBg,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: C.borderActive,
+  },
+  roleText: { fontSize: 12, color: C.primary, fontWeight: '600', textTransform: 'uppercase' },
+  menuCard: {
+    margin: 16,
+    backgroundColor: C.surface,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  menuIconWrap: { marginRight: 14 },
+  menuLabel: { flex: 1, fontSize: 15, color: C.foreground, fontWeight: '600' },
+  infoCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: C.surface,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  cardTitle: { fontSize: 13, fontWeight: '700', color: C.muted, textTransform: 'uppercase', marginBottom: 12 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.border },
+  infoLabel: { width: 70, fontSize: 13, color: C.muted, fontWeight: '600' },
+  infoValue: { flex: 1, fontSize: 13, color: C.foreground, fontWeight: '600' },
+  infoValueRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  appInfoCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: C.surface,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  appInfoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: C.border },
+  appInfoLabel: { fontSize: 13, color: C.muted },
+  appInfoValue: { fontSize: 13, color: C.foreground, fontWeight: '600' },
+  logoutBtn: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    backgroundColor: C.dangerBg,
+    borderRadius: 16,
+    padding: 18,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: C.danger,
+  },
+  logoutInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  logoutText: { fontSize: 16, fontWeight: 'bold', color: C.danger },
+});
+
 const ProfileScreen = () => {
+  const C = useTheme();
+  const styles = React.useMemo(() => makeStyles(C), [C]);
+
   const navigation = useNavigation<any>();
   const { user, logout } = useAuthStore();
   const [showId, setShowId] = useState(false);
@@ -35,11 +130,11 @@ const ProfileScreen = () => {
     : user?.phone?.slice(-2) || '??';
 
   const menuItems = user?.role === 'customer' ? [
-    { icon: <ClipboardText size={20} weight="regular" color={COLORS.primary} />, label: 'My Bookings', onPress: () => navigation.navigate('MyBookings') },
-    { icon: <Trophy size={20} weight="regular" color={COLORS.primary} />, label: 'Certificates', onPress: () => navigation.navigate('Certificates') },
-    { icon: <FileText size={20} weight="regular" color={COLORS.primary} />, label: 'AMC Plans', onPress: () => navigation.navigate('AmcPlans') },
+    { icon: <ClipboardText size={20} weight="regular" color={C.primary} />, label: 'My Bookings', onPress: () => navigation.navigate('MyBookings') },
+    { icon: <Trophy size={20} weight="regular" color={C.primary} />, label: 'Certificates', onPress: () => navigation.navigate('Certificates') },
+    { icon: <FileText size={20} weight="regular" color={C.primary} />, label: 'AMC Plans', onPress: () => navigation.navigate('AmcPlans') },
   ] : user?.role === 'field_team' ? [
-    { icon: <Wrench size={20} weight="regular" color={COLORS.primary} />, label: 'My Jobs', onPress: () => navigation.navigate('Jobs') },
+    { icon: <Wrench size={20} weight="regular" color={C.primary} />, label: 'My Jobs', onPress: () => navigation.navigate('Jobs') },
   ] : [];
 
   return (
@@ -62,7 +157,7 @@ const ProfileScreen = () => {
           <TouchableOpacity key={i} style={styles.menuItem} onPress={item.onPress}>
             <View style={styles.menuIconWrap}>{item.icon}</View>
             <Text style={styles.menuLabel}>{item.label}</Text>
-            <CaretRight size={18} weight="regular" color={COLORS.muted} />
+            <CaretRight size={18} weight="regular" color={C.muted} />
           </TouchableOpacity>
         ))}
       </View>
@@ -85,8 +180,8 @@ const ProfileScreen = () => {
               {showId ? user?.id : '(tap to reveal)'}
             </Text>
             {showId
-              ? <EyeSlash size={16} weight="regular" color={COLORS.muted} />
-              : <Eye size={16} weight="regular" color={COLORS.muted} />}
+              ? <EyeSlash size={16} weight="regular" color={C.muted} />
+              : <Eye size={16} weight="regular" color={C.muted} />}
           </View>
         </TouchableOpacity>
       </View>
@@ -110,7 +205,7 @@ const ProfileScreen = () => {
       {/* Logout */}
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
         <View style={styles.logoutInner}>
-          <SignOut size={20} weight="bold" color={COLORS.danger} />
+          <SignOut size={20} weight="bold" color={C.danger} />
           <Text style={styles.logoutText}>Logout</Text>
         </View>
       </TouchableOpacity>
@@ -119,97 +214,5 @@ const ProfileScreen = () => {
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  container: { paddingBottom: 40 },
-  header: {
-    backgroundColor: COLORS.surface,
-    paddingTop: 56,
-    paddingBottom: 32,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  avatarCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.primaryDim,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: COLORS.primary,
-  },
-  avatarText: { fontSize: 28, fontWeight: 'bold', color: COLORS.primary },
-  name: { fontSize: 20, fontWeight: 'bold', color: COLORS.foreground, marginBottom: 4 },
-  phone: { fontSize: 14, color: COLORS.muted, marginBottom: 8 },
-  roleBadge: {
-    backgroundColor: COLORS.primaryBg,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.borderActive,
-  },
-  roleText: { fontSize: 12, color: COLORS.primary, fontWeight: '600', textTransform: 'uppercase' },
-  menuCard: {
-    margin: 16,
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  menuIconWrap: { marginRight: 14 },
-  menuLabel: { flex: 1, fontSize: 15, color: COLORS.foreground, fontWeight: '600' },
-  infoCard: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  cardTitle: { fontSize: 13, fontWeight: '700', color: COLORS.muted, textTransform: 'uppercase', marginBottom: 12 },
-  infoRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  infoLabel: { width: 70, fontSize: 13, color: COLORS.muted, fontWeight: '600' },
-  infoValue: { flex: 1, fontSize: 13, color: COLORS.foreground, fontWeight: '600' },
-  infoValueRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  appInfoCard: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  appInfoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  appInfoLabel: { fontSize: 13, color: COLORS.muted },
-  appInfoValue: { fontSize: 13, color: COLORS.foreground, fontWeight: '600' },
-  logoutBtn: {
-    marginHorizontal: 16,
-    marginTop: 8,
-    backgroundColor: COLORS.dangerBg,
-    borderRadius: 16,
-    padding: 18,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: COLORS.danger,
-  },
-  logoutInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  logoutText: { fontSize: 16, fontWeight: 'bold', color: COLORS.danger },
-});
 
 export default ProfileScreen;

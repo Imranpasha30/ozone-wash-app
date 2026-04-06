@@ -5,19 +5,23 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import useBookingStore from '../../store/booking.store';
-import { COLORS, TANK_TYPES } from '../../utils/constants';
+import { TANK_TYPES } from '../../utils/constants';
+import { useTheme } from '../../hooks/useTheme';
 import { ArrowLeft, ArrowRight, House, Wrench, Drop, MapPin, CurrencyInr } from '../../components/Icons';
 
 const TANK_SIZES = [500, 1000, 1500, 2000, 3000, 5000];
 
-const TankTypeIcon = ({ type, active }: { type: string; active: boolean }) => {
-  const color = active ? COLORS.primary : COLORS.muted;
+const TankTypeIcon = ({ type, active, C }: { type: string; active: boolean; C: any }) => {
+  const color = active ? C.primary : C.muted;
   if (type === 'overhead') return <House size={26} weight="regular" color={color} />;
   if (type === 'underground') return <Wrench size={26} weight="regular" color={color} />;
   return <Drop size={26} weight="fill" color={color} />;
 };
 
 const TankDetailsScreen = () => {
+  const C = useTheme();
+  const styles = React.useMemo(() => makeStyles(C), [C]);
+
   const navigation = useNavigation<any>();
   const { draft, setStep1 } = useBookingStore();
 
@@ -51,7 +55,7 @@ const TankDetailsScreen = () => {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <ArrowLeft size={22} weight="regular" color={COLORS.foreground} />
+            <ArrowLeft size={22} weight="regular" color={C.foreground} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Tank Details</Text>
           <Text style={styles.stepText}>Step 1 / 4</Text>
@@ -75,7 +79,7 @@ const TankDetailsScreen = () => {
                   onPress={() => setTankType(t.value as any)}
                 >
                   <View style={[styles.typeIconWrap, active && styles.typeIconWrapActive]}>
-                    <TankTypeIcon type={t.value} active={active} />
+                    <TankTypeIcon type={t.value} active={active} C={C} />
                   </View>
                   <Text style={[styles.typeLabel, active && styles.typeLabelActive]}>
                     {t.label}
@@ -106,12 +110,12 @@ const TankDetailsScreen = () => {
             keyboardType="number-pad"
             value={sizeInput}
             onChangeText={setSizeInput}
-            placeholderTextColor={COLORS.gray}
+            placeholderTextColor={C.gray}
           />
 
           {/* Address */}
           <View style={styles.labelRow}>
-            <MapPin size={16} weight="regular" color={COLORS.primary} />
+            <MapPin size={16} weight="regular" color={C.primary} />
             <Text style={styles.labelWithIcon}>Service Address</Text>
           </View>
           <TextInput
@@ -121,7 +125,7 @@ const TankDetailsScreen = () => {
             numberOfLines={3}
             value={address}
             onChangeText={setAddress}
-            placeholderTextColor={COLORS.gray}
+            placeholderTextColor={C.gray}
             textAlignVertical="top"
           />
 
@@ -129,7 +133,7 @@ const TankDetailsScreen = () => {
           <View style={styles.priceBox}>
             <Text style={styles.priceLabel}>Estimated base price</Text>
             <View style={styles.priceRow}>
-              <CurrencyInr size={24} weight="bold" color={COLORS.primary} />
+              <CurrencyInr size={24} weight="bold" color={C.primary} />
               <Text style={styles.priceValue}>{basePrice()}</Text>
             </View>
             <Text style={styles.priceSub}>+ addons & GST at next step</Text>
@@ -138,7 +142,7 @@ const TankDetailsScreen = () => {
           {/* Next */}
           <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
             <Text style={styles.nextText}>Continue to Date & Time</Text>
-            <ArrowRight size={18} weight="bold" color={COLORS.primaryFg} />
+            <ArrowRight size={18} weight="bold" color={C.primaryFg} />
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -146,91 +150,91 @@ const TankDetailsScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
+const makeStyles = (C: any) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.background },
   container: { paddingBottom: 40 },
   header: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: C.surface,
     paddingTop: 56,
     paddingBottom: 16,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: C.border,
   },
   backBtn: { marginRight: 12 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground, flex: 1 },
-  stepText: { fontSize: 13, color: COLORS.muted },
-  progressBar: { height: 4, backgroundColor: COLORS.border },
-  progressFill: { height: 4, backgroundColor: COLORS.primary },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: C.foreground, flex: 1 },
+  stepText: { fontSize: 13, color: C.muted },
+  progressBar: { height: 4, backgroundColor: C.border },
+  progressFill: { height: 4, backgroundColor: C.primary },
   body: { padding: 20 },
-  label: { fontSize: 14, fontWeight: '700', color: COLORS.foreground, marginBottom: 10, marginTop: 18 },
+  label: { fontSize: 14, fontWeight: '700', color: C.foreground, marginBottom: 10, marginTop: 18 },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10, marginTop: 18 },
-  labelWithIcon: { fontSize: 14, fontWeight: '700', color: COLORS.foreground },
+  labelWithIcon: { fontSize: 14, fontWeight: '700', color: C.foreground },
   typeRow: { flexDirection: 'row', gap: 10 },
   typeBtn: {
     flex: 1,
-    backgroundColor: COLORS.surface,
+    backgroundColor: C.surface,
     borderRadius: 16,
     padding: 14,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: COLORS.border,
+    borderColor: C.border,
   },
-  typeBtnActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryBg },
+  typeBtnActive: { borderColor: C.primary, backgroundColor: C.primaryBg },
   typeIconWrap: {
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: C.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
   },
   typeIconWrapActive: {
-    backgroundColor: COLORS.primaryDim,
+    backgroundColor: C.primaryDim,
   },
-  typeLabel: { fontSize: 11, color: COLORS.muted, fontWeight: '600', textAlign: 'center' },
-  typeLabelActive: { color: COLORS.primary },
+  typeLabel: { fontSize: 11, color: C.muted, fontWeight: '600', textAlign: 'center' },
+  typeLabelActive: { color: C.primary },
   sizeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
   sizeChip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: C.surfaceElevated,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
+    borderColor: C.border,
   },
-  sizeChipActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryBg },
-  sizeText: { fontSize: 13, color: COLORS.muted, fontWeight: '600' },
-  sizeTextActive: { color: COLORS.primary },
+  sizeChipActive: { borderColor: C.primary, backgroundColor: C.primaryBg },
+  sizeText: { fontSize: 13, color: C.muted, fontWeight: '600' },
+  sizeTextActive: { color: C.primary },
   input: {
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: C.surfaceElevated,
     borderRadius: 12,
     padding: 14,
     fontSize: 15,
-    color: COLORS.foreground,
+    color: C.foreground,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
+    borderColor: C.border,
     marginBottom: 4,
   },
   textArea: { height: 90 },
   priceBox: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: C.surface,
     borderRadius: 16,
     padding: 16,
     marginTop: 20,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.borderActive,
+    borderColor: C.borderActive,
   },
-  priceLabel: { fontSize: 12, color: COLORS.muted },
+  priceLabel: { fontSize: 12, color: C.muted },
   priceRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-  priceValue: { fontSize: 32, fontWeight: 'bold', color: COLORS.primary },
-  priceSub: { fontSize: 12, color: COLORS.muted, marginTop: 2 },
+  priceValue: { fontSize: 32, fontWeight: 'bold', color: C.primary },
+  priceSub: { fontSize: 12, color: C.muted, marginTop: 2 },
   nextBtn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: C.primary,
     borderRadius: 16,
     padding: 18,
     flexDirection: 'row',
@@ -239,7 +243,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 20,
   },
-  nextText: { color: COLORS.primaryFg, fontWeight: 'bold', fontSize: 16 },
+  nextText: { color: C.primaryFg, fontWeight: 'bold', fontSize: 16 },
 });
 
 export default TankDetailsScreen;

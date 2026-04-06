@@ -5,22 +5,207 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import useAuthStore from '../../store/auth.store';
+import usePremiumStore from '../../store/premium.store';
 import { bookingAPI, amcAPI, ecoScoreAPI } from '../../services/api';
-import { COLORS } from '../../utils/constants';
+import { useTheme } from '../../hooks/useTheme';
 import { Booking, AmcContract } from '../../types';
 import {
   Bell, Drop, ArrowRight, ClipboardText, Trophy, UserCircle,
   ShieldCheck, FileText, MapPin, Calendar, Shield, Star, Crown,
 } from '../../components/Icons';
 
-const BADGE_COLORS: Record<string, string> = {
-  platinum: COLORS.platinum,
-  gold: COLORS.gold,
-  silver: COLORS.silver,
-  bronze: COLORS.bronze,
-};
+const makeBadgeColors = (C: any): Record<string, string> => ({
+  platinum: C.platinum,
+  gold: C.gold,
+  silver: C.silver,
+  bronze: C.bronze,
+});
+
+const makeStyles = (C: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: C.background },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: C.background },
+  header: {
+    backgroundColor: C.surface,
+    paddingTop: 56,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  greeting: { fontSize: 20, fontWeight: 'bold', color: C.foreground },
+  subGreeting: { fontSize: 13, color: C.muted, marginTop: 2 },
+  bellBtn: { padding: 8 },
+  bookBtn: {
+    margin: 16,
+    backgroundColor: C.primary,
+    borderRadius: 16,
+    padding: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  bookBtnIconWrap: {
+    width: 48, height: 48, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center', alignItems: 'center', marginRight: 14,
+  },
+  bookBtnTitle: { fontSize: 17, fontWeight: 'bold', color: C.primaryFg },
+  bookBtnSub: { fontSize: 12, color: C.primaryFg, opacity: 0.8, marginTop: 2 },
+  card: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: C.surface,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderLeftWidth: 4,
+  },
+  cardLabel: { fontSize: 11, color: C.muted, fontWeight: '600', textTransform: 'uppercase', marginBottom: 6 },
+  cardSub: { fontSize: 12, color: C.muted, marginTop: 4 },
+  ecoRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  ecoScore: { fontSize: 36, fontWeight: 'bold', color: C.primary },
+  ecoBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  ecoBadgeText: { color: C.primaryFg, fontWeight: 'bold', fontSize: 12 },
+  amcPlan: { fontSize: 16, fontWeight: 'bold', color: C.foreground, marginBottom: 2 },
+  link: { fontSize: 13, color: C.primary, fontWeight: '600' },
+  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
+  section: { marginHorizontal: 16, marginBottom: 12 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: C.foreground },
+  emptyCard: {
+    backgroundColor: C.surface,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: C.border,
+    gap: 6,
+  },
+  emptyText: { fontSize: 15, fontWeight: '600', color: C.foreground },
+  emptySub: { fontSize: 12, color: C.muted },
+  bookingCard: {
+    backgroundColor: C.surface,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  bookingRow: { flexDirection: 'row', alignItems: 'center' },
+  bookingIconWrap: {
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: C.primaryBg,
+    justifyContent: 'center', alignItems: 'center', marginRight: 12,
+  },
+  bookingInfo: { flex: 1 },
+  bookingType: { fontSize: 13, fontWeight: 'bold', color: C.foreground },
+  bookingDate: { fontSize: 12, color: C.muted, marginTop: 2 },
+  bookingAddr: { fontSize: 11, color: C.muted, marginTop: 2 },
+  statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  statusText: { color: C.primaryFg, fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase' },
+  quickLinks: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginHorizontal: 16,
+    marginBottom: 8,
+  },
+  quickLink: {
+    flex: 1,
+    backgroundColor: C.surface,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: C.border,
+    gap: 6,
+  },
+  quickLabel: { fontSize: 11, color: C.primary, fontWeight: '600' },
+
+  // Premium AMC card styles
+  premiumCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: C.premiumBg,
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: C.premiumGoldLight,
+  },
+  premiumCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  premiumIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: C.premiumGoldLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  premiumLabel: {
+    fontSize: 11,
+    color: C.premiumMuted,
+    fontWeight: '600',
+    letterSpacing: 1,
+  },
+  premiumPlan: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: C.premiumGold,
+    marginBottom: 6,
+  },
+  premiumBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  premiumActiveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: C.premiumGoldLight,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  premiumActiveText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: C.premiumGold,
+  },
+  premiumExpiry: {
+    fontSize: 12,
+    color: C.premiumMuted,
+  },
+  premiumDivider: {
+    height: 1,
+    backgroundColor: C.premiumSurface,
+    marginVertical: 12,
+  },
+  premiumLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  premiumLink: {
+    fontSize: 13,
+    color: C.premiumGold,
+    fontWeight: '600',
+  },
+});
 
 const BookingHomeScreen = () => {
+  const C = useTheme();
+  const styles = React.useMemo(() => makeStyles(C), [C]);
+  const BADGE_COLORS = React.useMemo(() => makeBadgeColors(C), [C]);
+
   const navigation = useNavigation<any>();
   const { user } = useAuthStore();
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -40,6 +225,7 @@ const BookingHomeScreen = () => {
       const contracts: AmcContract[] = (amcRes as any).data?.contracts || [];
       const active = contracts.find((c) => c.status === 'active') || null;
       setAmc(active);
+      usePremiumStore.getState().setPremium(!!active);
     } catch (_) {}
   };
 
@@ -67,10 +253,10 @@ const BookingHomeScreen = () => {
   );
 
   const statusColor = (s: string) => {
-    if (s === 'completed') return COLORS.success;
-    if (s === 'confirmed') return COLORS.primary;
-    if (s === 'cancelled') return COLORS.danger;
-    return COLORS.warning;
+    if (s === 'completed') return C.success;
+    if (s === 'confirmed') return C.primary;
+    if (s === 'cancelled') return C.danger;
+    return C.warning;
   };
 
   const formatDate = (iso: string) => {
@@ -81,7 +267,7 @@ const BookingHomeScreen = () => {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <ActivityIndicator size="large" color={C.primary} />
       </View>
     );
   }
@@ -89,7 +275,7 @@ const BookingHomeScreen = () => {
   return (
     <ScrollView
       style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchAll(true)} tintColor={COLORS.primary} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchAll(true)} tintColor={C.primary} />}
     >
       {/* Header */}
       <View style={styles.header}>
@@ -98,29 +284,29 @@ const BookingHomeScreen = () => {
           <Text style={styles.subGreeting}>Keep your water safe & clean</Text>
         </View>
         <TouchableOpacity style={styles.bellBtn} onPress={() => navigation.navigate('Notifications')}>
-          <Bell size={24} weight="regular" color={COLORS.foreground} />
+          <Bell size={24} weight="regular" color={C.foreground} />
         </TouchableOpacity>
       </View>
 
       {/* Book Now CTA */}
       <TouchableOpacity style={styles.bookBtn} onPress={() => navigation.navigate('TankDetails')}>
         <View style={styles.bookBtnIconWrap}>
-          <Drop size={28} weight="fill" color={COLORS.primaryFg} />
+          <Drop size={28} weight="fill" color={C.primaryFg} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.bookBtnTitle}>Book a Cleaning</Text>
           <Text style={styles.bookBtnSub}>Schedule tank & sump hygiene service</Text>
         </View>
-        <ArrowRight size={22} weight="bold" color={COLORS.primaryFg} />
+        <ArrowRight size={22} weight="bold" color={C.primaryFg} />
       </TouchableOpacity>
 
       {/* EcoScore Card */}
       {ecoScore && (
-        <View style={[styles.card, { borderLeftColor: BADGE_COLORS[ecoScore.badge_level] || COLORS.secondary }]}>
+        <View style={[styles.card, { borderLeftColor: BADGE_COLORS[ecoScore.badge_level] || C.secondary }]}>
           <Text style={styles.cardLabel}>Your EcoScore</Text>
           <View style={styles.ecoRow}>
             <Text style={styles.ecoScore}>{ecoScore.avg_score ?? '--'}</Text>
-            <View style={[styles.ecoBadge, { backgroundColor: BADGE_COLORS[ecoScore.badge_level] || COLORS.secondary }]}>
+            <View style={[styles.ecoBadge, { backgroundColor: BADGE_COLORS[ecoScore.badge_level] || C.secondary }]}>
               <Text style={styles.ecoBadgeText}>{ecoScore.badge_level?.toUpperCase() || '--'}</Text>
             </View>
           </View>
@@ -133,14 +319,14 @@ const BookingHomeScreen = () => {
         <View style={styles.premiumCard}>
           <View style={styles.premiumCardHeader}>
             <View style={styles.premiumIconWrap}>
-              <Crown size={20} weight="fill" color={COLORS.premiumGold} />
+              <Crown size={20} weight="fill" color={C.premiumGold} />
             </View>
             <Text style={styles.premiumLabel}>AMC CONTRACT</Text>
           </View>
           <Text style={styles.premiumPlan}>{amc.plan_type?.toUpperCase()} PLAN</Text>
           <View style={styles.premiumBadgeRow}>
             <View style={styles.premiumActiveBadge}>
-              <ShieldCheck size={14} weight="fill" color={COLORS.premiumGold} />
+              <ShieldCheck size={14} weight="fill" color={C.premiumGold} />
               <Text style={styles.premiumActiveText}>Active</Text>
             </View>
             <Text style={styles.premiumExpiry}>Valid till {formatDate(amc.end_date)}</Text>
@@ -148,17 +334,17 @@ const BookingHomeScreen = () => {
           <View style={styles.premiumDivider} />
           <TouchableOpacity onPress={() => navigation.navigate('AmcPlans')} style={styles.premiumLinkRow}>
             <Text style={styles.premiumLink}>Manage AMC</Text>
-            <ArrowRight size={14} weight="bold" color={COLORS.premiumGold} />
+            <ArrowRight size={14} weight="bold" color={C.premiumGold} />
           </TouchableOpacity>
         </View>
       ) : (
-        <View style={[styles.card, { borderLeftColor: COLORS.accent }]}>
+        <View style={[styles.card, { borderLeftColor: C.accent }]}>
           <Text style={styles.cardLabel}>AMC Contract</Text>
           <Text style={styles.amcPlan}>No active AMC</Text>
           <Text style={styles.cardSub}>Get up to 25% off with an annual plan</Text>
           <TouchableOpacity onPress={() => navigation.navigate('AmcPlans')} style={styles.linkRow}>
             <Text style={styles.link}>View Plans</Text>
-            <ArrowRight size={14} weight="bold" color={COLORS.primary} />
+            <ArrowRight size={14} weight="bold" color={C.primary} />
           </TouchableOpacity>
         </View>
       )}
@@ -169,12 +355,12 @@ const BookingHomeScreen = () => {
           <Text style={styles.sectionTitle}>Recent Bookings</Text>
           <TouchableOpacity onPress={() => navigation.navigate('MyBookings')} style={styles.linkRow}>
             <Text style={styles.link}>See all</Text>
-            <ArrowRight size={14} weight="bold" color={COLORS.primary} />
+            <ArrowRight size={14} weight="bold" color={C.primary} />
           </TouchableOpacity>
         </View>
         {bookings.length === 0 ? (
           <View style={styles.emptyCard}>
-            <ClipboardText size={40} weight="light" color={COLORS.muted} />
+            <ClipboardText size={40} weight="light" color={C.muted} />
             <Text style={styles.emptyText}>No bookings yet</Text>
             <Text style={styles.emptySub}>Your cleaning history will appear here</Text>
           </View>
@@ -187,7 +373,7 @@ const BookingHomeScreen = () => {
             >
               <View style={styles.bookingRow}>
                 <View style={styles.bookingIconWrap}>
-                  <Drop size={22} weight="fill" color={COLORS.primary} />
+                  <Drop size={22} weight="fill" color={C.primary} />
                 </View>
                 <View style={styles.bookingInfo}>
                   <Text style={styles.bookingType}>{b.tank_type?.replace('_', ' ').toUpperCase()} TANK</Text>
@@ -206,15 +392,15 @@ const BookingHomeScreen = () => {
       {/* Quick Links */}
       <View style={styles.quickLinks}>
         <TouchableOpacity style={styles.quickLink} onPress={() => navigation.navigate('Certificates')}>
-          <Trophy size={26} weight="regular" color={COLORS.primary} />
+          <Trophy size={26} weight="regular" color={C.primary} />
           <Text style={styles.quickLabel}>Certificates</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.quickLink} onPress={() => navigation.navigate('AmcPlans')}>
-          <FileText size={26} weight="regular" color={COLORS.primary} />
+          <FileText size={26} weight="regular" color={C.primary} />
           <Text style={styles.quickLabel}>AMC Plans</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.quickLink} onPress={() => navigation.navigate('Profile')}>
-          <UserCircle size={26} weight="regular" color={COLORS.primary} />
+          <UserCircle size={26} weight="regular" color={C.primary} />
           <Text style={styles.quickLabel}>Profile</Text>
         </TouchableOpacity>
       </View>
@@ -223,185 +409,5 @@ const BookingHomeScreen = () => {
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
-  header: {
-    backgroundColor: COLORS.surface,
-    paddingTop: 56,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  greeting: { fontSize: 20, fontWeight: 'bold', color: COLORS.foreground },
-  subGreeting: { fontSize: 13, color: COLORS.muted, marginTop: 2 },
-  bellBtn: { padding: 8 },
-  bookBtn: {
-    margin: 16,
-    backgroundColor: COLORS.primary,
-    borderRadius: 16,
-    padding: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  bookBtnIconWrap: {
-    width: 48, height: 48, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center', alignItems: 'center', marginRight: 14,
-  },
-  bookBtnTitle: { fontSize: 17, fontWeight: 'bold', color: COLORS.primaryFg },
-  bookBtnSub: { fontSize: 12, color: COLORS.primaryFg, opacity: 0.8, marginTop: 2 },
-  card: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderLeftWidth: 4,
-  },
-  cardLabel: { fontSize: 11, color: COLORS.muted, fontWeight: '600', textTransform: 'uppercase', marginBottom: 6 },
-  cardSub: { fontSize: 12, color: COLORS.muted, marginTop: 4 },
-  ecoRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  ecoScore: { fontSize: 36, fontWeight: 'bold', color: COLORS.primary },
-  ecoBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  ecoBadgeText: { color: COLORS.primaryFg, fontWeight: 'bold', fontSize: 12 },
-  amcPlan: { fontSize: 16, fontWeight: 'bold', color: COLORS.foreground, marginBottom: 2 },
-  link: { fontSize: 13, color: COLORS.primary, fontWeight: '600' },
-  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
-  section: { marginHorizontal: 16, marginBottom: 12 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: COLORS.foreground },
-  emptyCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    gap: 6,
-  },
-  emptyText: { fontSize: 15, fontWeight: '600', color: COLORS.foreground },
-  emptySub: { fontSize: 12, color: COLORS.muted },
-  bookingCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  bookingRow: { flexDirection: 'row', alignItems: 'center' },
-  bookingIconWrap: {
-    width: 44, height: 44, borderRadius: 12,
-    backgroundColor: COLORS.primaryBg,
-    justifyContent: 'center', alignItems: 'center', marginRight: 12,
-  },
-  bookingInfo: { flex: 1 },
-  bookingType: { fontSize: 13, fontWeight: 'bold', color: COLORS.foreground },
-  bookingDate: { fontSize: 12, color: COLORS.muted, marginTop: 2 },
-  bookingAddr: { fontSize: 11, color: COLORS.muted, marginTop: 2 },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  statusText: { color: COLORS.primaryFg, fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase' },
-  quickLinks: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginHorizontal: 16,
-    marginBottom: 8,
-  },
-  quickLink: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    marginHorizontal: 4,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    gap: 6,
-  },
-  quickLabel: { fontSize: 11, color: COLORS.primary, fontWeight: '600' },
-
-  // Premium AMC card styles
-  premiumCard: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-    backgroundColor: COLORS.premiumBg,
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: COLORS.premiumGoldLight,
-  },
-  premiumCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  premiumIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: COLORS.premiumGoldLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  premiumLabel: {
-    fontSize: 11,
-    color: COLORS.premiumMuted,
-    fontWeight: '600',
-    letterSpacing: 1,
-  },
-  premiumPlan: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.premiumGold,
-    marginBottom: 6,
-  },
-  premiumBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  premiumActiveBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: COLORS.premiumGoldLight,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  premiumActiveText: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: COLORS.premiumGold,
-  },
-  premiumExpiry: {
-    fontSize: 12,
-    color: COLORS.premiumMuted,
-  },
-  premiumDivider: {
-    height: 1,
-    backgroundColor: COLORS.premiumSurface,
-    marginVertical: 12,
-  },
-  premiumLinkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  premiumLink: {
-    fontSize: 13,
-    color: COLORS.premiumGold,
-    fontWeight: '600',
-  },
-});
 
 export default BookingHomeScreen;

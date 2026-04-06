@@ -5,14 +5,148 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { bookingAPI, complianceAPI, certificateAPI, jobAPI } from '../../services/api';
-import { COLORS } from '../../utils/constants';
+import { useTheme } from '../../hooks/useTheme';
 import {
   ArrowLeft, ArrowRight, Key, CheckCircle, Hourglass, Trophy,
 } from '../../components/Icons';
 
 const STATUS_STEPS = ['pending', 'confirmed', 'in_progress', 'completed'];
 
+const makeStyles = (C: any) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.background },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: C.background },
+  errorText: { fontSize: 16, color: C.muted, marginBottom: 12 },
+  goBackRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
+  header: {
+    backgroundColor: C.surface,
+    paddingTop: 56,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  backBtn: { marginRight: 12 },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: C.foreground, flex: 1 },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  statusText: { color: C.primaryFg, fontSize: 10, fontWeight: 'bold' },
+  body: { padding: 20, paddingBottom: 40 },
+  sectionTitle: { fontSize: 14, fontWeight: '700', color: C.foreground, marginBottom: 10, marginTop: 16 },
+  timelineCard: {
+    backgroundColor: C.surface,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  timelineRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 0 },
+  timelineLeft: { alignItems: 'center', marginRight: 12, width: 20 },
+  dot: { width: 14, height: 14, borderRadius: 7 },
+  dotActive: { backgroundColor: C.primary },
+  dotInactive: { backgroundColor: C.border },
+  line: { width: 2, height: 28, marginVertical: 2 },
+  lineActive: { backgroundColor: C.primary },
+  lineInactive: { backgroundColor: C.border },
+  stepLabel: { fontSize: 14, paddingTop: 0, lineHeight: 14, marginBottom: 26 },
+  stepLabelActive: { color: C.foreground, fontWeight: '700' },
+  stepLabelInactive: { color: C.muted },
+  infoCard: {
+    backgroundColor: C.surface,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  infoRow: { flexDirection: 'row', marginBottom: 10 },
+  infoLabel: { width: 90, fontSize: 12, color: C.muted, fontWeight: '600' },
+  infoValue: { flex: 1, fontSize: 13, color: C.foreground, fontWeight: '600' },
+  complianceCard: {
+    backgroundColor: C.surface,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  complianceHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  compliancePct: { fontSize: 32, fontWeight: 'bold', color: C.primary, marginRight: 10 },
+  complianceSub: { fontSize: 13, color: C.muted },
+  progressBarContainer: { height: 8, backgroundColor: C.surfaceHighlight, borderRadius: 4, marginBottom: 14 },
+  progressBarFill: { height: 8, backgroundColor: C.primary, borderRadius: 4 },
+  stepRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 10 },
+  stepName: { fontSize: 14, color: C.muted },
+  stepNameDone: { color: C.foreground, fontWeight: '600' },
+  certCard: {
+    backgroundColor: C.surface,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: C.border,
+    borderLeftWidth: 4,
+    borderLeftColor: C.warning,
+  },
+  certIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: C.warningBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  certInfo: { flex: 1 },
+  certTitle: { fontSize: 15, fontWeight: 'bold', color: C.foreground },
+  certSub: { fontSize: 13, color: C.muted, marginTop: 2 },
+  certLinkRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  certLink: { fontSize: 13, color: C.primary, fontWeight: '600' },
+  otpCard: {
+    backgroundColor: C.surface,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: C.border,
+    borderLeftWidth: 4,
+    borderLeftColor: C.primary,
+  },
+  otpIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: C.primaryBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  otpContent: { flex: 1 },
+  otpCode: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: C.primary,
+    letterSpacing: 8,
+    fontVariant: ['tabular-nums'],
+  },
+  otpHint: { fontSize: 12, color: C.muted, marginTop: 4 },
+  cancelBtn: {
+    marginTop: 24,
+    borderWidth: 2,
+    borderColor: C.danger,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+  },
+  cancelBtnDisabled: { borderColor: C.muted },
+  cancelText: { color: C.danger, fontWeight: 'bold', fontSize: 16 },
+  link: { color: C.primary, fontWeight: '600', marginTop: 8 },
+});
+
 const BookingDetailScreen = () => {
+  const C = useTheme();
+  const styles = React.useMemo(() => makeStyles(C), [C]);
+
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const bookingId = route.params?.booking_id;
@@ -23,6 +157,13 @@ const BookingDetailScreen = () => {
   const [certificate, setCertificate] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+
+  const InfoRow = ({ label, value }: { label: string; value: string }) => (
+    <View style={styles.infoRow}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue}>{value}</Text>
+    </View>
+  );
 
   useEffect(() => {
     fetchAll();
@@ -78,13 +219,13 @@ const BookingDetailScreen = () => {
   };
 
   const statusColor = (s: string) => {
-    if (s === 'completed') return COLORS.success;
-    if (s === 'confirmed' || s === 'in_progress') return COLORS.primary;
-    if (s === 'cancelled') return COLORS.danger;
-    return COLORS.warning;
+    if (s === 'completed') return C.success;
+    if (s === 'confirmed' || s === 'in_progress') return C.primary;
+    if (s === 'cancelled') return C.danger;
+    return C.warning;
   };
 
-  const fmt = (n: number) => `₹${(n / 100).toLocaleString('en-IN')}`;
+  const fmt = (n: number) => `\u20B9${(n / 100).toLocaleString('en-IN')}`;
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleString('en-IN', {
@@ -95,7 +236,7 @@ const BookingDetailScreen = () => {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <ActivityIndicator size="large" color={C.primary} />
       </View>
     );
   }
@@ -105,7 +246,7 @@ const BookingDetailScreen = () => {
       <View style={styles.center}>
         <Text style={styles.errorText}>Booking not found</Text>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.goBackRow}>
-          <ArrowLeft size={18} weight="regular" color={COLORS.primary} />
+          <ArrowLeft size={18} weight="regular" color={C.primary} />
           <Text style={styles.link}>Go Back</Text>
         </TouchableOpacity>
       </View>
@@ -118,7 +259,7 @@ const BookingDetailScreen = () => {
     <View style={styles.root}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ArrowLeft size={22} weight="regular" color={COLORS.foreground} />
+          <ArrowLeft size={22} weight="regular" color={C.foreground} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Booking Details</Text>
         <View style={[styles.statusBadge, { backgroundColor: statusColor(booking.status) }]}>
@@ -166,7 +307,7 @@ const BookingDetailScreen = () => {
             <Text style={styles.sectionTitle}>Start Verification Code</Text>
             <View style={styles.otpCard}>
               <View style={styles.otpIconContainer}>
-                <Key size={24} weight="fill" color={COLORS.primary} />
+                <Key size={24} weight="fill" color={C.primary} />
               </View>
               <View style={styles.otpContent}>
                 <Text style={styles.otpCode}>{job.start_otp}</Text>
@@ -178,12 +319,12 @@ const BookingDetailScreen = () => {
         {job?.end_otp && !job?.end_otp_verified && (
           <>
             <Text style={styles.sectionTitle}>Completion Verification Code</Text>
-            <View style={[styles.otpCard, { borderLeftColor: COLORS.success }]}>
-              <View style={[styles.otpIconContainer, { backgroundColor: COLORS.successBg }]}>
-                <CheckCircle size={24} weight="fill" color={COLORS.success} />
+            <View style={[styles.otpCard, { borderLeftColor: C.success }]}>
+              <View style={[styles.otpIconContainer, { backgroundColor: C.successBg }]}>
+                <CheckCircle size={24} weight="fill" color={C.success} />
               </View>
               <View style={styles.otpContent}>
-                <Text style={[styles.otpCode, { color: COLORS.success }]}>{job.end_otp}</Text>
+                <Text style={[styles.otpCode, { color: C.success }]}>{job.end_otp}</Text>
                 <Text style={styles.otpHint}>Show this code to your technician to confirm job completion</Text>
               </View>
             </View>
@@ -207,8 +348,8 @@ const BookingDetailScreen = () => {
               {compliance.checklist?.map((step: any) => (
                 <View key={step.step_number} style={styles.stepRow}>
                   {step.completed
-                    ? <CheckCircle size={18} weight="fill" color={COLORS.success} />
-                    : <Hourglass size={18} weight="regular" color={COLORS.warning} />
+                    ? <CheckCircle size={18} weight="fill" color={C.success} />
+                    : <Hourglass size={18} weight="regular" color={C.warning} />
                   }
                   <Text style={[styles.stepName, step.completed && styles.stepNameDone]}>
                     {step.step_name}
@@ -228,14 +369,14 @@ const BookingDetailScreen = () => {
               onPress={() => navigation.navigate('CertificateView', { job_id: booking.job_id })}
             >
               <View style={styles.certIconContainer}>
-                <Trophy size={24} weight="fill" color={COLORS.warning} />
+                <Trophy size={24} weight="fill" color={C.warning} />
               </View>
               <View style={styles.certInfo}>
                 <Text style={styles.certTitle}>Certificate Issued</Text>
                 <Text style={styles.certSub}>EcoScore: {certificate.eco_score} / 100</Text>
                 <View style={styles.certLinkRow}>
                   <Text style={styles.certLink}>View Certificate</Text>
-                  <ArrowRight size={14} weight="bold" color={COLORS.primary} />
+                  <ArrowRight size={14} weight="bold" color={C.primary} />
                 </View>
               </View>
             </TouchableOpacity>
@@ -250,7 +391,7 @@ const BookingDetailScreen = () => {
             disabled={cancelling}
           >
             {cancelling
-              ? <ActivityIndicator color={COLORS.danger} size="small" />
+              ? <ActivityIndicator color={C.danger} size="small" />
               : <Text style={styles.cancelText}>Cancel Booking</Text>
             }
           </TouchableOpacity>
@@ -259,143 +400,5 @@ const BookingDetailScreen = () => {
     </View>
   );
 };
-
-const InfoRow = ({ label, value }: { label: string; value: string }) => (
-  <View style={styles.infoRow}>
-    <Text style={styles.infoLabel}>{label}</Text>
-    <Text style={styles.infoValue}>{value}</Text>
-  </View>
-);
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
-  errorText: { fontSize: 16, color: COLORS.muted, marginBottom: 12 },
-  goBackRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
-  header: {
-    backgroundColor: COLORS.surface,
-    paddingTop: 56,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  backBtn: { marginRight: 12 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground, flex: 1 },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  statusText: { color: COLORS.primaryFg, fontSize: 10, fontWeight: 'bold' },
-  body: { padding: 20, paddingBottom: 40 },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: COLORS.foreground, marginBottom: 10, marginTop: 16 },
-  timelineCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  timelineRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 0 },
-  timelineLeft: { alignItems: 'center', marginRight: 12, width: 20 },
-  dot: { width: 14, height: 14, borderRadius: 7 },
-  dotActive: { backgroundColor: COLORS.primary },
-  dotInactive: { backgroundColor: COLORS.border },
-  line: { width: 2, height: 28, marginVertical: 2 },
-  lineActive: { backgroundColor: COLORS.primary },
-  lineInactive: { backgroundColor: COLORS.border },
-  stepLabel: { fontSize: 14, paddingTop: 0, lineHeight: 14, marginBottom: 26 },
-  stepLabelActive: { color: COLORS.foreground, fontWeight: '700' },
-  stepLabelInactive: { color: COLORS.muted },
-  infoCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  infoRow: { flexDirection: 'row', marginBottom: 10 },
-  infoLabel: { width: 90, fontSize: 12, color: COLORS.muted, fontWeight: '600' },
-  infoValue: { flex: 1, fontSize: 13, color: COLORS.foreground, fontWeight: '600' },
-  complianceCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  complianceHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  compliancePct: { fontSize: 32, fontWeight: 'bold', color: COLORS.primary, marginRight: 10 },
-  complianceSub: { fontSize: 13, color: COLORS.muted },
-  progressBarContainer: { height: 8, backgroundColor: COLORS.surfaceHighlight, borderRadius: 4, marginBottom: 14 },
-  progressBarFill: { height: 8, backgroundColor: COLORS.primary, borderRadius: 4 },
-  stepRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 10 },
-  stepName: { fontSize: 14, color: COLORS.muted },
-  stepNameDone: { color: COLORS.foreground, fontWeight: '600' },
-  certCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.warning,
-  },
-  certIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: COLORS.warningBg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  certInfo: { flex: 1 },
-  certTitle: { fontSize: 15, fontWeight: 'bold', color: COLORS.foreground },
-  certSub: { fontSize: 13, color: COLORS.muted, marginTop: 2 },
-  certLinkRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  certLink: { fontSize: 13, color: COLORS.primary, fontWeight: '600' },
-  otpCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.primary,
-  },
-  otpIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: COLORS.primaryBg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  otpContent: { flex: 1 },
-  otpCode: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-    letterSpacing: 8,
-    fontVariant: ['tabular-nums'],
-  },
-  otpHint: { fontSize: 12, color: COLORS.muted, marginTop: 4 },
-  cancelBtn: {
-    marginTop: 24,
-    borderWidth: 2,
-    borderColor: COLORS.danger,
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-  },
-  cancelBtnDisabled: { borderColor: COLORS.muted },
-  cancelText: { color: COLORS.danger, fontWeight: 'bold', fontSize: 16 },
-  link: { color: COLORS.primary, fontWeight: '600', marginTop: 8 },
-});
 
 export default BookingDetailScreen;

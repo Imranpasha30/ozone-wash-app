@@ -1,7 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { COLORS } from '../utils/constants';
+import { useTheme } from '../hooks/useTheme';
 import { Drop, ClipboardText, Trophy, UserCircle } from '../components/Icons';
 
 // Tab screens
@@ -24,67 +24,71 @@ import NotificationsScreen from '../screens/customer/NotificationsScreen';
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-const CustomerTabs = () => (
-  <Tab.Navigator
-    screenOptions={{
-      headerShown: false,
-      tabBarActiveTintColor: COLORS.primary,
-      tabBarInactiveTintColor: COLORS.muted,
-      tabBarStyle: {
-        backgroundColor: COLORS.surface,
-        borderTopColor: COLORS.border,
-        borderTopWidth: 1,
-        paddingBottom: 5,
-        height: 60,
-      },
-      tabBarLabelStyle: {
-        fontSize: 11,
-        fontWeight: '600',
-      },
-    }}
-  >
-    <Tab.Screen
-      name="Home"
-      component={BookingHomeScreen}
-      options={{
-        tabBarLabel: 'Book',
-        tabBarIcon: ({ focused }) => (
-          <Drop size={24} weight={focused ? 'fill' : 'regular'} color={focused ? COLORS.primary : COLORS.muted} />
-        ),
+const CustomerTabs = () => {
+  const C = useTheme();
+
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: C.primary,
+        tabBarInactiveTintColor: C.muted,
+        tabBarStyle: {
+          backgroundColor: C.surface,
+          borderTopColor: C.border,
+          borderTopWidth: 1,
+          paddingBottom: 5,
+          height: 60,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+        },
       }}
-    />
-    <Tab.Screen
-      name="MyBookings"
-      component={MyBookingsScreen}
-      options={{
-        tabBarLabel: 'Bookings',
-        tabBarIcon: ({ focused }) => (
-          <ClipboardText size={24} weight={focused ? 'fill' : 'regular'} color={focused ? COLORS.primary : COLORS.muted} />
-        ),
-      }}
-    />
-    <Tab.Screen
-      name="Certificates"
-      component={CertificatesScreen}
-      options={{
-        tabBarLabel: 'Certs',
-        tabBarIcon: ({ focused }) => (
-          <Trophy size={24} weight={focused ? 'fill' : 'regular'} color={focused ? COLORS.primary : COLORS.muted} />
-        ),
-      }}
-    />
-    <Tab.Screen
-      name="Profile"
-      component={ProfileScreen}
-      options={{
-        tabBarLabel: 'Profile',
-        tabBarIcon: ({ focused }) => (
-          <UserCircle size={24} weight={focused ? 'fill' : 'regular'} color={focused ? COLORS.primary : COLORS.muted} />
-        ),
-      }}
-    />
-  </Tab.Navigator>
-);
+    >
+      <Tab.Screen
+        name="Home"
+        component={BookingHomeScreen}
+        options={{
+          tabBarLabel: 'Book',
+          tabBarIcon: ({ focused }) => (
+            <Drop size={24} weight={focused ? 'fill' : 'regular'} color={focused ? C.primary : C.muted} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="MyBookings"
+        component={MyBookingsScreen}
+        options={{
+          tabBarLabel: 'Bookings',
+          tabBarIcon: ({ focused }) => (
+            <ClipboardText size={24} weight={focused ? 'fill' : 'regular'} color={focused ? C.primary : C.muted} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Certificates"
+        component={CertificatesScreen}
+        options={{
+          tabBarLabel: 'Certs',
+          tabBarIcon: ({ focused }) => (
+            <Trophy size={24} weight={focused ? 'fill' : 'regular'} color={focused ? C.primary : C.muted} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          tabBarLabel: 'Profile',
+          tabBarIcon: ({ focused }) => (
+            <UserCircle size={24} weight={focused ? 'fill' : 'regular'} color={focused ? C.primary : C.muted} />
+          ),
+        }}
+      />
+    </Tab.Navigator>
+  );
+};
 
 const CustomerNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>

@@ -6,14 +6,15 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import useBookingStore from '../../store/booking.store';
 import { bookingAPI } from '../../services/api';
-import { COLORS, ADDONS, AMC_PLANS, PAYMENT_METHODS } from '../../utils/constants';
+import { ADDONS, AMC_PLANS, PAYMENT_METHODS } from '../../utils/constants';
+import { useTheme } from '../../hooks/useTheme';
 import {
   ArrowLeft, ArrowRight, Check, CreditCard, Wallet, CurrencyInr,
   Receipt, Tag, Phone,
 } from '../../components/Icons';
 
-const PaymentMethodIcon = ({ method, active }: { method: string; active: boolean }) => {
-  const color = active ? COLORS.primary : COLORS.muted;
+const PaymentMethodIcon = ({ method, active, C }: { method: string; active: boolean; C: any }) => {
+  const color = active ? C.primary : C.muted;
   switch (method) {
     case 'upi': return <Phone size={18} weight="regular" color={color} />;
     case 'card': return <CreditCard size={18} weight="regular" color={color} />;
@@ -24,6 +25,9 @@ const PaymentMethodIcon = ({ method, active }: { method: string; active: boolean
 };
 
 const AddonsScreen = () => {
+  const C = useTheme();
+  const styles = React.useMemo(() => makeStyles(C), [C]);
+
   const navigation = useNavigation<any>();
   const { draft, setStep3 } = useBookingStore();
 
@@ -73,7 +77,7 @@ const AddonsScreen = () => {
     <View style={styles.root}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ArrowLeft size={22} weight="regular" color={COLORS.foreground} />
+          <ArrowLeft size={22} weight="regular" color={C.foreground} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add-ons & Payment</Text>
         <Text style={styles.stepText}>Step 3 / 4</Text>
@@ -94,7 +98,7 @@ const AddonsScreen = () => {
               onPress={() => toggleAddon(a.value)}
             >
               <View style={[styles.checkbox, selected && styles.checkboxActive]}>
-                {selected && <Check size={14} weight="bold" color={COLORS.primaryFg} />}
+                {selected && <Check size={14} weight="bold" color={C.primaryFg} />}
               </View>
               <View style={styles.addonInfo}>
                 <Text style={styles.addonName}>{a.label}</Text>
@@ -106,7 +110,7 @@ const AddonsScreen = () => {
 
         {/* AMC Plan */}
         <View style={styles.labelRow}>
-          <Tag size={16} weight="regular" color={COLORS.primary} />
+          <Tag size={16} weight="regular" color={C.primary} />
           <Text style={styles.labelText}>AMC Plan (Optional)</Text>
         </View>
         <Text style={styles.hint}>Get up to 25% off on your base price</Text>
@@ -142,7 +146,7 @@ const AddonsScreen = () => {
                 style={[styles.payBtn, active && styles.payBtnActive]}
                 onPress={() => setPaymentMethod(m.value as any)}
               >
-                <PaymentMethodIcon method={m.value} active={active} />
+                <PaymentMethodIcon method={m.value} active={active} C={C} />
                 <Text style={[styles.payLabel, active && styles.payLabelActive]}>
                   {m.label}
                 </Text>
@@ -154,11 +158,11 @@ const AddonsScreen = () => {
         {/* Price Breakdown */}
         <View style={styles.priceCard}>
           <View style={styles.priceTitleRow}>
-            <Receipt size={18} weight="regular" color={COLORS.foreground} />
+            <Receipt size={18} weight="regular" color={C.foreground} />
             <Text style={styles.priceTitle}>Price Breakdown</Text>
           </View>
           {loading ? (
-            <ActivityIndicator color={COLORS.primary} style={{ marginVertical: 12 }} />
+            <ActivityIndicator color={C.primary} style={{ marginVertical: 12 }} />
           ) : pricing ? (
             <>
               <View style={styles.priceRow}>
@@ -173,8 +177,8 @@ const AddonsScreen = () => {
               )}
               {pricing.discount_amount > 0 && (
                 <View style={styles.priceRow}>
-                  <Text style={[styles.priceKey, { color: COLORS.primary }]}>AMC Discount</Text>
-                  <Text style={[styles.priceVal, { color: COLORS.primary }]}>-{fmt(pricing.discount_amount)}</Text>
+                  <Text style={[styles.priceKey, { color: C.primary }]}>AMC Discount</Text>
+                  <Text style={[styles.priceVal, { color: C.primary }]}>-{fmt(pricing.discount_amount)}</Text>
                 </View>
               )}
               <View style={styles.priceRow}>
@@ -194,103 +198,103 @@ const AddonsScreen = () => {
 
         <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
           <Text style={styles.nextText}>Proceed to Payment</Text>
-          <ArrowRight size={18} weight="bold" color={COLORS.primaryFg} />
+          <ArrowRight size={18} weight="bold" color={C.primaryFg} />
         </TouchableOpacity>
       </ScrollView>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
+const makeStyles = (C: any) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.background },
   header: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: C.surface,
     paddingTop: 56,
     paddingBottom: 16,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: C.border,
   },
   backBtn: { marginRight: 12 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground, flex: 1 },
-  stepText: { fontSize: 13, color: COLORS.muted },
-  progressBar: { height: 4, backgroundColor: COLORS.border },
-  progressFill: { height: 4, backgroundColor: COLORS.primary },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: C.foreground, flex: 1 },
+  stepText: { fontSize: 13, color: C.muted },
+  progressBar: { height: 4, backgroundColor: C.border },
+  progressFill: { height: 4, backgroundColor: C.primary },
   body: { padding: 20, paddingBottom: 40 },
-  label: { fontSize: 14, fontWeight: '700', color: COLORS.foreground, marginBottom: 10, marginTop: 16 },
+  label: { fontSize: 14, fontWeight: '700', color: C.foreground, marginBottom: 10, marginTop: 16 },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10, marginTop: 16 },
-  labelText: { fontSize: 14, fontWeight: '700', color: COLORS.foreground },
-  hint: { fontSize: 12, color: COLORS.muted, marginBottom: 10, marginTop: -6 },
+  labelText: { fontSize: 14, fontWeight: '700', color: C.foreground },
+  hint: { fontSize: 12, color: C.muted, marginBottom: 10, marginTop: -6 },
   addonRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: C.surface,
     borderRadius: 16,
     padding: 14,
     marginBottom: 8,
     borderWidth: 2,
-    borderColor: COLORS.border,
+    borderColor: C.border,
   },
-  addonRowActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryBg },
+  addonRowActive: { borderColor: C.primary, backgroundColor: C.primaryBg },
   checkbox: {
     width: 22,
     height: 22,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: COLORS.border,
+    borderColor: C.border,
     marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkboxActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primary },
+  checkboxActive: { borderColor: C.primary, backgroundColor: C.primary },
   radio: {
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: COLORS.border,
+    borderColor: C.border,
     marginRight: 12,
   },
-  radioActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primary },
+  radioActive: { borderColor: C.primary, backgroundColor: C.primary },
   addonInfo: { flex: 1 },
-  addonName: { fontSize: 14, color: COLORS.foreground, fontWeight: '600' },
-  addonPrice: { fontSize: 14, color: COLORS.primary, fontWeight: 'bold' },
+  addonName: { fontSize: 14, color: C.foreground, fontWeight: '600' },
+  addonPrice: { fontSize: 14, color: C.primary, fontWeight: 'bold' },
   payRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   payBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 10,
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: C.surfaceElevated,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: COLORS.border,
+    borderColor: C.border,
     gap: 6,
   },
-  payBtnActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryBg },
-  payLabel: { fontSize: 13, color: COLORS.muted, fontWeight: '600' },
-  payLabelActive: { color: COLORS.primary },
+  payBtnActive: { borderColor: C.primary, backgroundColor: C.primaryBg },
+  payLabel: { fontSize: 13, color: C.muted, fontWeight: '600' },
+  payLabelActive: { color: C.primary },
   priceCard: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: C.surface,
     borderRadius: 16,
     padding: 18,
     marginTop: 20,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: C.border,
   },
   priceTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  priceTitle: { fontSize: 15, fontWeight: 'bold', color: COLORS.foreground },
+  priceTitle: { fontSize: 15, fontWeight: 'bold', color: C.foreground },
   priceRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  priceKey: { fontSize: 14, color: COLORS.muted },
-  priceVal: { fontSize: 14, color: COLORS.foreground, fontWeight: '600' },
-  divider: { height: 1, backgroundColor: COLORS.border, marginVertical: 8 },
-  totalKey: { fontSize: 16, fontWeight: 'bold', color: COLORS.foreground },
-  totalVal: { fontSize: 20, fontWeight: 'bold', color: COLORS.primary },
-  calcText: { color: COLORS.muted, textAlign: 'center', marginVertical: 8 },
+  priceKey: { fontSize: 14, color: C.muted },
+  priceVal: { fontSize: 14, color: C.foreground, fontWeight: '600' },
+  divider: { height: 1, backgroundColor: C.border, marginVertical: 8 },
+  totalKey: { fontSize: 16, fontWeight: 'bold', color: C.foreground },
+  totalVal: { fontSize: 20, fontWeight: 'bold', color: C.primary },
+  calcText: { color: C.muted, textAlign: 'center', marginVertical: 8 },
   nextBtn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: C.primary,
     borderRadius: 16,
     padding: 18,
     flexDirection: 'row',
@@ -299,7 +303,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 20,
   },
-  nextText: { color: COLORS.primaryFg, fontWeight: 'bold', fontSize: 16 },
+  nextText: { color: C.primaryFg, fontWeight: 'bold', fontSize: 16 },
 });
 
 export default AddonsScreen;

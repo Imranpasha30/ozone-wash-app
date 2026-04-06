@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
-import { COLORS } from '../../utils/constants';
+import { useTheme } from '../../hooks/useTheme';
 import { ArrowLeft, Bell } from '../../components/Icons';
 
 const STORAGE_KEY = 'ozone_notifications';
@@ -18,7 +18,48 @@ interface NotificationItem {
   data?: Record<string, any>;
 }
 
+const makeStyles = (C: any) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.background },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: C.background },
+  header: {
+    backgroundColor: C.surface, paddingTop: 56, paddingBottom: 16, paddingHorizontal: 20,
+    flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: C.border,
+  },
+  backBtn: { marginRight: 12 },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: C.foreground, flex: 1 },
+  unreadBadge: {
+    backgroundColor: C.danger, borderRadius: 12, minWidth: 24, height: 24,
+    justifyContent: 'center', alignItems: 'center', paddingHorizontal: 6,
+  },
+  unreadText: { color: '#FFF', fontSize: 12, fontWeight: 'bold' },
+  actions: {
+    flexDirection: 'row', justifyContent: 'flex-end', gap: 16,
+    paddingHorizontal: 20, paddingVertical: 10,
+  },
+  actionText: { fontSize: 13, color: C.primary, fontWeight: '600' },
+  list: { padding: 16, paddingBottom: 40 },
+  card: {
+    backgroundColor: C.surface, borderRadius: 14, padding: 14, marginBottom: 10,
+    borderWidth: 1, borderColor: C.border,
+  },
+  cardUnread: { borderLeftWidth: 3, borderLeftColor: C.primary, backgroundColor: C.surfaceElevated },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  dot: {
+    width: 8, height: 8, borderRadius: 4, backgroundColor: C.primary, marginRight: 8,
+  },
+  cardTitle: { flex: 1, fontSize: 14, fontWeight: '600', color: C.foreground },
+  cardTitleUnread: { fontWeight: 'bold' },
+  cardTime: { fontSize: 11, color: C.muted, marginLeft: 8 },
+  cardBody: { fontSize: 13, color: C.muted, lineHeight: 18 },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, gap: 12 },
+  emptyTitle: { fontSize: 18, fontWeight: 'bold', color: C.foreground },
+  emptySub: { fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 20 },
+});
+
 const NotificationsScreen = () => {
+  const C = useTheme();
+  const styles = React.useMemo(() => makeStyles(C), [C]);
+
   const navigation = useNavigation<any>();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +124,7 @@ const NotificationsScreen = () => {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <ActivityIndicator size="large" color={C.primary} />
       </View>
     );
   }
@@ -92,7 +133,7 @@ const NotificationsScreen = () => {
     <View style={styles.root}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ArrowLeft size={22} weight="regular" color={COLORS.primary} />
+          <ArrowLeft size={22} weight="regular" color={C.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
         {unreadCount > 0 && (
@@ -110,14 +151,14 @@ const NotificationsScreen = () => {
             </TouchableOpacity>
           )}
           <TouchableOpacity onPress={clearAll}>
-            <Text style={[styles.actionText, { color: COLORS.danger }]}>Clear all</Text>
+            <Text style={[styles.actionText, { color: C.danger }]}>Clear all</Text>
           </TouchableOpacity>
         </View>
       )}
 
       {notifications.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Bell size={48} weight="regular" color={COLORS.muted} />
+          <Bell size={48} weight="regular" color={C.muted} />
           <Text style={styles.emptyTitle}>No notifications yet</Text>
           <Text style={styles.emptySub}>
             You'll receive updates about your bookings, service progress, and certificates here.
@@ -149,43 +190,5 @@ const NotificationsScreen = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
-  header: {
-    backgroundColor: COLORS.surface, paddingTop: 56, paddingBottom: 16, paddingHorizontal: 20,
-    flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: COLORS.border,
-  },
-  backBtn: { marginRight: 12 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground, flex: 1 },
-  unreadBadge: {
-    backgroundColor: COLORS.danger, borderRadius: 12, minWidth: 24, height: 24,
-    justifyContent: 'center', alignItems: 'center', paddingHorizontal: 6,
-  },
-  unreadText: { color: '#FFF', fontSize: 12, fontWeight: 'bold' },
-  actions: {
-    flexDirection: 'row', justifyContent: 'flex-end', gap: 16,
-    paddingHorizontal: 20, paddingVertical: 10,
-  },
-  actionText: { fontSize: 13, color: COLORS.primary, fontWeight: '600' },
-  list: { padding: 16, paddingBottom: 40 },
-  card: {
-    backgroundColor: COLORS.surface, borderRadius: 14, padding: 14, marginBottom: 10,
-    borderWidth: 1, borderColor: COLORS.border,
-  },
-  cardUnread: { borderLeftWidth: 3, borderLeftColor: COLORS.primary, backgroundColor: COLORS.surfaceElevated },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  dot: {
-    width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.primary, marginRight: 8,
-  },
-  cardTitle: { flex: 1, fontSize: 14, fontWeight: '600', color: COLORS.foreground },
-  cardTitleUnread: { fontWeight: 'bold' },
-  cardTime: { fontSize: 11, color: COLORS.muted, marginLeft: 8 },
-  cardBody: { fontSize: 13, color: COLORS.muted, lineHeight: 18 },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, gap: 12 },
-  emptyTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground },
-  emptySub: { fontSize: 14, color: COLORS.muted, textAlign: 'center', lineHeight: 20 },
-});
 
 export default NotificationsScreen;

@@ -111,3 +111,61 @@ export const COLORS = {
   white: '#FFFFFF',
   black: '#0F172A',
 };
+
+export type AppColors = typeof COLORS;
+
+export const PREMIUM_COLORS: AppColors = {
+  // Backgrounds — dark premium
+  background: '#0F172A',
+  surface: '#1E293B',
+  surfaceElevated: '#334155',
+  surfaceHighlight: '#475569',
+
+  // Brand — Gold
+  primary: '#D4A017',
+  primaryBg: 'rgba(212,160,23,0.12)',
+  primaryDim: 'rgba(212,160,23,0.20)',
+  primaryFg: '#0F172A',
+
+  // Foreground
+  foreground: '#FEFCE8',
+  muted: '#94A3B8',
+  border: 'rgba(212,160,23,0.15)',
+  borderActive: 'rgba(212,160,23,0.40)',
+
+  // Status
+  success: '#34D399',
+  successBg: 'rgba(52,211,153,0.12)',
+  warning: '#FBBF24',
+  warningBg: 'rgba(251,191,36,0.12)',
+  danger: '#F87171',
+  dangerBg: 'rgba(248,113,113,0.12)',
+  info: '#60A5FA',
+  infoBg: 'rgba(96,165,250,0.12)',
+
+  // Badge levels
+  gold: '#D4A017',
+  goldBg: 'rgba(212,160,23,0.12)',
+  silver: '#94A3B8',
+  silverBg: 'rgba(148,163,184,0.12)',
+  bronze: '#D97706',
+  bronzeBg: 'rgba(217,119,6,0.12)',
+  platinum: '#94A3B8',
+  platinumBg: 'rgba(148,163,184,0.12)',
+
+  // Premium AMC — same in premium mode
+  premiumBg: '#0F172A',
+  premiumSurface: '#1E293B',
+  premiumGold: '#D4A017',
+  premiumGoldLight: 'rgba(212,160,23,0.15)',
+  premiumText: '#FEFCE8',
+  premiumMuted: '#94A3B8',
+
+  // Aliases
+  secondary: '#D4A017',
+  accent: '#D4A017',
+  gray: '#94A3B8',
+  lightGray: '#334155',
+  white: '#FEFCE8',
+  black: '#0F172A',
+};
