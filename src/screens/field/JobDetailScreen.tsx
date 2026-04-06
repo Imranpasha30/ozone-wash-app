@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  ActivityIndicator, Alert, Linking,
+  ActivityIndicator, Alert, Linking, Platform,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { jobAPI, complianceAPI } from '../../services/api';
@@ -9,7 +9,7 @@ import { COLORS } from '../../utils/constants';
 import { Job } from '../../types';
 import {
   ArrowLeft, Calendar, Phone, CheckCircle, ArrowsClockwise,
-  Hourglass, Key, ClipboardText, Siren, ArrowRight,
+  Hourglass, Key, ClipboardText, Siren, ArrowRight, MapPin, NavigationArrow,
 } from '../../components/Icons';
 
 const JobDetailScreen = () => {
@@ -74,6 +74,19 @@ const JobDetailScreen = () => {
   const callCustomer = () => {
     if (job?.customer_phone) {
       Linking.openURL(`tel:${job.customer_phone}`);
+    }
+  };
+
+  const openInMaps = () => {
+    if (job?.location_lat && job?.location_lng) {
+      const url = Platform.select({
+        ios: `maps:0,0?q=${job.location_lat},${job.location_lng}`,
+        default: `https://www.google.com/maps/dir/?api=1&destination=${job.location_lat},${job.location_lng}`,
+      });
+      Linking.openURL(url!);
+    } else if (job?.address) {
+      const encoded = encodeURIComponent(job.address);
+      Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encoded}`);
     }
   };
 
@@ -147,6 +160,10 @@ const JobDetailScreen = () => {
           </View>
           <Text style={styles.customerPhone}>{job.customer_phone}</Text>
           <Text style={styles.address}>{job.address}</Text>
+          <TouchableOpacity style={styles.navigateBtn} onPress={openInMaps}>
+            <NavigationArrow size={16} weight="fill" color={COLORS.primaryFg} />
+            <Text style={styles.navigateBtnText}>Navigate to Location</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Compliance Progress */}
@@ -319,6 +336,12 @@ const styles = StyleSheet.create({
   callText: { fontSize: 13, color: COLORS.primary, fontWeight: 'bold' },
   customerPhone: { fontSize: 13, color: COLORS.muted, marginBottom: 6 },
   address: { fontSize: 13, color: COLORS.muted, lineHeight: 20 },
+  navigateBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: COLORS.primary, borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 8, marginTop: 10, alignSelf: 'flex-start',
+  },
+  navigateBtnText: { fontSize: 13, color: COLORS.primaryFg, fontWeight: '600' },
   complianceCard: {
     backgroundColor: COLORS.surface,
     borderRadius: 16,

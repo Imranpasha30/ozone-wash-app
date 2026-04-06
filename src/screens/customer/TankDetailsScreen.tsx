@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  ScrollView, Alert, KeyboardAvoidingView, Platform,
+  ScrollView, Alert, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import * as Location from 'expo-location';
 import useBookingStore from '../../store/booking.store';
 import { TANK_TYPES } from '../../utils/constants';
 import { useTheme } from '../../hooks/useTheme';
-import { ArrowLeft, ArrowRight, House, Wrench, Drop, MapPin, CurrencyInr } from '../../components/Icons';
+import { ArrowLeft, ArrowRight, House, Wrench, Drop, MapPin, CurrencyInr, NavigationArrow } from '../../components/Icons';
 
 const TANK_SIZES = [500, 1000, 1500, 2000, 3000, 5000];
 
@@ -30,6 +31,34 @@ const TankDetailsScreen = () => {
   );
   const [sizeInput, setSizeInput] = useState(draft.tank_size_litres?.toString() || '1000');
   const [address, setAddress] = useState(draft.address || '');
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
+    draft.lat && draft.lng ? { lat: draft.lat, lng: draft.lng } : null
+  );
+  const [locating, setLocating] = useState(false);
+
+  const handleUseMyLocation = async () => {
+    setLocating(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Allow location access to use this feature.');
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const { latitude, longitude } = pos.coords;
+      setCoords({ lat: latitude, lng: longitude });
+
+      const [geo] = await Location.reverseGeocodeAsync({ latitude, longitude });
+      if (geo) {
+        const parts = [geo.name, geo.street, geo.district, geo.city, geo.region, geo.postalCode].filter(Boolean);
+        setAddress(parts.join(', '));
+      }
+    } catch (err: any) {
+      Alert.alert('Location Error', err.message || 'Could not get your location.');
+    } finally {
+      setLocating(false);
+    }
+  };
 
   const handleNext = () => {
     const size = parseInt(sizeInput, 10);
@@ -37,7 +66,13 @@ const TankDetailsScreen = () => {
     if (!size || size < 100) return Alert.alert('Enter valid tank size (min 100 litres)');
     if (!address.trim()) return Alert.alert('Enter service address');
 
-    setStep1({ tank_type: tankType, tank_size_litres: size, address: address.trim() });
+    setStep1({
+      tank_type: tankType,
+      tank_size_litres: size,
+      address: address.trim(),
+      lat: coords?.lat ?? null,
+      lng: coords?.lng ?? null,
+    });
     navigation.navigate('DateTimeSelect');
   };
 
@@ -118,13 +153,35 @@ const TankDetailsScreen = () => {
             <MapPin size={16} weight="regular" color={C.primary} />
             <Text style={styles.labelWithIcon}>Service Address</Text>
           </View>
+          <TouchableOpacity
+            style={styles.locationBtn}
+            onPress={handleUseMyLocation}
+            disabled={locating}
+          >
+            {locating ? (
+              <ActivityIndicator size="small" color={C.primary} />
+            ) : (
+              <NavigationArrow size={18} weight="fill" color={C.primary} />
+            )}
+            <Text style={styles.locationBtnText}>
+              {locating ? 'Getting location...' : 'Use My Current Location'}
+            </Text>
+          </TouchableOpacity>
+          {coords && (
+            <View style={styles.coordsBadge}>
+              <MapPin size={12} weight="fill" color={C.success} />
+              <Text style={styles.coordsText}>
+                GPS: {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
+              </Text>
+            </View>
+          )}
           <TextInput
             style={[styles.input, styles.textArea]}
-            placeholder="Enter full address including flat / house number, street, area"
+            placeholder="Or enter address manually — flat / house no, street, area"
             multiline
             numberOfLines={3}
             value={address}
-            onChangeText={setAddress}
+            onChangeText={(text) => { setAddress(text); if (!text.trim()) setCoords(null); }}
             placeholderTextColor={C.gray}
             textAlignVertical="top"
           />
@@ -220,6 +277,26 @@ const makeStyles = (C: any) => StyleSheet.create({
     marginBottom: 4,
   },
   textArea: { height: 90 },
+  locationBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: C.primaryBg,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1.5,
+    borderColor: C.borderActive,
+  },
+  locationBtnText: { fontSize: 14, color: C.primary, fontWeight: '600' },
+  coordsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  coordsText: { fontSize: 11, color: C.success, fontWeight: '600' },
   priceBox: {
     backgroundColor: C.surface,
     borderRadius: 16,

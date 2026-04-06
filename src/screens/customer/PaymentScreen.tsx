@@ -221,6 +221,8 @@ const PaymentScreen = () => {
         tank_type: draft.tank_type,
         tank_size_litres: draft.tank_size_litres,
         address: draft.address,
+        lat: draft.lat || undefined,
+        lng: draft.lng || undefined,
         slot_time: draft.slot_time,
         addons: draft.addons,
         amc_plan: draft.amc_plan || undefined,

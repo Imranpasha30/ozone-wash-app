@@ -5,6 +5,8 @@ interface BookingDraft {
   tank_type: 'overhead' | 'underground' | 'sump' | '';
   tank_size_litres: number;
   address: string;
+  lat: number | null;
+  lng: number | null;
   // Step 2
   slot_time: string;
   // Step 3
@@ -22,7 +24,7 @@ interface BookingDraft {
 
 interface BookingStore {
   draft: BookingDraft;
-  setStep1: (data: { tank_type: 'overhead' | 'underground' | 'sump'; tank_size_litres: number; address: string }) => void;
+  setStep1: (data: { tank_type: 'overhead' | 'underground' | 'sump'; tank_size_litres: number; address: string; lat?: number | null; lng?: number | null }) => void;
   setStep2: (slot_time: string) => void;
   setStep3: (data: { addons: string[]; amc_plan: string; payment_method: 'upi' | 'card' | 'wallet' | 'cod'; pricing: any }) => void;
   reset: () => void;
@@ -32,6 +34,8 @@ const defaultDraft: BookingDraft = {
   tank_type: '',
   tank_size_litres: 1000,
   address: '',
+  lat: null,
+  lng: null,
   slot_time: '',
   addons: [],
   amc_plan: '',
