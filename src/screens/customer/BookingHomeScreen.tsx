@@ -10,7 +10,7 @@ import { COLORS } from '../../utils/constants';
 import { Booking, AmcContract } from '../../types';
 import {
   Bell, Drop, ArrowRight, ClipboardText, Trophy, UserCircle,
-  ShieldCheck, FileText, MapPin, Calendar,
+  ShieldCheck, FileText, MapPin, Calendar, Shield, Star, Crown,
 } from '../../components/Icons';
 
 const BADGE_COLORS: Record<string, string> = {
@@ -129,28 +129,39 @@ const BookingHomeScreen = () => {
       )}
 
       {/* AMC Status */}
-      <View style={[styles.card, { borderLeftColor: amc ? COLORS.secondary : COLORS.accent }]}>
-        <Text style={styles.cardLabel}>AMC Contract</Text>
-        {amc ? (
-          <>
-            <Text style={styles.amcPlan}>{amc.plan_type?.toUpperCase()} Plan -- Active</Text>
-            <Text style={styles.cardSub}>Valid till {formatDate(amc.end_date)}</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('AmcPlans')} style={styles.linkRow}>
-              <Text style={styles.link}>Manage AMC</Text>
-              <ArrowRight size={14} weight="bold" color={COLORS.primary} />
-            </TouchableOpacity>
-          </>
-        ) : (
-          <>
-            <Text style={styles.amcPlan}>No active AMC</Text>
-            <Text style={styles.cardSub}>Get up to 25% off with an annual plan</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('AmcPlans')} style={styles.linkRow}>
-              <Text style={styles.link}>View Plans</Text>
-              <ArrowRight size={14} weight="bold" color={COLORS.primary} />
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
+      {amc ? (
+        <View style={styles.premiumCard}>
+          <View style={styles.premiumCardHeader}>
+            <View style={styles.premiumIconWrap}>
+              <Crown size={20} weight="fill" color={COLORS.premiumGold} />
+            </View>
+            <Text style={styles.premiumLabel}>AMC CONTRACT</Text>
+          </View>
+          <Text style={styles.premiumPlan}>{amc.plan_type?.toUpperCase()} PLAN</Text>
+          <View style={styles.premiumBadgeRow}>
+            <View style={styles.premiumActiveBadge}>
+              <ShieldCheck size={14} weight="fill" color={COLORS.premiumGold} />
+              <Text style={styles.premiumActiveText}>Active</Text>
+            </View>
+            <Text style={styles.premiumExpiry}>Valid till {formatDate(amc.end_date)}</Text>
+          </View>
+          <View style={styles.premiumDivider} />
+          <TouchableOpacity onPress={() => navigation.navigate('AmcPlans')} style={styles.premiumLinkRow}>
+            <Text style={styles.premiumLink}>Manage AMC</Text>
+            <ArrowRight size={14} weight="bold" color={COLORS.premiumGold} />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={[styles.card, { borderLeftColor: COLORS.accent }]}>
+          <Text style={styles.cardLabel}>AMC Contract</Text>
+          <Text style={styles.amcPlan}>No active AMC</Text>
+          <Text style={styles.cardSub}>Get up to 25% off with an annual plan</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('AmcPlans')} style={styles.linkRow}>
+            <Text style={styles.link}>View Plans</Text>
+            <ArrowRight size={14} weight="bold" color={COLORS.primary} />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Recent Bookings */}
       <View style={styles.section}>
@@ -316,6 +327,81 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   quickLabel: { fontSize: 11, color: COLORS.primary, fontWeight: '600' },
+
+  // Premium AMC card styles
+  premiumCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: COLORS.premiumBg,
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: COLORS.premiumGoldLight,
+  },
+  premiumCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  premiumIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: COLORS.premiumGoldLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  premiumLabel: {
+    fontSize: 11,
+    color: COLORS.premiumMuted,
+    fontWeight: '600',
+    letterSpacing: 1,
+  },
+  premiumPlan: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.premiumGold,
+    marginBottom: 6,
+  },
+  premiumBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  premiumActiveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.premiumGoldLight,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  premiumActiveText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: COLORS.premiumGold,
+  },
+  premiumExpiry: {
+    fontSize: 12,
+    color: COLORS.premiumMuted,
+  },
+  premiumDivider: {
+    height: 1,
+    backgroundColor: COLORS.premiumSurface,
+    marginVertical: 12,
+  },
+  premiumLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  premiumLink: {
+    fontSize: 13,
+    color: COLORS.premiumGold,
+    fontWeight: '600',
+  },
 });
 
 export default BookingHomeScreen;

@@ -95,6 +95,14 @@ export const COLORS = {
   platinum: '#475569',
   platinumBg: 'rgba(71,85,105,0.08)',
 
+  // Premium AMC — gold & black
+  premiumBg: '#0F172A',
+  premiumSurface: '#1E293B',
+  premiumGold: '#D4A017',
+  premiumGoldLight: 'rgba(212,160,23,0.15)',
+  premiumText: '#FEFCE8',
+  premiumMuted: '#94A3B8',
+
   // Aliases
   secondary: '#0EA5E9',
   accent: '#059669',

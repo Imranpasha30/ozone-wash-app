@@ -104,4 +104,6 @@ export {
   Flask,
   TestTube,
   Stethoscope,
+  Crown,
+  Diamond,
 } from 'phosphor-react-native';
