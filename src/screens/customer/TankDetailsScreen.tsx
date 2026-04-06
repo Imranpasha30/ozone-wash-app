@@ -77,10 +77,10 @@ const TankDetailsScreen = () => {
   };
 
   const basePrice = () => {
-    const prices: Record<string, number> = { overhead: 800, underground: 1200, sump: 1000 };
+    const prices: Record<string, number> = { overhead: 1200, underground: 1800, sump: 1500 };
     const size = parseInt(sizeInput, 10) || 1000;
-    const base = prices[tankType] || 800;
-    const extra = Math.max(0, Math.floor((size - 1000) / 500)) * 200;
+    const base = prices[tankType] || 1500;
+    const extra = Math.max(0, Math.floor((size - 1000) / 500)) * 300;
     return base + extra;
   };
 
