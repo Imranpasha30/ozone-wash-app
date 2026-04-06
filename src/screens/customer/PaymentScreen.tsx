@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  ActivityIndicator, Alert,
+  ActivityIndicator, Alert, Modal,
 } from 'react-native';
+import { WebView } from 'react-native-webview';
 import { useNavigation } from '@react-navigation/native';
 import useBookingStore from '../../store/booking.store';
 import { bookingAPI, paymentAPI } from '../../services/api';
-import { COLORS } from '../../utils/constants';
+import { COLORS, API_URL } from '../../utils/constants';
 
 const PAYMENT_ICONS: Record<string, string> = {
   upi: '📱',
@@ -19,6 +20,9 @@ const PaymentScreen = () => {
   const navigation = useNavigation<any>();
   const { draft, reset } = useBookingStore();
   const [loading, setLoading] = useState(false);
+  const [showRazorpay, setShowRazorpay] = useState(false);
+  const [razorpayHtml, setRazorpayHtml] = useState('');
+  const bookingIdRef = useRef<string | null>(null);
 
   const fmt = (n: number) => `₹${n.toLocaleString('en-IN')}`;
 
@@ -37,6 +41,72 @@ const PaymentScreen = () => {
     });
   };
 
+  const buildRazorpayHtml = (orderId: string, keyId: string, amount: number, bookingId: string) => `
+    <!DOCTYPE html><html><head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>body{background:#0B0C18;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:sans-serif;color:#F1F2F8;}
+    .loading{font-size:18px;}</style>
+    </head><body><p class="loading">Opening payment...</p><script>
+    var options = {
+      key: "${keyId}",
+      amount: ${amount},
+      currency: "INR",
+      name: "Ozone Wash",
+      description: "Tank Cleaning Service",
+      order_id: "${orderId}",
+      handler: function(response) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: "success",
+          razorpay_order_id: response.razorpay_order_id,
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_signature: response.razorpay_signature,
+          booking_id: "${bookingId}"
+        }));
+      },
+      modal: { ondismiss: function() { window.ReactNativeWebView.postMessage(JSON.stringify({type:"dismissed"})); } },
+      theme: { color: "#2DD4BF" }
+    };
+    var rzp = new Razorpay(options);
+    rzp.on("payment.failed", function(resp) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({type:"failed", error: resp.error.description}));
+    });
+    rzp.open();
+    </script></body></html>`;
+
+  const handleRazorpayMessage = async (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      setShowRazorpay(false);
+
+      if (data.type === 'success') {
+        // Verify payment on backend
+        await paymentAPI.verifyPayment({
+          razorpay_order_id: data.razorpay_order_id,
+          razorpay_payment_id: data.razorpay_payment_id,
+          razorpay_signature: data.razorpay_signature,
+          booking_id: data.booking_id,
+        });
+        goToConfirmed(data.booking_id);
+      } else if (data.type === 'failed') {
+        Alert.alert('Payment Failed', data.error || 'Payment was unsuccessful. Please try again.');
+      } else if (data.type === 'dismissed') {
+        Alert.alert('Payment Cancelled', 'You can try again or choose a different payment method.');
+      }
+    } catch (err: any) {
+      setShowRazorpay(false);
+      Alert.alert('Payment Error', err.message || 'Could not verify payment.');
+    }
+  };
+
+  const goToConfirmed = (bookingId: string) => {
+    reset();
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'CustomerTabs' }, { name: 'BookingConfirmed', params: { booking_id: bookingId } }],
+    });
+  };
+
   const handleConfirm = async () => {
     setLoading(true);
     try {
@@ -52,25 +122,28 @@ const PaymentScreen = () => {
       }) as any;
 
       const bookingId = bookingRes.data?.booking?.id;
-
       if (!bookingId) throw new Error('Booking creation failed');
+      bookingIdRef.current = bookingId;
 
-      // For UPI / card / wallet — create Razorpay order
-      if (draft.payment_method !== 'cod') {
-        try {
-          await paymentAPI.createOrder(bookingId);
-          // In prod: open Razorpay SDK here with order_id
-          // For now we treat it as paid and go to confirmed screen
-        } catch (_) {
-          // Order creation may fail with placeholder creds — still proceed
-        }
+      // COD — go straight to confirmed
+      if (draft.payment_method === 'cod') {
+        goToConfirmed(bookingId);
+        return;
       }
 
-      reset();
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'CustomerTabs' }, { name: 'BookingConfirmed', params: { booking_id: bookingId } }],
-      });
+      // Online payment — create Razorpay order and open checkout
+      const orderRes = await paymentAPI.createOrder(bookingId) as any;
+      const { order_id, key_id, amount } = orderRes.data || orderRes;
+
+      if (!order_id || !key_id) {
+        // If Razorpay not configured, proceed without payment (dev mode)
+        goToConfirmed(bookingId);
+        return;
+      }
+
+      const html = buildRazorpayHtml(order_id, key_id, amount || draft.amount_paise, bookingId);
+      setRazorpayHtml(html);
+      setShowRazorpay(true);
     } catch (err: any) {
       Alert.alert('Booking Failed', err.message || 'Something went wrong. Please try again.');
     } finally {
@@ -141,6 +214,23 @@ const PaymentScreen = () => {
           By confirming, you agree to our terms of service. Cancellations must be made 24 hours in advance.
         </Text>
       </ScrollView>
+
+      {/* Razorpay WebView Checkout Modal */}
+      <Modal visible={showRazorpay} animationType="slide" onRequestClose={() => setShowRazorpay(false)}>
+        <View style={styles.razorpayContainer}>
+          <TouchableOpacity style={styles.razorpayClose} onPress={() => setShowRazorpay(false)}>
+            <Text style={styles.razorpayCloseText}>✕ Close</Text>
+          </TouchableOpacity>
+          <WebView
+            originWhitelist={['*']}
+            source={{ html: razorpayHtml }}
+            onMessage={handleRazorpayMessage}
+            javaScriptEnabled
+            domStorageEnabled
+            style={{ flex: 1, backgroundColor: COLORS.background }}
+          />
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -227,6 +317,9 @@ const styles = StyleSheet.create({
   confirmBtnDisabled: { backgroundColor: COLORS.surfaceElevated, borderWidth: 1, borderColor: COLORS.border },
   confirmText: { color: COLORS.primaryFg, fontWeight: 'bold', fontSize: 17 },
   disclaimer: { fontSize: 11, color: COLORS.muted, textAlign: 'center', marginTop: 16, lineHeight: 16 },
+  razorpayContainer: { flex: 1, backgroundColor: COLORS.background, paddingTop: 44 },
+  razorpayClose: { padding: 16, alignItems: 'flex-end' },
+  razorpayCloseText: { color: COLORS.danger, fontSize: 16, fontWeight: '600' },
 });
 
 export default PaymentScreen;

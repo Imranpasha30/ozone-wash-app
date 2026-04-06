@@ -20,6 +20,8 @@ const JobDetailScreen = () => {
 
   useEffect(() => {
     fetchData();
+    const unsubscribe = navigation.addListener('focus', fetchData);
+    return unsubscribe;
   }, []);
 
   const fetchData = async () => {
@@ -41,13 +43,25 @@ const JobDetailScreen = () => {
     }
   };
 
-  const handleStart = async () => {
+  const handleGenerateStartOtp = async () => {
     setStarting(true);
     try {
-      await jobAPI.startJob(jobId);
-      await fetchData();
+      await jobAPI.generateStartOtp(jobId);
+      navigation.navigate('OtpEntry', { jobId, type: 'start' });
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Could not start job');
+      Alert.alert('Error', err.message || 'Could not generate start OTP');
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  const handleGenerateEndOtp = async () => {
+    setStarting(true);
+    try {
+      await jobAPI.generateEndOtp(jobId);
+      navigation.navigate('OtpEntry', { jobId, type: 'end' });
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Could not generate end OTP');
     } finally {
       setStarting(false);
     }
@@ -154,25 +168,40 @@ const JobDetailScreen = () => {
         {job.status === 'scheduled' && (
           <TouchableOpacity
             style={[styles.actionBtn, styles.startBtn, starting && styles.btnDisabled]}
-            onPress={handleStart}
+            onPress={handleGenerateStartOtp}
             disabled={starting}
           >
             {starting
               ? <ActivityIndicator color={COLORS.primaryFg} />
-              : <Text style={styles.actionBtnText}>🚀 Start Job</Text>
+              : <Text style={styles.actionBtnText}>🔑 Start Job (OTP)</Text>
             }
           </TouchableOpacity>
         )}
 
         {job.status === 'in_progress' && (
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.checklistBtn]}
-            onPress={() => navigation.navigate('Checklist', { job_id: job.id })}
-          >
-            <Text style={styles.actionBtnText}>
-              📋 Open Compliance Checklist ({compliance?.completion_percentage ?? 0}%)
-            </Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.checklistBtn]}
+              onPress={() => navigation.navigate('Checklist', { job_id: job.id })}
+            >
+              <Text style={styles.actionBtnText}>
+                📋 Open Compliance Checklist ({compliance?.completion_percentage ?? 0}%)
+              </Text>
+            </TouchableOpacity>
+
+            {compliance?.completion_percentage === 100 && (
+              <TouchableOpacity
+                style={[styles.actionBtn, { backgroundColor: COLORS.success, shadowColor: COLORS.success }, starting && styles.btnDisabled]}
+                onPress={handleGenerateEndOtp}
+                disabled={starting}
+              >
+                {starting
+                  ? <ActivityIndicator color={COLORS.primaryFg} />
+                  : <Text style={styles.actionBtnText}>🔑 Complete Job (End OTP)</Text>
+                }
+              </TouchableOpacity>
+            )}
+          </>
         )}
 
         {job.status === 'completed' && (
@@ -182,6 +211,26 @@ const JobDetailScreen = () => {
             {job.completed_at && (
               <Text style={styles.completedTime}>{formatDate(job.completed_at)}</Text>
             )}
+          </View>
+        )}
+
+        {/* Secondary Actions — visible when job is not completed/cancelled */}
+        {job.status !== 'completed' && job.status !== 'cancelled' && (
+          <View style={styles.secondaryActions}>
+            <TouchableOpacity
+              style={styles.secondaryBtn}
+              onPress={() => navigation.navigate('IncidentReport', { job_id: job.id })}
+            >
+              <Text style={styles.secondaryBtnIcon}>🚨</Text>
+              <Text style={styles.secondaryBtnText}>Report Incident</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.secondaryBtn}
+              onPress={() => navigation.navigate('JobTransfer', { job_id: job.id })}
+            >
+              <Text style={styles.secondaryBtnIcon}>🔄</Text>
+              <Text style={styles.secondaryBtnText}>Transfer Job</Text>
+            </TouchableOpacity>
           </View>
         )}
       </ScrollView>
@@ -276,6 +325,15 @@ const styles = StyleSheet.create({
   completedText: { fontSize: 18, fontWeight: 'bold', color: COLORS.success },
   completedTime: { fontSize: 13, color: COLORS.muted, marginTop: 4 },
   link: { color: COLORS.primary, fontWeight: '600', marginTop: 8 },
+  secondaryActions: {
+    flexDirection: 'row', gap: 12, marginTop: 16,
+  },
+  secondaryBtn: {
+    flex: 1, backgroundColor: COLORS.surface, borderRadius: 12,
+    padding: 14, alignItems: 'center', borderWidth: 1, borderColor: COLORS.border,
+  },
+  secondaryBtnIcon: { fontSize: 22, marginBottom: 4 },
+  secondaryBtnText: { fontSize: 12, color: COLORS.muted, fontWeight: '600' },
 });
 
 export default JobDetailScreen;

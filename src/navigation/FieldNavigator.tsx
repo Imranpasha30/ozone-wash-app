@@ -12,6 +12,10 @@ import ProfileScreen from '../screens/customer/ProfileScreen';
 import JobDetailScreen from '../screens/field/JobDetailScreen';
 import ChecklistScreen from '../screens/field/ChecklistScreen';
 import ComplianceStepScreen from '../screens/field/ComplianceStepScreen';
+import OtpEntryScreen from '../screens/field/OtpEntryScreen';
+import IncidentReportScreen from '../screens/field/IncidentReportScreen';
+import JobTransferScreen from '../screens/field/JobTransferScreen';
+import PerformanceScreen from '../screens/field/PerformanceScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -48,6 +52,14 @@ const FieldTabs = () => (
       }}
     />
     <Tab.Screen
+      name="Performance"
+      component={PerformanceScreen}
+      options={{
+        tabBarLabel: 'Stats',
+        tabBarIcon: ({ focused }) => <TabIcon emoji="📊" focused={focused} />,
+      }}
+    />
+    <Tab.Screen
       name="Profile"
       component={ProfileScreen}
       options={{
@@ -66,6 +78,9 @@ const FieldNavigator = () => (
     <Stack.Screen name="JobDetail" component={JobDetailScreen} />
     <Stack.Screen name="Checklist" component={ChecklistScreen} />
     <Stack.Screen name="ComplianceStep" component={ComplianceStepScreen} />
+    <Stack.Screen name="OtpEntry" component={OtpEntryScreen} />
+    <Stack.Screen name="IncidentReport" component={IncidentReportScreen} />
+    <Stack.Screen name="JobTransfer" component={JobTransferScreen} />
   </Stack.Navigator>
 );
 

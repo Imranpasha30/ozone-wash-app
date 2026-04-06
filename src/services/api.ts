@@ -159,6 +159,33 @@ export const jobAPI = {
 
   getTodayStats: () =>
     api.get('/jobs/stats'),  // no cache — role-dependent response
+
+  // OTP endpoints
+  generateStartOtp: (jobId: string) => {
+    invalidateCache('/jobs');
+    return api.post(`/jobs/${jobId}/generate-start-otp`);
+  },
+
+  verifyStartOtp: (jobId: string, otp: string) => {
+    invalidateCache('/jobs');
+    return api.post(`/jobs/${jobId}/verify-start-otp`, { otp });
+  },
+
+  generateEndOtp: (jobId: string) => {
+    invalidateCache('/jobs');
+    return api.post(`/jobs/${jobId}/generate-end-otp`);
+  },
+
+  verifyEndOtp: (jobId: string, otp: string) => {
+    invalidateCache('/jobs');
+    return api.post(`/jobs/${jobId}/verify-end-otp`, { otp });
+  },
+
+  // Transfer
+  transferJob: (jobId: string, new_team_id: string, reason?: string) => {
+    invalidateCache('/jobs');
+    return api.post(`/jobs/${jobId}/transfer`, { new_team_id, reason });
+  },
 };
 
 // ── Compliance ────────────────────────────────────────────────────────────────
@@ -257,6 +284,29 @@ export const adminAPI = {
   assignTeam: (jobId: string, team_id: string) => {
     invalidateCache('/jobs');
     return api.patch(`/jobs/${jobId}/assign`, { team_id });
+  },
+};
+
+// ── Incidents ────────────────────────────────────────────────────────────────
+export const incidentAPI = {
+  create: (data: { job_id: string; description: string; severity?: string; photo_url?: string; audio_url?: string }) => {
+    return api.post('/incidents', data);
+  },
+
+  getByJobId: (jobId: string) =>
+    cachedGet(`/incidents/job/${jobId}`),
+
+  getAll: (params?: { status?: string; severity?: string }) =>
+    cachedGet('/incidents', { params }),
+
+  resolve: (id: string) => {
+    invalidateCache('/incidents');
+    return api.patch(`/incidents/${id}/resolve`);
+  },
+
+  escalate: (id: string) => {
+    invalidateCache('/incidents');
+    return api.patch(`/incidents/${id}/escalate`);
   },
 };
 

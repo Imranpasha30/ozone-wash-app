@@ -4,7 +4,7 @@ import {
   ActivityIndicator, Alert,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { bookingAPI, complianceAPI, certificateAPI } from '../../services/api';
+import { bookingAPI, complianceAPI, certificateAPI, jobAPI } from '../../services/api';
 import { COLORS } from '../../utils/constants';
 
 const STATUS_STEPS = ['pending', 'confirmed', 'in_progress', 'completed'];
@@ -15,6 +15,7 @@ const BookingDetailScreen = () => {
   const bookingId = route.params?.booking_id;
 
   const [booking, setBooking] = useState<any>(null);
+  const [job, setJob] = useState<any>(null);
   const [compliance, setCompliance] = useState<any>(null);
   const [certificate, setCertificate] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -22,6 +23,8 @@ const BookingDetailScreen = () => {
 
   useEffect(() => {
     fetchAll();
+    const unsubscribe = navigation.addListener('focus', fetchAll);
+    return unsubscribe;
   }, []);
 
   const fetchAll = async () => {
@@ -33,10 +36,12 @@ const BookingDetailScreen = () => {
 
       if (b?.job_id) {
         try {
-          const [cRes, certRes] = await Promise.all([
+          const [jobRes, cRes, certRes] = await Promise.all([
+            jobAPI.getJob(b.job_id),
             complianceAPI.getStatus(b.job_id),
             certificateAPI.getCertificate(b.job_id),
           ]);
+          setJob((jobRes as any).data?.job);
           setCompliance((cRes as any).data);
           setCertificate((certRes as any).data?.certificate);
         } catch (_) {}
@@ -150,6 +155,32 @@ const BookingDetailScreen = () => {
           <InfoRow label="Payment" value={`${booking.payment_method?.toUpperCase()} — ${booking.payment_status}`} />
           <InfoRow label="Amount" value={fmt(booking.amount_paise)} />
         </View>
+
+        {/* OTP Display */}
+        {job?.start_otp && !job?.start_otp_verified && (
+          <>
+            <Text style={styles.sectionTitle}>Start Verification Code</Text>
+            <View style={styles.otpCard}>
+              <Text style={styles.otpIcon}>🔑</Text>
+              <View style={styles.otpContent}>
+                <Text style={styles.otpCode}>{job.start_otp}</Text>
+                <Text style={styles.otpHint}>Show this code to your technician to start the service</Text>
+              </View>
+            </View>
+          </>
+        )}
+        {job?.end_otp && !job?.end_otp_verified && (
+          <>
+            <Text style={styles.sectionTitle}>Completion Verification Code</Text>
+            <View style={[styles.otpCard, { borderLeftColor: COLORS.success }]}>
+              <Text style={styles.otpIcon}>✅</Text>
+              <View style={styles.otpContent}>
+                <Text style={[styles.otpCode, { color: COLORS.success }]}>{job.end_otp}</Text>
+                <Text style={styles.otpHint}>Show this code to your technician to confirm job completion</Text>
+              </View>
+            </View>
+          </>
+        )}
 
         {/* Compliance Progress */}
         {compliance && (
@@ -301,6 +332,27 @@ const styles = StyleSheet.create({
   certTitle: { fontSize: 15, fontWeight: 'bold', color: COLORS.foreground },
   certSub: { fontSize: 13, color: COLORS.muted, marginTop: 2 },
   certLink: { fontSize: 13, color: COLORS.primary, fontWeight: '600', marginTop: 4 },
+  otpCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.primary,
+  },
+  otpIcon: { fontSize: 32, marginRight: 14 },
+  otpContent: { flex: 1 },
+  otpCode: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    letterSpacing: 8,
+    fontVariant: ['tabular-nums'],
+  },
+  otpHint: { fontSize: 12, color: COLORS.muted, marginTop: 4 },
   cancelBtn: {
     marginTop: 24,
     borderWidth: 2,

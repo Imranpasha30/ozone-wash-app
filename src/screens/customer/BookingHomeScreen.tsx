@@ -93,9 +93,9 @@ const BookingHomeScreen = () => {
           <Text style={styles.greeting}>Hello, {user?.name || 'Customer'} 👋</Text>
           <Text style={styles.subGreeting}>Keep your water safe & clean</Text>
         </View>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{user?.phone}</Text>
-        </View>
+        <TouchableOpacity style={styles.bellBtn} onPress={() => navigation.navigate('Notifications')}>
+          <Text style={styles.bellIcon}>🔔</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Book Now CTA */}
@@ -220,8 +220,8 @@ const styles = StyleSheet.create({
   },
   greeting: { fontSize: 20, fontWeight: 'bold', color: COLORS.foreground },
   subGreeting: { fontSize: 13, color: COLORS.muted, marginTop: 2 },
-  badge: { backgroundColor: COLORS.primaryBg, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  badgeText: { color: COLORS.primary, fontSize: 12 },
+  bellBtn: { padding: 6 },
+  bellIcon: { fontSize: 24 },
   bookBtn: {
     margin: 16,
     backgroundColor: COLORS.primary,

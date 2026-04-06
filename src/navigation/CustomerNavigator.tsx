@@ -19,6 +19,7 @@ import BookingConfirmedScreen from '../screens/customer/BookingConfirmedScreen';
 import BookingDetailScreen from '../screens/customer/BookingDetailScreen';
 import CertificateScreen from '../screens/customer/CertificateScreen';
 import AmcPlansScreen from '../screens/customer/AmcPlansScreen';
+import NotificationsScreen from '../screens/customer/NotificationsScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -95,6 +96,7 @@ const CustomerNavigator = () => (
     <Stack.Screen name="BookingDetail" component={BookingDetailScreen} />
     <Stack.Screen name="CertificateView" component={CertificateScreen} />
     <Stack.Screen name="AmcPlans" component={AmcPlansScreen} />
+    <Stack.Screen name="Notifications" component={NotificationsScreen} />
   </Stack.Navigator>
 );
 
