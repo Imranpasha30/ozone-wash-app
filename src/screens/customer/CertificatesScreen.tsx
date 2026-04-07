@@ -110,7 +110,7 @@ const CertificatesScreen = () => {
     try {
       const res = await bookingAPI.getMyBookings() as any;
       const all = res.data?.bookings || [];
-      setBookings(all.filter((b: any) => b.status === 'completed'));
+      setBookings(all.filter((b: any) => b.status === 'completed' || b.job_status === 'completed'));
     } catch (_) {} finally {
       setLoading(false);
       setRefreshing(false);

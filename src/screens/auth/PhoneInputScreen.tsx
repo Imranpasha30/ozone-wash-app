@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, ActivityIndicator, KeyboardAvoidingView,
-  Platform, Alert
+  Platform, Alert, StatusBar,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import useAuthStore from '../../store/auth.store';
 import { COLORS } from '../../utils/constants';
-import { Phone } from '../../components/Icons';
+import { Phone, ArrowRight, Drop } from '../../components/Icons';
 
 const PhoneInputScreen = () => {
   const [phone, setPhone] = useState('');
@@ -15,48 +15,54 @@ const PhoneInputScreen = () => {
   const navigation = useNavigation<any>();
 
   const handleSendOtp = async () => {
-  if (phone.length !== 10) {
-    Alert.alert('Invalid Number', 'Please enter a valid 10-digit mobile number');
-    return;
-  }
-  try {
-    await sendOtp(phone);
-    // Navigate after OTP sent successfully
-    console.log('OTP sent, navigating to OTPVerify with phone:', phone);
-    navigation.navigate('OTPVerify', { phone });
-  } catch (err: any) {
-    console.log('sendOtp error:', err);
-    Alert.alert('Error', err.message || 'Failed to send OTP');
-  }
-};
+    if (phone.length !== 10) {
+      Alert.alert('Invalid Number', 'Please enter a valid 10-digit mobile number');
+      return;
+    }
+    try {
+      await sendOtp(phone);
+      navigation.navigate('OTPVerify', { phone });
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to send OTP');
+    }
+  };
+
+  const isValid = phone.length === 10;
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
       <View style={styles.inner}>
-
-        {/* Logo */}
-        <View style={styles.logoContainer}>
-          <View style={styles.logoMark}>
-            <View style={styles.logoRing} />
-            <View style={styles.logoCore} />
+        {/* Hero Section */}
+        <View style={styles.hero}>
+          <View style={styles.logoWrap}>
+            <View style={styles.logoOuter}>
+              <View style={styles.logoInner}>
+                <Drop size={32} weight="fill" color={COLORS.primary} />
+              </View>
+            </View>
           </View>
           <Text style={styles.brand}>OZONE WASH</Text>
-          <Text style={styles.tagline}>Hygiene You Can See. Health You Can Feel.</Text>
+          <Text style={styles.tagline}>Professional tank hygiene at your doorstep</Text>
         </View>
 
-        {/* Form */}
-        <View style={styles.form}>
-          <Text style={styles.title}>Enter Your Mobile Number</Text>
-          <Text style={styles.subtitle}>We'll send you a verification code</Text>
+        {/* Form Card */}
+        <View style={styles.formCard}>
+          <Text style={styles.title}>Get started</Text>
+          <Text style={styles.subtitle}>Enter your mobile number to continue</Text>
 
-          <View style={styles.phoneInput}>
-            <Phone size={18} weight="regular" color={COLORS.muted} />
-            <Text style={styles.countryCode}> +91</Text>
+          <View style={[styles.inputWrap, phone.length > 0 && styles.inputWrapFocused]}>
+            <View style={styles.countryBadge}>
+              <Text style={styles.flag}>🇮🇳</Text>
+              <Text style={styles.countryCode}>+91</Text>
+            </View>
+            <View style={styles.divider} />
             <TextInput
               style={styles.input}
-              placeholder="9876543210"
+              placeholder="Enter mobile number"
               placeholderTextColor={COLORS.muted}
               keyboardType="phone-pad"
               maxLength={10}
@@ -64,23 +70,38 @@ const PhoneInputScreen = () => {
               onChangeText={setPhone}
               autoFocus
             />
+            {isValid && (
+              <View style={styles.checkMark}>
+                <Text style={{ color: COLORS.success, fontSize: 16, fontWeight: 'bold' }}>✓</Text>
+              </View>
+            )}
           </View>
 
           <TouchableOpacity
-            style={[styles.button, phone.length !== 10 && styles.buttonDisabled]}
+            style={[styles.button, !isValid && styles.buttonDisabled]}
             onPress={handleSendOtp}
-            disabled={phone.length !== 10 || isLoading}
+            disabled={!isValid || isLoading}
+            activeOpacity={0.8}
           >
             {isLoading ? (
               <ActivityIndicator color={COLORS.primaryFg} />
             ) : (
-              <Text style={styles.buttonText}>Send OTP</Text>
+              <View style={styles.buttonInner}>
+                <Text style={[styles.buttonText, !isValid && styles.buttonTextDisabled]}>
+                  Continue
+                </Text>
+                <ArrowRight size={20} weight="bold" color={isValid ? COLORS.primaryFg : COLORS.muted} />
+              </View>
             )}
           </TouchableOpacity>
         </View>
 
+        {/* Footer */}
         <Text style={styles.footer}>
-          By continuing you agree to our Terms & Privacy Policy
+          By continuing, you agree to our{' '}
+          <Text style={styles.link}>Terms of Service</Text>{' '}
+          &{' '}
+          <Text style={styles.link}>Privacy Policy</Text>
         </Text>
       </View>
     </KeyboardAvoidingView>
@@ -88,114 +109,93 @@ const PhoneInputScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  inner: {
-    flex: 1,
-    justifyContent: 'space-between',
-    padding: 24,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginTop: 80,
-  },
-  logoMark: {
-    width: 72,
-    height: 72,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  logoRing: {
-    position: 'absolute',
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    borderWidth: 2,
-    borderColor: COLORS.primaryDim,
+  container: { flex: 1, backgroundColor: COLORS.background },
+  inner: { flex: 1, justifyContent: 'space-between', paddingHorizontal: 24 },
+
+  // ── Hero ────────────────────────────────────────
+  hero: { alignItems: 'center', marginTop: 100 },
+  logoWrap: { marginBottom: 20 },
+  logoOuter: {
+    width: 80, height: 80, borderRadius: 24,
     backgroundColor: COLORS.primaryBg,
+    alignItems: 'center', justifyContent: 'center',
   },
-  logoCore: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.primary,
+  logoInner: {
+    width: 56, height: 56, borderRadius: 16,
+    backgroundColor: COLORS.primaryDim,
+    alignItems: 'center', justifyContent: 'center',
   },
   brand: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-    letterSpacing: 4,
+    fontSize: 26, fontWeight: '700', color: COLORS.foreground,
+    letterSpacing: 3,
   },
   tagline: {
-    fontSize: 12,
-    color: COLORS.muted,
-    marginTop: 8,
-    textAlign: 'center',
+    fontSize: 14, color: COLORS.muted, marginTop: 8, textAlign: 'center',
+    lineHeight: 20,
   },
-  form: {
+
+  // ── Form ────────────────────────────────────────
+  formCard: {
     backgroundColor: COLORS.surface,
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    borderRadius: 24, padding: 24,
+    shadowColor: COLORS.shadow, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1, shadowRadius: 16, elevation: 8,
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.foreground,
-    marginBottom: 8,
+    fontSize: 22, fontWeight: '700', color: COLORS.foreground,
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 14,
-    color: COLORS.muted,
-    marginBottom: 24,
+    fontSize: 14, color: COLORS.muted, marginBottom: 24,
   },
-  phoneInput: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
+  inputWrap: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: COLORS.surfaceElevated, borderRadius: 16,
+    height: 60, paddingHorizontal: 16,
+    borderWidth: 1.5, borderColor: COLORS.border,
     marginBottom: 20,
-    height: 56,
-    backgroundColor: COLORS.surfaceElevated,
   },
-  countryCode: {
-    fontSize: 16,
-    marginRight: 12,
-    color: COLORS.foreground,
+  inputWrapFocused: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primaryBg,
+  },
+  countryBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+  },
+  flag: { fontSize: 20 },
+  countryCode: { fontSize: 16, fontWeight: '600', color: COLORS.foreground },
+  divider: {
+    width: 1, height: 24, backgroundColor: COLORS.border,
+    marginHorizontal: 14,
   },
   input: {
-    flex: 1,
-    fontSize: 18,
-    color: COLORS.foreground,
-    letterSpacing: 2,
+    flex: 1, fontSize: 18, fontWeight: '600', color: COLORS.foreground,
+    letterSpacing: 1.5,
   },
+  checkMark: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: COLORS.successBg,
+    alignItems: 'center', justifyContent: 'center',
+  },
+
+  // ── CTA Button ──────────────────────────────────
   button: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: COLORS.primary, borderRadius: 16, height: 56,
+    justifyContent: 'center', alignItems: 'center',
   },
-  buttonDisabled: {
-    backgroundColor: COLORS.surfaceElevated,
+  buttonDisabled: { backgroundColor: COLORS.surfaceElevated },
+  buttonInner: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
   },
-  buttonText: {
-    color: COLORS.primaryFg,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
+  buttonText: { color: COLORS.primaryFg, fontSize: 17, fontWeight: '700' },
+  buttonTextDisabled: { color: COLORS.muted },
+
+  // ── Footer ──────────────────────────────────────
   footer: {
-    textAlign: 'center',
-    color: COLORS.muted,
-    fontSize: 12,
-    marginBottom: 24,
+    textAlign: 'center', color: COLORS.muted, fontSize: 12,
+    marginBottom: 32, lineHeight: 18, paddingHorizontal: 24,
   },
+  link: { color: COLORS.primary, fontWeight: '600' },
 });
 
 export default PhoneInputScreen;

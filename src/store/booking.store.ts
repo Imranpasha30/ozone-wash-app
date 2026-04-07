@@ -20,6 +20,7 @@ interface BookingDraft {
   gst: number;
   grand_total: number;
   amount_paise: number;
+  pricing: any; // full pricing object from backend (includes amc_covered flag)
 }
 
 interface BookingStore {
@@ -46,6 +47,7 @@ const defaultDraft: BookingDraft = {
   gst: 0,
   grand_total: 0,
   amount_paise: 0,
+  pricing: null,
 };
 
 const useBookingStore = create<BookingStore>((set) => ({
@@ -70,6 +72,7 @@ const useBookingStore = create<BookingStore>((set) => ({
         gst: data.pricing.gst,
         grand_total: data.pricing.grand_total,
         amount_paise: data.pricing.amount_paise,
+        pricing: data.pricing,
       },
     })),
 

@@ -8,6 +8,7 @@ import { bookingAPI, complianceAPI, certificateAPI, jobAPI } from '../../service
 import { useTheme } from '../../hooks/useTheme';
 import {
   ArrowLeft, ArrowRight, Key, CheckCircle, Hourglass, Trophy,
+  ThumbsUp, ThumbsDown,
 } from '../../components/Icons';
 
 const STATUS_STEPS = ['pending', 'confirmed', 'in_progress', 'completed'];
@@ -157,6 +158,7 @@ const BookingDetailScreen = () => {
   const [certificate, setCertificate] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  const [requestingOtp, setRequestingOtp] = useState(false);
 
   const InfoRow = ({ label, value }: { label: string; value: string }) => (
     <View style={styles.infoRow}>
@@ -170,6 +172,20 @@ const BookingDetailScreen = () => {
     const unsubscribe = navigation.addListener('focus', fetchAll);
     return unsubscribe;
   }, []);
+
+  // Auto-refresh every 10s when job is active (waiting for OTP or in progress)
+  useEffect(() => {
+    const shouldPoll =
+      job && (
+        job.status === 'in_progress' ||
+        job.status === 'scheduled' ||
+        (job.start_otp && !job.start_otp_verified) ||
+        (job.end_otp && !job.end_otp_verified)
+      );
+    if (!shouldPoll) return;
+    const interval = setInterval(fetchAll, 10000);
+    return () => clearInterval(interval);
+  }, [job?.status, job?.start_otp_verified, job?.end_otp_verified]);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -194,6 +210,20 @@ const BookingDetailScreen = () => {
       Alert.alert('Error', 'Could not load booking details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRequestOtp = async () => {
+    if (!booking?.job_id) return;
+    setRequestingOtp(true);
+    try {
+      const res = await jobAPI.customerRequestOtp(booking.job_id) as any;
+      Alert.alert('OTP Generated', `Your start OTP is: ${res.data?.otp || 'Check below'}. Show this code to your technician.`);
+      fetchAll();
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Could not generate OTP');
+    } finally {
+      setRequestingOtp(false);
     }
   };
 
@@ -289,6 +319,7 @@ const BookingDetailScreen = () => {
         {/* Booking Info */}
         <Text style={styles.sectionTitle}>Booking Info</Text>
         <View style={styles.infoCard}>
+          <InfoRow label="Booking ID" value={`#${booking.id?.slice(0, 8).toUpperCase()}`} />
           <InfoRow label="Tank Type" value={booking.tank_type?.replace('_', ' ').toUpperCase()} />
           <InfoRow label="Size" value={`${booking.tank_size_litres} Litres`} />
           <InfoRow label="Date & Time" value={formatDate(booking.slot_time)} />
@@ -301,35 +332,151 @@ const BookingDetailScreen = () => {
           <InfoRow label="Amount" value={fmt(booking.amount_paise)} />
         </View>
 
-        {/* OTP Display */}
-        {job?.start_otp && !job?.start_otp_verified && (
+        {/* Service Verification Section — always visible for active bookings */}
+        {(booking.status === 'confirmed' || booking.status === 'in_progress') && (() => {
+          // Use booking-level data (from JOIN) as primary, job fetch as fallback
+          const teamId = booking.assigned_team_id || job?.assigned_team_id;
+          const teamName = booking.team_name || job?.team_name;
+          const startOtp = booking.start_otp || job?.start_otp;
+          const endOtp = booking.end_otp || job?.end_otp;
+          const startVerified = booking.start_otp_verified || job?.start_otp_verified;
+          const endVerified = booking.end_otp_verified || job?.end_otp_verified;
+          const jobStatus = booking.job_status || job?.status;
+
+          return (
           <>
-            <Text style={styles.sectionTitle}>Start Verification Code</Text>
-            <View style={styles.otpCard}>
-              <View style={styles.otpIconContainer}>
-                <Key size={24} weight="fill" color={C.primary} />
+            <Text style={styles.sectionTitle}>Service Verification</Text>
+
+            {/* State 1: No team assigned yet */}
+            {!teamId && (
+              <View style={styles.otpCard}>
+                <View style={[styles.otpIconContainer, { backgroundColor: C.warningBg }]}>
+                  <Hourglass size={24} weight="fill" color={C.warning} />
+                </View>
+                <View style={styles.otpContent}>
+                  <Text style={[styles.otpHint, { fontWeight: '700', color: C.foreground, fontSize: 14 }]}>
+                    Awaiting Technician
+                  </Text>
+                  <Text style={styles.otpHint}>A technician will be assigned shortly. OTP will appear here once assigned.</Text>
+                </View>
               </View>
-              <View style={styles.otpContent}>
-                <Text style={styles.otpCode}>{job.start_otp}</Text>
-                <Text style={styles.otpHint}>Show this code to your technician to start the service</Text>
+            )}
+
+            {/* State 2: Team assigned, no start OTP yet — customer can request */}
+            {teamId && (jobStatus === 'scheduled') && !startOtp && (
+              <TouchableOpacity
+                style={styles.otpCard}
+                onPress={handleRequestOtp}
+                disabled={requestingOtp}
+                activeOpacity={0.7}
+              >
+                <View style={styles.otpIconContainer}>
+                  <Key size={24} weight="fill" color={C.primary} />
+                </View>
+                <View style={styles.otpContent}>
+                  {requestingOtp ? (
+                    <ActivityIndicator size="small" color={C.primary} />
+                  ) : (
+                    <>
+                      <Text style={[styles.otpHint, { fontWeight: '700', color: C.foreground, fontSize: 14 }]}>
+                        Technician Assigned{teamName ? ` — ${teamName}` : ''}
+                      </Text>
+                      <Text style={styles.otpHint}>Tap to generate Start OTP and share with your technician</Text>
+                    </>
+                  )}
+                </View>
+              </TouchableOpacity>
+            )}
+
+            {/* State 3: Start OTP exists, not yet verified */}
+            {startOtp && !startVerified && (
+              <View style={styles.otpCard}>
+                <View style={styles.otpIconContainer}>
+                  <Key size={24} weight="fill" color={C.primary} />
+                </View>
+                <View style={styles.otpContent}>
+                  <Text style={styles.otpCode}>{startOtp}</Text>
+                  <Text style={styles.otpHint}>Show this code to your technician to start the service</Text>
+                </View>
               </View>
-            </View>
+            )}
+
+            {/* State 4: Start OTP verified (job in progress) */}
+            {startVerified && !endOtp && (
+              <View style={[styles.otpCard, { borderLeftColor: C.success }]}>
+                <View style={[styles.otpIconContainer, { backgroundColor: C.successBg }]}>
+                  <CheckCircle size={24} weight="fill" color={C.success} />
+                </View>
+                <View style={styles.otpContent}>
+                  <Text style={[styles.otpHint, { fontWeight: '700', color: C.success, fontSize: 14 }]}>
+                    Service Started
+                  </Text>
+                  <Text style={styles.otpHint}>Your technician has verified the start OTP. Service is in progress.</Text>
+                </View>
+              </View>
+            )}
+
+            {/* State 5: End OTPs exist (satisfied + unsatisfied), not yet verified */}
+            {(() => {
+              const satOtp = booking.end_otp_satisfied || job?.end_otp_satisfied;
+              const unsatOtp = booking.end_otp_unsatisfied || job?.end_otp_unsatisfied;
+              const anyEndOtp = satOtp || unsatOtp || endOtp;
+
+              if (!anyEndOtp || endVerified) return null;
+
+              // Dual OTP — satisfaction feedback
+              if (satOtp && unsatOtp) {
+                return (
+                  <View>
+                    <Text style={[styles.otpHint, { textAlign: 'center', marginBottom: 12, fontSize: 13, color: C.foreground, fontWeight: '700' }]}>
+                      Share ONE code with your technician
+                    </Text>
+
+                    {/* Satisfied OTP — green */}
+                    <View style={[styles.otpCard, { borderLeftColor: C.success, marginBottom: 10 }]}>
+                      <View style={[styles.otpIconContainer, { backgroundColor: C.successBg }]}>
+                        <ThumbsUp size={24} weight="fill" color={C.success} />
+                      </View>
+                      <View style={styles.otpContent}>
+                        <Text style={[styles.otpHint, { fontWeight: '700', color: C.success, fontSize: 13, marginBottom: 4 }]}>
+                          If SATISFIED with the service
+                        </Text>
+                        <Text style={[styles.otpCode, { color: C.success }]}>{satOtp}</Text>
+                      </View>
+                    </View>
+
+                    {/* Unsatisfied OTP — red */}
+                    <View style={[styles.otpCard, { borderLeftColor: C.danger }]}>
+                      <View style={[styles.otpIconContainer, { backgroundColor: C.dangerBg }]}>
+                        <ThumbsDown size={24} weight="fill" color={C.danger} />
+                      </View>
+                      <View style={styles.otpContent}>
+                        <Text style={[styles.otpHint, { fontWeight: '700', color: C.danger, fontSize: 13, marginBottom: 4 }]}>
+                          If NOT SATISFIED with the service
+                        </Text>
+                        <Text style={[styles.otpCode, { color: C.danger }]}>{unsatOtp}</Text>
+                      </View>
+                    </View>
+                  </View>
+                );
+              }
+
+              // Fallback: single end OTP (legacy)
+              return (
+                <View style={[styles.otpCard, { borderLeftColor: C.success }]}>
+                  <View style={[styles.otpIconContainer, { backgroundColor: C.successBg }]}>
+                    <Key size={24} weight="fill" color={C.success} />
+                  </View>
+                  <View style={styles.otpContent}>
+                    <Text style={[styles.otpCode, { color: C.success }]}>{endOtp}</Text>
+                    <Text style={styles.otpHint}>Show this code to your technician to confirm job completion</Text>
+                  </View>
+                </View>
+              );
+            })()}
           </>
-        )}
-        {job?.end_otp && !job?.end_otp_verified && (
-          <>
-            <Text style={styles.sectionTitle}>Completion Verification Code</Text>
-            <View style={[styles.otpCard, { borderLeftColor: C.success }]}>
-              <View style={[styles.otpIconContainer, { backgroundColor: C.successBg }]}>
-                <CheckCircle size={24} weight="fill" color={C.success} />
-              </View>
-              <View style={styles.otpContent}>
-                <Text style={[styles.otpCode, { color: C.success }]}>{job.end_otp}</Text>
-                <Text style={styles.otpHint}>Show this code to your technician to confirm job completion</Text>
-              </View>
-            </View>
-          </>
-        )}
+          );
+        })()}
 
         {/* Compliance Progress */}
         {compliance && (

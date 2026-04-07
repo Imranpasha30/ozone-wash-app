@@ -1,20 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  ActivityIndicator, Alert, Linking, Platform,
+  ActivityIndicator, Alert, Linking, Platform, StatusBar,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { jobAPI, complianceAPI } from '../../services/api';
-import { COLORS } from '../../utils/constants';
+import { useTheme } from '../../hooks/useTheme';
 import { Job } from '../../types';
 import {
   ArrowLeft, Calendar, Phone, CheckCircle, ArrowsClockwise,
-  Hourglass, Key, ClipboardText, Siren, ArrowRight, MapPin, NavigationArrow,
+  Hourglass, Key, ClipboardText, Siren, ArrowRight, MapPin, NavigationArrow, QrCode,
 } from '../../components/Icons';
 
 const JobDetailScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const C = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const jobId = route.params?.job_id;
 
   const [job, setJob] = useState<Job | null>(null);
@@ -97,16 +99,16 @@ const JobDetailScreen = () => {
     });
 
   const statusColor = (s: string) => {
-    if (s === 'completed') return COLORS.success;
-    if (s === 'in_progress') return COLORS.primary;
-    if (s === 'cancelled') return COLORS.danger;
-    return COLORS.warning;
+    if (s === 'completed') return C.success;
+    if (s === 'in_progress') return C.primary;
+    if (s === 'cancelled') return C.danger;
+    return C.warning;
   };
 
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <ActivityIndicator size="large" color={C.primary} />
       </View>
     );
   }
@@ -116,7 +118,7 @@ const JobDetailScreen = () => {
       <View style={styles.center}>
         <Text style={styles.errorText}>Job not found</Text>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.goBackRow}>
-          <ArrowLeft size={18} weight="regular" color={COLORS.primary} />
+          <ArrowLeft size={18} weight="regular" color={C.primary} />
           <Text style={styles.link}>Go Back</Text>
         </TouchableOpacity>
       </View>
@@ -125,9 +127,11 @@ const JobDetailScreen = () => {
 
   return (
     <View style={styles.root}>
+      <StatusBar barStyle="dark-content" backgroundColor={C.background} />
+
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ArrowLeft size={22} weight="regular" color={COLORS.primary} />
+          <ArrowLeft size={22} weight="regular" color={C.foreground} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Job Details</Text>
         <View style={[styles.badge, { backgroundColor: statusColor(job.status) }]}>
@@ -138,12 +142,16 @@ const JobDetailScreen = () => {
       <ScrollView contentContainerStyle={styles.body}>
         {/* Job Summary */}
         <View style={styles.summaryCard}>
+          <Text style={styles.jobIdText}>Job #{job.id?.slice(0, 8).toUpperCase()}</Text>
+          {job.booking_id && (
+            <Text style={styles.jobIdText}>Booking #{job.booking_id?.slice(0, 8).toUpperCase()}</Text>
+          )}
           <Text style={styles.jobTitle}>
             {job.tank_type?.replace('_', ' ').toUpperCase() || 'CLEANING JOB'}
           </Text>
           <Text style={styles.jobSize}>{job.tank_size_litres} Litres</Text>
           <View style={styles.scheduledRow}>
-            <Calendar size={16} weight="regular" color={COLORS.primary} />
+            <Calendar size={16} weight="regular" color={C.primary} />
             <Text style={styles.scheduledAt}>{formatDate(job.scheduled_at)}</Text>
           </View>
         </View>
@@ -154,14 +162,14 @@ const JobDetailScreen = () => {
           <View style={styles.customerRow}>
             <Text style={styles.customerName}>{job.customer_name || 'Customer'}</Text>
             <TouchableOpacity style={styles.callBtn} onPress={callCustomer}>
-              <Phone size={14} weight="regular" color={COLORS.primary} />
+              <Phone size={14} weight="regular" color={C.primary} />
               <Text style={styles.callText}>Call</Text>
             </TouchableOpacity>
           </View>
           <Text style={styles.customerPhone}>{job.customer_phone}</Text>
           <Text style={styles.address}>{job.address}</Text>
           <TouchableOpacity style={styles.navigateBtn} onPress={openInMaps}>
-            <NavigationArrow size={16} weight="fill" color={COLORS.primaryFg} />
+            <NavigationArrow size={16} weight="fill" color={C.primaryFg} />
             <Text style={styles.navigateBtnText}>Navigate to Location</Text>
           </TouchableOpacity>
         </View>
@@ -182,11 +190,11 @@ const JobDetailScreen = () => {
                 <View key={step.step_number} style={styles.stepRow}>
                   <View style={styles.stepIconContainer}>
                     {step.completed ? (
-                      <CheckCircle size={18} weight="fill" color={COLORS.success} />
+                      <CheckCircle size={18} weight="fill" color={C.success} />
                     ) : step.logged ? (
-                      <ArrowsClockwise size={18} weight="regular" color={COLORS.primary} />
+                      <ArrowsClockwise size={18} weight="regular" color={C.primary} />
                     ) : (
-                      <Hourglass size={18} weight="regular" color={COLORS.warning} />
+                      <Hourglass size={18} weight="regular" color={C.warning} />
                     )}
                   </View>
                   <Text style={[styles.stepName, step.completed && styles.stepDone]}>
@@ -204,12 +212,13 @@ const JobDetailScreen = () => {
             style={[styles.actionBtn, styles.startBtn, starting && styles.btnDisabled]}
             onPress={handleGenerateStartOtp}
             disabled={starting}
+            activeOpacity={0.8}
           >
             {starting ? (
-              <ActivityIndicator color={COLORS.primaryFg} />
+              <ActivityIndicator color={C.primaryFg} />
             ) : (
               <View style={styles.actionBtnContent}>
-                <Key size={18} weight="fill" color={COLORS.primaryFg} />
+                <Key size={18} weight="fill" color={C.primaryFg} />
                 <Text style={styles.actionBtnText}>Start Job (OTP)</Text>
               </View>
             )}
@@ -221,9 +230,10 @@ const JobDetailScreen = () => {
             <TouchableOpacity
               style={[styles.actionBtn, styles.checklistBtn]}
               onPress={() => navigation.navigate('Checklist', { job_id: job.id })}
+              activeOpacity={0.8}
             >
               <View style={styles.actionBtnContent}>
-                <ClipboardText size={18} weight="regular" color={COLORS.primaryFg} />
+                <ClipboardText size={18} weight="regular" color={C.primaryFg} />
                 <Text style={styles.actionBtnText}>
                   Open Compliance Checklist ({compliance?.completion_percentage ?? 0}%)
                 </Text>
@@ -232,15 +242,16 @@ const JobDetailScreen = () => {
 
             {compliance?.completion_percentage === 100 && (
               <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: COLORS.success }, starting && styles.btnDisabled]}
+                style={[styles.actionBtn, { backgroundColor: C.success }, starting && styles.btnDisabled]}
                 onPress={handleGenerateEndOtp}
                 disabled={starting}
+                activeOpacity={0.8}
               >
                 {starting ? (
-                  <ActivityIndicator color={COLORS.primaryFg} />
+                  <ActivityIndicator color={C.primaryFg} />
                 ) : (
                   <View style={styles.actionBtnContent}>
-                    <Key size={18} weight="fill" color={COLORS.primaryFg} />
+                    <Key size={18} weight="fill" color={C.primaryFg} />
                     <Text style={styles.actionBtnText}>Complete Job (End OTP)</Text>
                   </View>
                 )}
@@ -250,33 +261,47 @@ const JobDetailScreen = () => {
         )}
 
         {job.status === 'completed' && (
-          <View style={styles.completedBox}>
-            <CheckCircle size={40} weight="fill" color={COLORS.success} />
-            <Text style={styles.completedText}>Job Completed</Text>
-            {job.completed_at && (
-              <Text style={styles.completedTime}>{formatDate(job.completed_at)}</Text>
-            )}
-          </View>
+          <>
+            <View style={styles.completedBox}>
+              <CheckCircle size={40} weight="fill" color={C.success} />
+              <Text style={styles.completedText}>Job Completed</Text>
+              {job.completed_at && (
+                <Text style={styles.completedTime}>{formatDate(job.completed_at)}</Text>
+              )}
+            </View>
+            <TouchableOpacity
+              style={[styles.actionBtn, { backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.primary }]}
+              onPress={() => navigation.navigate('QrScanner')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.actionBtnContent}>
+                <QrCode size={18} weight="regular" color={C.primary} />
+                <Text style={[styles.actionBtnText, { color: C.primary }]}>Scan Certificate QR</Text>
+              </View>
+            </TouchableOpacity>
+          </>
         )}
 
-        {/* Secondary Actions -- visible when job is not completed/cancelled */}
+        {/* Secondary Actions */}
         {job.status !== 'completed' && job.status !== 'cancelled' && (
           <View style={styles.secondaryActions}>
             <TouchableOpacity
               style={styles.secondaryBtn}
               onPress={() => navigation.navigate('IncidentReport', { job_id: job.id })}
+              activeOpacity={0.7}
             >
               <View style={styles.secondaryIconContainer}>
-                <Siren size={20} weight="fill" color={COLORS.danger} />
+                <Siren size={20} weight="fill" color={C.danger} />
               </View>
               <Text style={styles.secondaryBtnText}>Report Incident</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.secondaryBtn}
               onPress={() => navigation.navigate('JobTransfer', { job_id: job.id })}
+              activeOpacity={0.7}
             >
               <View style={styles.secondaryIconContainer}>
-                <ArrowsClockwise size={20} weight="regular" color={COLORS.primary} />
+                <ArrowsClockwise size={20} weight="regular" color={C.primary} />
               </View>
               <Text style={styles.secondaryBtnText}>Transfer Job</Text>
             </TouchableOpacity>
@@ -287,77 +312,91 @@ const JobDetailScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
-  errorText: { fontSize: 16, color: COLORS.muted, marginBottom: 12 },
+const makeStyles = (C: any) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.background },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: C.background },
+  errorText: { fontSize: 16, color: C.muted, marginBottom: 12 },
   goBackRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 },
   header: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: C.surface,
     paddingTop: 56,
     paddingBottom: 16,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    ...Platform.select({
+      ios: { shadowColor: C.shadowMedium, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 },
+      android: { elevation: 4 },
+    }),
   },
-  backBtn: { marginRight: 12 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground, flex: 1 },
+  backBtn: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: C.surfaceElevated,
+    alignItems: 'center', justifyContent: 'center',
+    marginRight: 12,
+  },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: C.foreground, flex: 1 },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  badgeText: { color: COLORS.primaryFg, fontSize: 10, fontWeight: 'bold' },
+  badgeText: { color: C.primaryFg, fontSize: 10, fontWeight: '700' },
   body: { padding: 20, paddingBottom: 40 },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: COLORS.foreground, marginBottom: 10, marginTop: 16 },
+  sectionTitle: { fontSize: 14, fontWeight: '700', color: C.foreground, marginBottom: 10, marginTop: 20 },
   summaryCard: {
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: C.surface,
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.borderActive,
+    ...Platform.select({
+      ios: { shadowColor: C.shadowMedium, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 12 },
+      android: { elevation: 3 },
+    }),
   },
-  jobTitle: { fontSize: 20, fontWeight: 'bold', color: COLORS.foreground },
-  jobSize: { fontSize: 14, color: COLORS.muted, marginTop: 4 },
+  jobIdText: { fontSize: 12, color: C.primary, fontFamily: 'monospace', fontWeight: '600', marginBottom: 4 },
+  jobTitle: { fontSize: 20, fontWeight: '700', color: C.foreground },
+  jobSize: { fontSize: 14, color: C.muted, marginTop: 4 },
   scheduledRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
-  scheduledAt: { fontSize: 14, color: COLORS.primary, fontWeight: '600' },
+  scheduledAt: { fontSize: 14, color: C.primary, fontWeight: '600' },
   customerCard: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: C.surface,
     borderRadius: 16,
     padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    ...Platform.select({
+      ios: { shadowColor: C.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 },
+      android: { elevation: 2 },
+    }),
   },
   customerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
-  customerName: { fontSize: 16, fontWeight: 'bold', color: COLORS.foreground },
+  customerName: { fontSize: 16, fontWeight: '700', color: C.foreground },
   callBtn: {
-    backgroundColor: COLORS.primaryBg, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8,
-    borderWidth: 1, borderColor: COLORS.borderActive, flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: C.primaryBg, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
   },
-  callText: { fontSize: 13, color: COLORS.primary, fontWeight: 'bold' },
-  customerPhone: { fontSize: 13, color: COLORS.muted, marginBottom: 6 },
-  address: { fontSize: 13, color: COLORS.muted, lineHeight: 20 },
+  callText: { fontSize: 13, color: C.primary, fontWeight: '700' },
+  customerPhone: { fontSize: 13, color: C.muted, marginBottom: 6 },
+  address: { fontSize: 13, color: C.muted, lineHeight: 20 },
   navigateBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: COLORS.primary, borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 8, marginTop: 10, alignSelf: 'flex-start',
+    backgroundColor: C.primary, borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 10, marginTop: 12, alignSelf: 'flex-start',
   },
-  navigateBtnText: { fontSize: 13, color: COLORS.primaryFg, fontWeight: '600' },
+  navigateBtnText: { fontSize: 13, color: C.primaryFg, fontWeight: '600' },
   complianceCard: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: C.surface,
     borderRadius: 16,
     padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    ...Platform.select({
+      ios: { shadowColor: C.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 },
+      android: { elevation: 2 },
+    }),
   },
   complianceHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  pct: { fontSize: 32, fontWeight: 'bold', color: COLORS.primary, marginRight: 10 },
-  pctSub: { fontSize: 13, color: COLORS.muted },
-  progressBarContainer: { height: 8, backgroundColor: COLORS.border, borderRadius: 4, marginBottom: 14 },
-  progressBarFill: { height: 8, backgroundColor: COLORS.primary, borderRadius: 4 },
+  pct: { fontSize: 32, fontWeight: '700', color: C.primary, marginRight: 10 },
+  pctSub: { fontSize: 13, color: C.muted },
+  progressBarContainer: { height: 8, backgroundColor: C.surfaceElevated, borderRadius: 4, marginBottom: 14 },
+  progressBarFill: { height: 8, backgroundColor: C.primary, borderRadius: 4 },
   stepRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   stepIconContainer: { marginRight: 8, width: 20, alignItems: 'center' },
-  stepName: { fontSize: 13, color: COLORS.muted },
-  stepDone: { color: COLORS.success, fontWeight: '600' },
+  stepName: { fontSize: 13, color: C.muted },
+  stepDone: { color: C.success, fontWeight: '600' },
   actionBtn: {
     borderRadius: 16,
     padding: 18,
@@ -365,35 +404,36 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   actionBtnContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  startBtn: { backgroundColor: COLORS.primary },
-  checklistBtn: { backgroundColor: COLORS.primary },
-  btnDisabled: { backgroundColor: COLORS.muted },
-  actionBtnText: { color: COLORS.primaryFg, fontWeight: 'bold', fontSize: 16 },
+  startBtn: { backgroundColor: C.primary },
+  checklistBtn: { backgroundColor: C.primary },
+  btnDisabled: { backgroundColor: C.muted },
+  actionBtnText: { color: C.primaryFg, fontWeight: '700', fontSize: 16 },
   completedBox: {
-    backgroundColor: COLORS.successBg,
+    backgroundColor: C.successBg,
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',
     marginTop: 16,
-    borderWidth: 1,
-    borderColor: COLORS.success,
   },
-  completedText: { fontSize: 18, fontWeight: 'bold', color: COLORS.success, marginTop: 8 },
-  completedTime: { fontSize: 13, color: COLORS.muted, marginTop: 4 },
-  link: { color: COLORS.primary, fontWeight: '600' },
+  completedText: { fontSize: 18, fontWeight: '700', color: C.success, marginTop: 8 },
+  completedTime: { fontSize: 13, color: C.muted, marginTop: 4 },
+  link: { color: C.primary, fontWeight: '600' },
   secondaryActions: {
     flexDirection: 'row', gap: 12, marginTop: 16,
   },
   secondaryBtn: {
-    flex: 1, backgroundColor: COLORS.surface, borderRadius: 12,
-    padding: 14, alignItems: 'center', borderWidth: 1, borderColor: COLORS.border,
+    flex: 1, backgroundColor: C.surface, borderRadius: 16,
+    padding: 16, alignItems: 'center',
+    ...Platform.select({
+      ios: { shadowColor: C.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 },
+      android: { elevation: 2 },
+    }),
   },
   secondaryIconContainer: {
-    width: 40, height: 40, borderRadius: 12, backgroundColor: COLORS.surfaceElevated,
-    justifyContent: 'center', alignItems: 'center', marginBottom: 6,
-    borderWidth: 1, borderColor: COLORS.border,
+    width: 40, height: 40, borderRadius: 12, backgroundColor: C.surfaceElevated,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 8,
   },
-  secondaryBtnText: { fontSize: 12, color: COLORS.muted, fontWeight: '600' },
+  secondaryBtnText: { fontSize: 12, color: C.muted, fontWeight: '600' },
 });
 
 export default JobDetailScreen;

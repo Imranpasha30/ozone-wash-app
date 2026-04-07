@@ -233,8 +233,8 @@ const PaymentScreen = () => {
       if (!bookingId) throw new Error('Booking creation failed');
       bookingIdRef.current = bookingId;
 
-      // COD — go straight to confirmed
-      if (draft.payment_method === 'cod') {
+      // AMC-covered (₹0) or COD — go straight to confirmed, no payment needed
+      if (draft.grand_total === 0 || draft.payment_method === 'cod') {
         goToConfirmed(bookingId);
         return;
       }
@@ -265,7 +265,7 @@ const PaymentScreen = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <ArrowLeft size={22} weight="regular" color={C.foreground} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Review & Pay</Text>
+        <Text style={styles.headerTitle}>{draft.grand_total === 0 ? 'Review & Confirm' : 'Review & Pay'}</Text>
         <Text style={styles.stepText}>Step 4 / 4</Text>
       </View>
       <View style={styles.progressBar}>
@@ -292,19 +292,29 @@ const PaymentScreen = () => {
           <Text style={styles.sectionTitle}>Price Breakdown</Text>
         </View>
         <View style={styles.priceCard}>
-          <PriceRow label="Base Price" value={fmt(draft.base_price)} />
+          <PriceRow label="Base Price" value={draft.pricing?.amc_covered ? `${fmt(draft.base_price)}  →  FREE` : fmt(draft.base_price)} />
+          {draft.pricing?.amc_covered && (
+            <View style={styles.priceRow}>
+              <Text style={[styles.priceLabel, { color: C.success }]}>Covered by AMC ({draft.amc_plan?.toUpperCase()})</Text>
+              <Text style={[styles.priceValue, { color: C.success }]}>✓</Text>
+            </View>
+          )}
           {draft.addon_total > 0 && <PriceRow label="Add-ons" value={fmt(draft.addon_total)} />}
-          <PriceRow label="GST (18%)" value={fmt(draft.gst)} />
+          {draft.grand_total > 0 && <PriceRow label="GST (18%)" value={fmt(draft.gst)} />}
           <View style={styles.divider} />
-          <PriceRow label="Total" value={fmt(draft.grand_total)} isTotal />
+          <PriceRow label="Total" value={draft.grand_total === 0 ? 'FREE' : fmt(draft.grand_total)} isTotal />
         </View>
 
-        {/* Payment Method */}
-        <Text style={styles.sectionTitle}>Payment Method</Text>
-        <View style={styles.payMethodCard}>
-          <PaymentMethodIcon method={draft.payment_method} />
-          <Text style={styles.payMethodText}>{draft.payment_method.toUpperCase()}</Text>
-        </View>
+        {/* Payment Method — hide when nothing to pay */}
+        {draft.grand_total > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Payment Method</Text>
+            <View style={styles.payMethodCard}>
+              <PaymentMethodIcon method={draft.payment_method} />
+              <Text style={styles.payMethodText}>{draft.payment_method.toUpperCase()}</Text>
+            </View>
+          </>
+        )}
 
         {/* Confirm Button */}
         <TouchableOpacity
@@ -316,13 +326,17 @@ const PaymentScreen = () => {
             <ActivityIndicator color={C.primaryFg} />
           ) : (
             <View style={styles.confirmInner}>
-              {draft.payment_method === 'cod' ? (
+              {draft.grand_total === 0 || draft.payment_method === 'cod' ? (
                 <CheckCircle size={20} weight="fill" color={C.primaryFg} />
               ) : (
                 <CreditCard size={20} weight="regular" color={C.primaryFg} />
               )}
               <Text style={styles.confirmText}>
-                {draft.payment_method === 'cod' ? 'Confirm Booking' : `Pay ${fmt(draft.grand_total)}`}
+                {draft.grand_total === 0
+                  ? 'Confirm Booking'
+                  : draft.payment_method === 'cod'
+                  ? 'Confirm Booking'
+                  : `Pay ${fmt(draft.grand_total)}`}
               </Text>
             </View>
           )}

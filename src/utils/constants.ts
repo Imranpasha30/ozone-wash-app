@@ -56,116 +56,151 @@ export const COMPLIANCE_STEPS = [
   { step: 8, name: 'Customer Sign-off' },
 ];
 
+// ═══════════════════════════════════════════════════════════════════════
+//  DESIGN SYSTEM — Ozone Wash
+//  Architecture: Zomato/Rapido-grade, production-ready
+//
+//  SPACING GRID: 8pt (4, 8, 12, 16, 20, 24, 32, 40, 48, 64)
+//  RADIUS:       sm=12, md=16, lg=24, pill=999
+//  TYPOGRAPHY:   System — Regular(400), SemiBold(600), Bold(700)
+//  ELEVATION:    Shadows (light) / Glow (premium)
+//
+//  NORMAL = White + Blue   → Clean, fast, trustworthy
+//  PREMIUM = Black + Gold  → Luxury, exclusive, elite
+// ═══════════════════════════════════════════════════════════════════════
+
 export const COLORS = {
-  // Backgrounds — clean light palette
-  background: '#F8FAFC',
-  surface: '#FFFFFF',
-  surfaceElevated: '#F1F5F9',
-  surfaceHighlight: '#E2E8F0',
+  // ── Backgrounds ─────────────────────────────────────────────
+  background: '#FFFFFF',             // Pure white — Rapido-clean
+  surface: '#FFFFFF',                // Card surfaces
+  surfaceElevated: '#F7F8FA',        // Recessed inputs, chips
+  surfaceHighlight: '#EEF2F6',       // Skeleton, dividers
 
-  // Brand — Professional Cyan (water/clean/trust)
-  primary: '#0891B2',
-  primaryBg: 'rgba(8,145,178,0.08)',
-  primaryDim: 'rgba(8,145,178,0.15)',
-  primaryFg: '#FFFFFF',
+  // ── Brand — Ozone Blue ──────────────────────────────────────
+  // HSL 217° — trustworthy, clean, modern (like Rapido blue)
+  primary: '#2563EB',                // Strong blue — #2563EB
+  primaryBg: 'rgba(37,99,235,0.06)', // Subtle tinted backgrounds
+  primaryDim: 'rgba(37,99,235,0.12)',// Selected state bg
+  primaryFg: '#FFFFFF',              // Text on primary buttons
 
-  // Foreground
-  foreground: '#0F172A',
-  muted: '#64748B',
-  border: '#E2E8F0',
-  borderActive: 'rgba(8,145,178,0.30)',
+  // ── Foreground ──────────────────────────────────────────────
+  foreground: '#111827',             // Almost-black text (not pure black)
+  muted: '#6B7280',                  // Secondary text
+  border: '#F0F0F5',                 // Hairline card borders
+  borderActive: 'rgba(37,99,235,0.25)',
 
-  // Status
-  success: '#059669',
-  successBg: 'rgba(5,150,105,0.08)',
-  warning: '#D97706',
-  warningBg: 'rgba(217,119,6,0.08)',
-  danger: '#DC2626',
-  dangerBg: 'rgba(220,38,38,0.08)',
+  // ── Status — high contrast on white ─────────────────────────
+  success: '#16A34A',                // Green 600
+  successBg: 'rgba(22,163,74,0.08)',
+  warning: '#EA580C',               // Orange 600
+  warningBg: 'rgba(234,88,12,0.08)',
+  danger: '#DC2626',                 // Red 600
+  dangerBg: 'rgba(220,38,38,0.06)',
   info: '#2563EB',
-  infoBg: 'rgba(37,99,235,0.08)',
+  infoBg: 'rgba(37,99,235,0.06)',
 
-  // Badge levels
-  gold: '#D97706',
-  goldBg: 'rgba(217,119,6,0.08)',
-  silver: '#64748B',
-  silverBg: 'rgba(100,116,139,0.08)',
+  // ── Badge levels ────────────────────────────────────────────
+  gold: '#CA8A04',
+  goldBg: 'rgba(202,138,4,0.08)',
+  silver: '#6B7280',
+  silverBg: 'rgba(107,114,128,0.08)',
   bronze: '#B45309',
   bronzeBg: 'rgba(180,83,9,0.08)',
   platinum: '#475569',
   platinumBg: 'rgba(71,85,105,0.08)',
 
-  // Premium AMC — gold & black
-  premiumBg: '#0F172A',
-  premiumSurface: '#1E293B',
-  premiumGold: '#D4A017',
-  premiumGoldLight: 'rgba(212,160,23,0.15)',
-  premiumText: '#FEFCE8',
-  premiumMuted: '#94A3B8',
+  // ── Premium card tokens (shown inside normal theme) ─────────
+  premiumBg: '#0B0B0B',
+  premiumSurface: '#1A1A1A',
+  premiumGold: '#C49A2D',
+  premiumGoldLight: 'rgba(196,154,45,0.15)',
+  premiumText: '#E8D5A3',
+  premiumMuted: '#A0A0A0',
 
-  // Aliases
-  secondary: '#0EA5E9',
-  accent: '#059669',
-  gray: '#64748B',
-  lightGray: '#F1F5F9',
+  // ── Aliases ─────────────────────────────────────────────────
+  secondary: '#0EA5E9',              // Sky blue accent
+  accent: '#16A34A',                 // Green CTA accent
+  gray: '#6B7280',
+  lightGray: '#F7F8FA',
   white: '#FFFFFF',
-  black: '#0F172A',
+  black: '#111827',
+
+  // ── Elevation (shadow configs) ──────────────────────────────
+  // Used via Platform.select in components:
+  //   shadowColor: C.shadow, shadowOffset:{width:0,height:2}, shadowOpacity:1, shadowRadius:8
+  shadow: 'rgba(0,0,0,0.05)',        // Very subtle on white
+  shadowMedium: 'rgba(0,0,0,0.08)',
+  shadowStrong: 'rgba(0,0,0,0.12)',
 };
 
 export type AppColors = typeof COLORS;
 
 export const PREMIUM_COLORS: AppColors = {
-  // Backgrounds — dark premium
-  background: '#0F172A',
-  surface: '#1E293B',
-  surfaceElevated: '#334155',
-  surfaceHighlight: '#475569',
+  // ── Backgrounds — true black luxury ─────────────────────────
+  background: '#0B0B0B',             // Near-black — OLED-friendly
+  surface: '#161616',                // Elevated card surfaces
+  surfaceElevated: '#1F1F1F',        // Inputs, chips
+  surfaceHighlight: '#2A2A2A',       // Skeleton, dividers
 
-  // Brand — Gold
-  primary: '#D4A017',
-  primaryBg: 'rgba(212,160,23,0.12)',
-  primaryDim: 'rgba(212,160,23,0.20)',
-  primaryFg: '#0F172A',
+  // ── Brand — Real Gold Leaf ───────────────────────────────────
+  // Sampled from brushed gold texture — warm, deep, metallic
+  // Gradient: #8B6914 (shadow) → #C49A2D (mid) → #E0C060 (shimmer)
+  primary: '#C49A2D',                // Rich warm gold — the real deal
+  primaryBg: 'rgba(196,154,45,0.10)',
+  primaryDim: 'rgba(196,154,45,0.18)',
+  primaryFg: '#0B0B0B',             // Dark text on gold buttons
 
-  // Foreground
-  foreground: '#FEFCE8',
-  muted: '#94A3B8',
-  border: 'rgba(212,160,23,0.15)',
-  borderActive: 'rgba(212,160,23,0.40)',
+  // ── Foreground ──────────────────────────────────────────────
+  foreground: '#F5F5F5',             // Off-white text (not pure white)
+  muted: '#8A8A8A',                  // Subdued secondary text
+  border: 'rgba(196,154,45,0.14)',   // Subtle gold-tinted borders
+  borderActive: 'rgba(196,154,45,0.35)',
 
-  // Status
-  success: '#34D399',
-  successBg: 'rgba(52,211,153,0.12)',
-  warning: '#FBBF24',
+  // ── Status — brighter for dark backgrounds ──────────────────
+  success: '#4ADE80',                // Green 400
+  successBg: 'rgba(74,222,128,0.12)',
+  warning: '#FBBF24',               // Amber 400
   warningBg: 'rgba(251,191,36,0.12)',
-  danger: '#F87171',
-  dangerBg: 'rgba(248,113,113,0.12)',
-  info: '#60A5FA',
-  infoBg: 'rgba(96,165,250,0.12)',
+  danger: '#F87171',                 // Red 400
+  dangerBg: 'rgba(248,113,113,0.10)',
+  info: '#60A5FA',                   // Blue 400
+  infoBg: 'rgba(96,165,250,0.10)',
 
-  // Badge levels
-  gold: '#D4A017',
-  goldBg: 'rgba(212,160,23,0.12)',
-  silver: '#94A3B8',
-  silverBg: 'rgba(148,163,184,0.12)',
-  bronze: '#D97706',
-  bronzeBg: 'rgba(217,119,6,0.12)',
-  platinum: '#94A3B8',
-  platinumBg: 'rgba(148,163,184,0.12)',
+  // ── Badge levels ────────────────────────────────────────────
+  gold: '#C49A2D',
+  goldBg: 'rgba(196,154,45,0.12)',
+  silver: '#A0A0A0',
+  silverBg: 'rgba(160,160,160,0.12)',
+  bronze: '#CD7F32',
+  bronzeBg: 'rgba(205,127,50,0.12)',
+  platinum: '#C0C0C0',
+  platinumBg: 'rgba(192,192,192,0.12)',
 
-  // Premium AMC — same in premium mode
-  premiumBg: '#0F172A',
-  premiumSurface: '#1E293B',
-  premiumGold: '#D4A017',
-  premiumGoldLight: 'rgba(212,160,23,0.15)',
-  premiumText: '#FEFCE8',
-  premiumMuted: '#94A3B8',
+  // ── Premium tokens — Real Gold Leaf metallic ─────────────────
+  premiumBg: '#0B0B0B',
+  premiumSurface: '#161616',
+  premiumGold: '#C49A2D',            // Rich warm gold
+  premiumGoldLight: 'rgba(196,154,45,0.15)',
+  premiumText: '#E8D5A3',            // Warm cream shimmer for text
+  premiumMuted: '#8A8A8A',
 
-  // Aliases
-  secondary: '#D4A017',
-  accent: '#D4A017',
-  gray: '#94A3B8',
-  lightGray: '#334155',
-  white: '#FEFCE8',
-  black: '#0F172A',
+  // ── Aliases ─────────────────────────────────────────────────
+  secondary: '#C49A2D',
+  accent: '#C49A2D',
+  gray: '#8A8A8A',
+  lightGray: '#1F1F1F',
+  white: '#E8D5A3',                  // Warm cream for premium
+  black: '#0B0B0B',
+
+  // ── Elevation (glow configs) ────────────────────────────────
+  shadow: 'rgba(139,105,20,0.10)',   // Deep gold shadow
+  shadowMedium: 'rgba(196,154,45,0.14)',
+  shadowStrong: 'rgba(224,192,96,0.22)',
 };
+
+// ── Premium Gold Gradient Stops ────────────────────────────────
+// Real gold leaf metallic: burnished shadow → rich gold → shimmer highlight
+// Use with expo-linear-gradient: <LinearGradient colors={GOLD_GRADIENT} ...>
+export const GOLD_GRADIENT = ['#8B6914', '#C49A2D', '#E0C060'] as const;
+export const GOLD_GRADIENT_HORIZONTAL = { start: { x: 0, y: 0.5 }, end: { x: 1, y: 0.5 } };
+export const GOLD_GRADIENT_DIAGONAL = { start: { x: 0, y: 0 }, end: { x: 1, y: 1 } };

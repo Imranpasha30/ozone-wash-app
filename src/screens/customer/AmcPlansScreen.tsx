@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, StatusBar,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { COLORS, AMC_PLANS } from '../../utils/constants';
+import { AMC_PLANS } from '../../utils/constants';
+import { useTheme } from '../../hooks/useTheme';
 import {
-  ArrowLeft, Crown, ShieldCheck, Star, Envelope, CheckCircle,
+  ArrowLeft, Crown, ShieldCheck, Star, CheckCircle, ArrowRight,
 } from '../../components/Icons';
 
 const PLAN_FEATURES: Record<string, string[]> = {
@@ -19,23 +20,26 @@ const PLAN_FEATURES: Record<string, string[]> = {
 
 const AmcPlansScreen = () => {
   const navigation = useNavigation<any>();
+  const C = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
 
   return (
     <View style={styles.root}>
-      {/* Header — dark premium */}
+      <StatusBar barStyle="dark-content" backgroundColor={C.background} />
+
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ArrowLeft size={22} weight="regular" color={COLORS.premiumGold} />
+          <ArrowLeft size={22} weight="regular" color={C.foreground} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>AMC Plans</Text>
-        <Crown size={20} weight="fill" color={COLORS.premiumGold} />
+        <Crown size={20} weight="fill" color={C.primary} />
       </View>
 
       <ScrollView contentContainerStyle={styles.body}>
         {/* Hero */}
         <View style={styles.hero}>
           <View style={styles.heroIconWrap}>
-            <ShieldCheck size={32} weight="fill" color={COLORS.premiumGold} />
+            <ShieldCheck size={32} weight="fill" color={C.primary} />
           </View>
           <Text style={styles.heroTitle}>Premium Protection</Text>
           <Text style={styles.heroSub}>
@@ -44,205 +48,123 @@ const AmcPlansScreen = () => {
         </View>
 
         {/* Plan Cards */}
-        {AMC_PLANS.map((plan, index) => {
+        {AMC_PLANS.map((plan) => {
           const isPopular = plan.value === 'yearly';
           const features = PLAN_FEATURES[plan.value] || [];
           return (
             <View
               key={plan.value}
-              style={[
-                styles.card,
-                isPopular && styles.cardPopular,
-              ]}
+              style={[styles.card, isPopular && styles.cardPopular]}
             >
               {isPopular && (
                 <View style={styles.popularBadge}>
-                  <Star size={12} weight="fill" color={COLORS.premiumBg} />
+                  <Star size={12} weight="fill" color={C.primaryFg} />
                   <Text style={styles.popularText}>BEST VALUE</Text>
                 </View>
               )}
               <View style={styles.cardHeader}>
-                <Crown size={18} weight="fill" color={isPopular ? COLORS.premiumGold : COLORS.premiumMuted} />
+                <Crown size={18} weight="fill" color={isPopular ? C.primary : C.muted} />
                 <Text style={[styles.planLabel, isPopular && styles.planLabelPopular]}>
                   {plan.label}
                 </Text>
               </View>
               <Text style={[styles.planPrice, isPopular && styles.planPricePopular]}>
                 ₹{plan.price.toLocaleString('en-IN')}
-                <Text style={styles.planPer}> /year</Text>
+                <Text style={styles.planPer}> /{plan.value === 'monthly' ? 'mo' : plan.label.toLowerCase()}</Text>
               </Text>
               {features.map((feat) => (
                 <View key={feat} style={styles.featureRow}>
-                  <CheckCircle size={14} weight="fill" color={isPopular ? COLORS.premiumGold : COLORS.accent} />
+                  <CheckCircle size={14} weight="fill" color={isPopular ? C.primary : C.success} />
                   <Text style={styles.featureText}>{feat}</Text>
                 </View>
               ))}
-              <TouchableOpacity style={[styles.enrollBtn, isPopular && styles.enrollBtnPopular]}>
-                <Envelope size={14} weight="regular" color={isPopular ? COLORS.premiumBg : COLORS.premiumGold} />
+              <TouchableOpacity
+                style={[styles.enrollBtn, isPopular && styles.enrollBtnPopular]}
+                onPress={() => navigation.navigate('AmcEnrollment', { plan_type: plan.value, plan_label: plan.label, plan_price: plan.price })}
+                activeOpacity={0.7}
+              >
                 <Text style={[styles.enrollText, isPopular && styles.enrollTextPopular]}>
-                  Contact to Enroll
+                  Enroll Now
                 </Text>
+                <ArrowRight size={16} weight="bold" color={isPopular ? C.primaryFg : C.primary} />
               </TouchableOpacity>
             </View>
           );
         })}
 
-        <Text style={styles.footer}>
-          For enrollment, contact support@ozonewash.in or call us.
-        </Text>
         <View style={{ height: 24 }} />
       </ScrollView>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.premiumBg },
+const makeStyles = (C: any) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.background },
   header: {
-    backgroundColor: COLORS.premiumSurface,
+    backgroundColor: C.surface,
     paddingTop: 56,
     paddingBottom: 16,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.premiumGoldLight,
+    ...Platform.select({
+      ios: { shadowColor: C.shadowMedium, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 },
+      android: { elevation: 4 },
+    }),
   },
-  backBtn: { marginRight: 12 },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.premiumText,
-    flex: 1,
+  backBtn: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: C.surfaceElevated,
+    alignItems: 'center', justifyContent: 'center',
+    marginRight: 12,
   },
-  body: { padding: 16 },
-
-  // Hero
-  hero: {
-    alignItems: 'center',
-    paddingVertical: 20,
-    marginBottom: 8,
-  },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: C.foreground, flex: 1 },
+  body: { padding: 16, paddingBottom: 40 },
+  hero: { alignItems: 'center', paddingVertical: 20, marginBottom: 8 },
   heroIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: COLORS.premiumGoldLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 64, height: 64, borderRadius: 20,
+    backgroundColor: C.primaryBg,
+    justifyContent: 'center', alignItems: 'center',
     marginBottom: 12,
   },
-  heroTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: COLORS.premiumGold,
-    marginBottom: 6,
-  },
-  heroSub: {
-    fontSize: 13,
-    color: COLORS.premiumMuted,
-    textAlign: 'center',
-    lineHeight: 20,
-    paddingHorizontal: 8,
-  },
-
-  // Cards
+  heroTitle: { fontSize: 22, fontWeight: '700', color: C.primary, marginBottom: 6 },
+  heroSub: { fontSize: 13, color: C.muted, textAlign: 'center', lineHeight: 20, paddingHorizontal: 8 },
   card: {
-    backgroundColor: COLORS.premiumSurface,
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(148,163,184,0.15)',
+    backgroundColor: C.surface, borderRadius: 16, padding: 18, marginBottom: 12,
+    ...Platform.select({
+      ios: { shadowColor: C.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 },
+      android: { elevation: 2 },
+    }),
   },
   cardPopular: {
-    borderColor: COLORS.premiumGold,
-    borderWidth: 1.5,
+    borderWidth: 2, borderColor: C.primary,
+    ...Platform.select({
+      ios: { shadowColor: C.shadowMedium, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 12 },
+      android: { elevation: 4 },
+    }),
   },
   popularBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: COLORS.premiumGold,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    marginBottom: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: C.primary, alignSelf: 'flex-start',
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginBottom: 10,
   },
-  popularText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: COLORS.premiumBg,
-    letterSpacing: 0.5,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  planLabel: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: COLORS.premiumText,
-  },
-  planLabelPopular: {
-    color: COLORS.premiumGold,
-  },
-  planPrice: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.premiumText,
-    marginTop: 6,
-    marginBottom: 10,
-  },
-  planPricePopular: {
-    color: COLORS.premiumGold,
-  },
-  planPer: {
-    fontSize: 13,
-    fontWeight: 'normal',
-    color: COLORS.premiumMuted,
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 5,
-  },
-  featureText: {
-    fontSize: 13,
-    color: COLORS.premiumMuted,
-  },
+  popularText: { fontSize: 10, fontWeight: '700', color: C.primaryFg, letterSpacing: 0.5 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  planLabel: { fontSize: 17, fontWeight: '700', color: C.foreground },
+  planLabelPopular: { color: C.primary },
+  planPrice: { fontSize: 24, fontWeight: '700', color: C.foreground, marginTop: 6, marginBottom: 10 },
+  planPricePopular: { color: C.primary },
+  planPer: { fontSize: 13, fontWeight: '400', color: C.muted },
+  featureRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 5 },
+  featureText: { fontSize: 13, color: C.muted },
   enrollBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginTop: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.premiumGold,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    marginTop: 12, paddingVertical: 12, borderRadius: 12,
+    backgroundColor: C.primaryBg,
   },
-  enrollBtnPopular: {
-    backgroundColor: COLORS.premiumGold,
-    borderColor: COLORS.premiumGold,
-  },
-  enrollText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.premiumGold,
-  },
-  enrollTextPopular: {
-    color: COLORS.premiumBg,
-  },
-  footer: {
-    fontSize: 12,
-    color: COLORS.premiumMuted,
-    textAlign: 'center',
-    marginTop: 8,
-  },
+  enrollBtnPopular: { backgroundColor: C.primary },
+  enrollText: { fontSize: 14, fontWeight: '700', color: C.primary },
+  enrollTextPopular: { color: C.primaryFg },
 });
 
 export default AmcPlansScreen;

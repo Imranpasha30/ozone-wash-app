@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Alert,
-  ActivityIndicator, Vibration,
+  ActivityIndicator, Vibration, Platform, StatusBar,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { jobAPI } from '../../services/api';
-import { COLORS } from '../../utils/constants';
-import { ArrowLeft, Key, Lock, Numpad } from '../../components/Icons';
+import { useTheme } from '../../hooks/useTheme';
+import { ArrowLeft, Key, Lock } from '../../components/Icons';
 
 const OtpEntryScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { jobId, type } = route.params; // type: 'start' | 'end'
+  const C = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
+  const { jobId, type } = route.params;
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -21,7 +23,7 @@ const OtpEntryScreen = () => {
   const subtitle = isStart
     ? 'Ask the customer to show you the Start OTP from their app'
     : 'Ask the customer to show you the End OTP from their app';
-  const accentColor = isStart ? COLORS.primary : COLORS.success;
+  const accentColor = isStart ? C.primary : C.success;
 
   const handleDigit = (digit: string) => {
     if (otp.length >= 6) return;
@@ -67,17 +69,19 @@ const OtpEntryScreen = () => {
 
   return (
     <View style={styles.root}>
+      <StatusBar barStyle="dark-content" backgroundColor={C.background} />
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ArrowLeft size={22} weight="regular" color={COLORS.primary} />
+          <ArrowLeft size={22} weight="regular" color={C.foreground} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{title}</Text>
       </View>
 
       {/* Icon + Subtitle */}
       <View style={styles.subtitleSection}>
-        <View style={[styles.otpIconContainer, { backgroundColor: isStart ? COLORS.primaryBg : COLORS.successBg }]}>
+        <View style={[styles.otpIconContainer, { backgroundColor: isStart ? C.primaryBg : C.successBg }]}>
           <Key size={24} weight="fill" color={accentColor} />
         </View>
         <Text style={styles.subtitle}>{subtitle}</Text>
@@ -92,10 +96,10 @@ const OtpEntryScreen = () => {
               styles.otpBox,
               otp.length === i && styles.otpBoxActive,
               error ? styles.otpBoxError : null,
-              { borderColor: otp[i] ? accentColor : error ? COLORS.danger : COLORS.border },
+              { borderColor: otp[i] ? accentColor : error ? C.danger : C.border },
             ]}
           >
-            <Text style={[styles.otpDigit, { color: otp[i] ? accentColor : COLORS.muted }]}>
+            <Text style={[styles.otpDigit, { color: otp[i] ? accentColor : C.muted }]}>
               {otp[i] || '\u2014'}
             </Text>
           </View>
@@ -115,6 +119,7 @@ const OtpEntryScreen = () => {
               if (d === 'DEL') handleDelete();
               else handleDigit(d);
             }}
+            activeOpacity={0.6}
           >
             <Text style={[styles.numKeyText, d === 'DEL' && styles.delText]}>
               {d === 'DEL' ? '\u232B' : d}
@@ -128,12 +133,13 @@ const OtpEntryScreen = () => {
         style={[styles.submitBtn, { backgroundColor: accentColor }, otp.length < 6 && styles.submitDisabled]}
         onPress={handleSubmit}
         disabled={otp.length < 6 || loading}
+        activeOpacity={0.8}
       >
         {loading ? (
-          <ActivityIndicator color={COLORS.primaryFg} />
+          <ActivityIndicator color={C.primaryFg} />
         ) : (
           <View style={styles.submitContent}>
-            <Lock size={18} weight="fill" color={COLORS.primaryFg} />
+            <Lock size={18} weight="fill" color={C.primaryFg} />
             <Text style={styles.submitText}>
               {isStart ? 'Verify & Start Job' : 'Verify & Complete'}
             </Text>
@@ -144,24 +150,31 @@ const OtpEntryScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
+const makeStyles = (C: any) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.background },
   header: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: C.surface,
     paddingTop: 56, paddingBottom: 16, paddingHorizontal: 20,
     flexDirection: 'row', alignItems: 'center',
-    borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    ...Platform.select({
+      ios: { shadowColor: C.shadowMedium, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 },
+      android: { elevation: 4 },
+    }),
   },
-  backBtn: { marginRight: 12 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground },
-  subtitleSection: { alignItems: 'center', marginTop: 24 },
+  backBtn: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: C.surfaceElevated,
+    alignItems: 'center', justifyContent: 'center',
+    marginRight: 12,
+  },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: C.foreground },
+  subtitleSection: { alignItems: 'center', marginTop: 32 },
   otpIconContainer: {
-    width: 56, height: 56, borderRadius: 16,
+    width: 64, height: 64, borderRadius: 16,
     justifyContent: 'center', alignItems: 'center', marginBottom: 12,
-    borderWidth: 1, borderColor: COLORS.borderActive,
   },
   subtitle: {
-    fontSize: 14, color: COLORS.muted, textAlign: 'center',
+    fontSize: 14, color: C.muted, textAlign: 'center',
     marginHorizontal: 32, lineHeight: 20,
   },
   otpContainer: {
@@ -170,14 +183,18 @@ const styles = StyleSheet.create({
   },
   otpBox: {
     width: 48, height: 56, borderRadius: 12,
-    borderWidth: 2, borderColor: COLORS.border,
-    backgroundColor: COLORS.surface,
+    borderWidth: 2, borderColor: C.border,
+    backgroundColor: C.surface,
     justifyContent: 'center', alignItems: 'center',
+    ...Platform.select({
+      ios: { shadowColor: C.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 1, shadowRadius: 4 },
+      android: { elevation: 1 },
+    }),
   },
-  otpBoxActive: { borderColor: COLORS.primary },
-  otpBoxError: { borderColor: COLORS.danger },
-  otpDigit: { fontSize: 24, fontWeight: 'bold' },
-  errorText: { color: COLORS.danger, textAlign: 'center', marginTop: 8, fontSize: 14 },
+  otpBoxActive: { borderColor: C.primary },
+  otpBoxError: { borderColor: C.danger },
+  otpDigit: { fontSize: 24, fontWeight: '700' },
+  errorText: { color: C.danger, textAlign: 'center', marginTop: 8, fontSize: 14 },
   numpad: {
     flexDirection: 'row', flexWrap: 'wrap',
     justifyContent: 'center', marginTop: 24,
@@ -188,15 +205,15 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   numKeyEmpty: { opacity: 0 },
-  numKeyText: { fontSize: 28, fontWeight: '600', color: COLORS.foreground },
-  delText: { fontSize: 24, color: COLORS.muted },
+  numKeyText: { fontSize: 28, fontWeight: '600', color: C.foreground },
+  delText: { fontSize: 24, color: C.muted },
   submitBtn: {
     marginHorizontal: 32, marginTop: 16,
     borderRadius: 16, padding: 18, alignItems: 'center',
   },
   submitDisabled: { opacity: 0.4 },
   submitContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  submitText: { color: COLORS.primaryFg, fontWeight: 'bold', fontSize: 17 },
+  submitText: { color: C.primaryFg, fontWeight: '700', fontSize: 17 },
 });
 
 export default OtpEntryScreen;

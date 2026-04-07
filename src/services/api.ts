@@ -108,8 +108,8 @@ export const bookingAPI = {
   getSlots: (date: string) =>
     cachedGet('/bookings/slots', { params: { date } }),
 
-  getPrice: (tank_type: string, tank_size_litres: number, addons: string[], amc_plan?: string) =>
-    cachedGet('/bookings/price', { params: { tank_type, tank_size_litres, addons: addons.join(','), amc_plan: amc_plan || '' } }),
+  getPrice: (tank_type: string, tank_size_litres: number, addons: string[]) =>
+    cachedGet('/bookings/price', { params: { tank_type, tank_size_litres, addons: addons.join(',') } }),
 
   createBooking: (data: any) => {
     invalidateCache('/bookings');
@@ -181,10 +181,27 @@ export const jobAPI = {
     return api.post(`/jobs/${jobId}/verify-end-otp`, { otp });
   },
 
+  // Customer requests start OTP
+  customerRequestOtp: (jobId: string) => {
+    invalidateCache('/jobs');
+    invalidateCache('/bookings');
+    return api.post(`/jobs/${jobId}/customer-request-otp`);
+  },
+
   // Transfer
   transferJob: (jobId: string, new_team_id: string, reason?: string) => {
     invalidateCache('/jobs');
     return api.post(`/jobs/${jobId}/transfer`, { new_team_id, reason });
+  },
+
+  // Available jobs (field team browses unassigned)
+  getAvailableJobs: () =>
+    cachedGet('/jobs/available'),
+
+  // Request a job (field team)
+  requestJob: (jobId: string) => {
+    invalidateCache('/jobs');
+    return api.post(`/jobs/${jobId}/request`);
   },
 };
 
@@ -285,6 +302,39 @@ export const adminAPI = {
     invalidateCache('/jobs');
     return api.patch(`/jobs/${jobId}/assign`, { team_id });
   },
+
+  // Job requests
+  getJobRequests: (params?: { status?: string }) =>
+    cachedGet('/jobs/requests', { params }),
+
+  getPendingRequestCount: () =>
+    api.get('/jobs/requests/count'),
+
+  approveJobRequest: (requestId: string) => {
+    invalidateCache('/jobs');
+    return api.patch(`/jobs/requests/${requestId}/approve`);
+  },
+
+  rejectJobRequest: (requestId: string) => {
+    invalidateCache('/jobs');
+    return api.patch(`/jobs/requests/${requestId}/reject`);
+  },
+
+  // Users
+  getAllUsers: (params?: { role?: string; limit?: number; offset?: number }) =>
+    cachedGet('/auth/users', { params }),
+
+  // AMC
+  getAllAmcContracts: (params?: { status?: string }) =>
+    cachedGet('/amc/contracts', { params }),
+
+  cancelAmcContract: (id: string) => {
+    invalidateCache('/amc');
+    return api.patch(`/amc/contracts/${id}/cancel`);
+  },
+
+  getExpiringAmc: (days?: number) =>
+    cachedGet('/amc/expiring', { params: { days } }),
 };
 
 // ── Incidents ────────────────────────────────────────────────────────────────
@@ -317,6 +367,12 @@ export const paymentAPI = {
 
   verifyPayment: (data: any) =>
     api.post('/payments/verify', data),
+
+  createAmcOrder: (contract_id: string) =>
+    api.post('/payments/amc/create-order', { contract_id }),
+
+  verifyAmcPayment: (data: any) =>
+    api.post('/payments/amc/verify', data),
 };
 
 // ── Upload ────────────────────────────────────────────────────────────────────

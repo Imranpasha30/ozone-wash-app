@@ -6,6 +6,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import useBookingStore from '../../store/booking.store';
+import usePremiumStore from '../../store/premium.store';
 import { TANK_TYPES } from '../../utils/constants';
 import { useTheme } from '../../hooks/useTheme';
 import { ArrowLeft, ArrowRight, House, Wrench, Drop, MapPin, CurrencyInr, NavigationArrow } from '../../components/Icons';
@@ -25,6 +26,7 @@ const TankDetailsScreen = () => {
 
   const navigation = useNavigation<any>();
   const { draft, setStep1 } = useBookingStore();
+  const isPremium = usePremiumStore((s) => s.isPremium);
 
   const [tankType, setTankType] = useState<'overhead' | 'underground' | 'sump'>(
     (draft.tank_type as any) || 'overhead'
@@ -188,12 +190,25 @@ const TankDetailsScreen = () => {
 
           {/* Price Preview */}
           <View style={styles.priceBox}>
-            <Text style={styles.priceLabel}>Estimated base price</Text>
-            <View style={styles.priceRow}>
-              <CurrencyInr size={24} weight="bold" color={C.primary} />
-              <Text style={styles.priceValue}>{basePrice()}</Text>
-            </View>
-            <Text style={styles.priceSub}>+ addons & GST at next step</Text>
+            {isPremium ? (
+              <>
+                <Text style={styles.priceLabel}>Base price</Text>
+                <Text style={[styles.priceValue, { textDecorationLine: 'line-through', color: C.muted, fontSize: 18 }]}>
+                  ₹{basePrice()}
+                </Text>
+                <Text style={[styles.priceValue, { color: C.success, fontSize: 22 }]}>FREE</Text>
+                <Text style={styles.priceSub}>Covered by your AMC plan</Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.priceLabel}>Estimated base price</Text>
+                <View style={styles.priceRow}>
+                  <CurrencyInr size={24} weight="bold" color={C.primary} />
+                  <Text style={styles.priceValue}>{basePrice()}</Text>
+                </View>
+                <Text style={styles.priceSub}>+ addons & GST at next step</Text>
+              </>
+            )}
           </View>
 
           {/* Next */}

@@ -19,7 +19,11 @@ import BookingConfirmedScreen from '../screens/customer/BookingConfirmedScreen';
 import BookingDetailScreen from '../screens/customer/BookingDetailScreen';
 import CertificateScreen from '../screens/customer/CertificateScreen';
 import AmcPlansScreen from '../screens/customer/AmcPlansScreen';
+import AmcEnrollmentScreen from '../screens/customer/AmcEnrollmentScreen';
+import AmcConfirmedScreen from '../screens/customer/AmcConfirmedScreen';
 import NotificationsScreen from '../screens/customer/NotificationsScreen';
+import QrScannerScreen from '../screens/shared/QrScannerScreen';
+import CertVerifyResultScreen from '../screens/shared/CertVerifyResultScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -36,13 +40,20 @@ const CustomerTabs = () => {
         tabBarStyle: {
           backgroundColor: C.surface,
           borderTopColor: C.border,
-          borderTopWidth: 1,
-          paddingBottom: 5,
-          height: 60,
+          borderTopWidth: 0.5,
+          paddingBottom: 8,
+          paddingTop: 8,
+          height: 64,
+          elevation: 12,
+          shadowColor: C.shadow,
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 1,
+          shadowRadius: 12,
         },
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
+          marginTop: 2,
         },
       }}
     >
@@ -104,7 +115,11 @@ const CustomerNavigator = () => (
     <Stack.Screen name="BookingDetail" component={BookingDetailScreen} />
     <Stack.Screen name="CertificateView" component={CertificateScreen} />
     <Stack.Screen name="AmcPlans" component={AmcPlansScreen} />
+    <Stack.Screen name="AmcEnrollment" component={AmcEnrollmentScreen} />
+    <Stack.Screen name="AmcConfirmed" component={AmcConfirmedScreen} />
     <Stack.Screen name="Notifications" component={NotificationsScreen} />
+    <Stack.Screen name="QrScanner" component={QrScannerScreen} />
+    <Stack.Screen name="CertVerifyResult" component={CertVerifyResultScreen} />
   </Stack.Navigator>
 );
 

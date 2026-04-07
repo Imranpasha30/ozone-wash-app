@@ -56,7 +56,6 @@ export {
   ChartBar,
   ChartPie,
   TrendUp,
-  Activity,
 
   // Files / Documents
   FileText,
@@ -106,4 +105,6 @@ export {
   Stethoscope,
   Crown,
   Diamond,
+  ThumbsUp,
+  ThumbsDown,
 } from 'phosphor-react-native';

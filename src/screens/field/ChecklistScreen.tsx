@@ -1,11 +1,12 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  ActivityIndicator, Alert,
+  ActivityIndicator, Alert, Platform, StatusBar,
 } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { complianceAPI, jobAPI, ecoScoreAPI, certificateAPI } from '../../services/api';
-import { COLORS, COMPLIANCE_STEPS } from '../../utils/constants';
+import { useTheme } from '../../hooks/useTheme';
+import { COMPLIANCE_STEPS } from '../../utils/constants';
 import {
   ArrowLeft, Check, Lock, CheckCircle, ArrowRight, Confetti,
 } from '../../components/Icons';
@@ -13,6 +14,8 @@ import {
 const ChecklistScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const C = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const jobId = route.params?.job_id;
 
   const [checklist, setChecklist] = useState<any>(null);
@@ -55,13 +58,9 @@ const ChecklistScreen = () => {
           onPress: async () => {
             setCompleting(true);
             try {
-              // Complete compliance
               await complianceAPI.completeCompliance(jobId);
-              // Complete job
               await jobAPI.completeJob(jobId);
-              // Calculate EcoScore
               await ecoScoreAPI.calculateScore(jobId);
-              // Generate certificate
               await certificateAPI.generate(jobId);
 
               Alert.alert(
@@ -88,7 +87,7 @@ const ChecklistScreen = () => {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <ActivityIndicator size="large" color={C.primary} />
       </View>
     );
   }
@@ -100,9 +99,11 @@ const ChecklistScreen = () => {
 
   return (
     <View style={styles.root}>
+      <StatusBar barStyle="dark-content" backgroundColor={C.background} />
+
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ArrowLeft size={22} weight="regular" color={COLORS.primary} />
+          <ArrowLeft size={22} weight="regular" color={C.foreground} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Compliance Checklist</Text>
         <Text style={styles.headerCount}>{completedCount}/{totalCount}</Text>
@@ -144,6 +145,7 @@ const ChecklistScreen = () => {
                 });
               }}
               disabled={isCompleted}
+              activeOpacity={0.7}
             >
               <View style={styles.stepLeft}>
                 <View style={[
@@ -152,9 +154,9 @@ const ChecklistScreen = () => {
                   isLocked && styles.stepCircleLocked,
                 ]}>
                   {isCompleted ? (
-                    <Check size={16} weight="bold" color={COLORS.primaryFg} />
+                    <Check size={16} weight="bold" color={C.primaryFg} />
                   ) : isLocked ? (
-                    <Lock size={14} weight="fill" color={COLORS.muted} />
+                    <Lock size={14} weight="fill" color={C.muted} />
                   ) : (
                     <Text style={styles.stepCircleText}>{step.step_number}</Text>
                   )}
@@ -171,8 +173,8 @@ const ChecklistScreen = () => {
                 <View style={styles.stepFieldsRow}>
                   {isCompleted ? (
                     <>
-                      <CheckCircle size={14} weight="fill" color={COLORS.success} />
-                      <Text style={[styles.stepFields, { color: COLORS.success }]}>Completed</Text>
+                      <CheckCircle size={14} weight="fill" color={C.success} />
+                      <Text style={[styles.stepFields, { color: C.success }]}>Completed</Text>
                     </>
                   ) : (
                     <Text style={styles.stepFields}>
@@ -184,7 +186,7 @@ const ChecklistScreen = () => {
 
               {!isCompleted && !isLocked && (
                 <View style={styles.stepArrowContainer}>
-                  <ArrowRight size={16} weight="bold" color={COLORS.primary} />
+                  <ArrowRight size={16} weight="bold" color={C.primary} />
                 </View>
               )}
             </TouchableOpacity>
@@ -200,12 +202,13 @@ const ChecklistScreen = () => {
           ]}
           onPress={handleComplete}
           disabled={completing || pct < 100}
+          activeOpacity={0.8}
         >
           {completing ? (
-            <ActivityIndicator color={COLORS.primaryFg} />
+            <ActivityIndicator color={C.primaryFg} />
           ) : (
             <View style={styles.completeBtnContent}>
-              {pct >= 100 && <Confetti size={18} weight="fill" color={COLORS.primaryFg} />}
+              {pct >= 100 && <Confetti size={18} weight="fill" color={C.primaryFg} />}
               <Text style={styles.completeBtnText}>
                 {pct < 100 ? `Complete ${8 - completedCount} more steps to finish` : 'Complete Job & Generate Certificate'}
               </Text>
@@ -217,77 +220,84 @@ const ChecklistScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
+const makeStyles = (C: any) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.background },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: C.background },
   header: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: C.surface,
     paddingTop: 56,
     paddingBottom: 16,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    ...Platform.select({
+      ios: { shadowColor: C.shadowMedium, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 },
+      android: { elevation: 4 },
+    }),
   },
-  backBtn: { marginRight: 12 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground, flex: 1 },
-  headerCount: { fontSize: 16, color: COLORS.primary, fontWeight: 'bold' },
+  backBtn: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: C.surfaceElevated,
+    alignItems: 'center', justifyContent: 'center',
+    marginRight: 12,
+  },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: C.foreground, flex: 1 },
+  headerCount: { fontSize: 16, color: C.primary, fontWeight: '700' },
   progressSection: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: C.surface,
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
   },
-  progressBar: { height: 10, backgroundColor: COLORS.border, borderRadius: 5, marginBottom: 6 },
-  progressFill: { height: 10, backgroundColor: COLORS.primary, borderRadius: 5 },
-  progressText: { fontSize: 13, color: COLORS.muted, textAlign: 'center', fontWeight: '600' },
+  progressBar: { height: 10, backgroundColor: C.surfaceElevated, borderRadius: 5, marginBottom: 6 },
+  progressFill: { height: 10, backgroundColor: C.primary, borderRadius: 5 },
+  progressText: { fontSize: 13, color: C.muted, textAlign: 'center', fontWeight: '600' },
   body: { padding: 16, paddingBottom: 40 },
   stepCard: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
+    backgroundColor: C.surface,
     borderRadius: 16,
     padding: 14,
     marginBottom: 8,
     alignItems: 'flex-start',
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    ...Platform.select({
+      ios: { shadowColor: C.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 1, shadowRadius: 4 },
+      android: { elevation: 1 },
+    }),
   },
-  stepCardDone: { borderColor: COLORS.success, backgroundColor: COLORS.successBg },
+  stepCardDone: {
+    backgroundColor: C.successBg,
+  },
   stepCardLocked: { opacity: 0.5 },
   stepLeft: { alignItems: 'center', marginRight: 14, width: 36 },
   stepCircle: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: C.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
-  stepCircleDone: { backgroundColor: COLORS.success, borderColor: COLORS.success },
-  stepCircleLocked: { backgroundColor: COLORS.surfaceElevated, borderColor: COLORS.border },
-  stepCircleText: { color: COLORS.foreground, fontWeight: 'bold', fontSize: 14 },
-  stepConnector: { width: 2, flex: 1, backgroundColor: COLORS.border, minHeight: 12, marginTop: 2 },
-  stepConnectorDone: { backgroundColor: COLORS.success },
+  stepCircleDone: { backgroundColor: C.success },
+  stepCircleLocked: { backgroundColor: C.surfaceElevated },
+  stepCircleText: { color: C.foreground, fontWeight: '700', fontSize: 14 },
+  stepConnector: { width: 2, flex: 1, backgroundColor: C.surfaceHighlight, minHeight: 12, marginTop: 2 },
+  stepConnectorDone: { backgroundColor: C.success },
   stepContent: { flex: 1 },
-  stepName: { fontSize: 14, fontWeight: '700', color: COLORS.foreground, marginBottom: 4 },
-  stepNameDone: { color: COLORS.success },
-  stepNameLocked: { color: COLORS.muted },
+  stepName: { fontSize: 14, fontWeight: '700', color: C.foreground, marginBottom: 4 },
+  stepNameDone: { color: C.success },
+  stepNameLocked: { color: C.muted },
   stepFieldsRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  stepFields: { fontSize: 12, color: COLORS.muted, lineHeight: 18 },
+  stepFields: { fontSize: 12, color: C.muted, lineHeight: 18 },
   stepArrowContainer: { alignSelf: 'center' },
   completeBtn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: C.primary,
     borderRadius: 16,
     padding: 18,
     alignItems: 'center',
     marginTop: 16,
   },
-  completeBtnDisabled: { backgroundColor: COLORS.muted },
+  completeBtnDisabled: { backgroundColor: C.muted },
   completeBtnContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  completeBtnText: { color: COLORS.primaryFg, fontWeight: 'bold', fontSize: 15, textAlign: 'center' },
+  completeBtnText: { color: C.primaryFg, fontWeight: '700', fontSize: 15, textAlign: 'center' },
 });
 
 export default ChecklistScreen;

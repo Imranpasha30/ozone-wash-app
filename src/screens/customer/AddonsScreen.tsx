@@ -6,11 +6,11 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import useBookingStore from '../../store/booking.store';
 import { bookingAPI } from '../../services/api';
-import { ADDONS, AMC_PLANS, PAYMENT_METHODS } from '../../utils/constants';
+import { ADDONS, PAYMENT_METHODS } from '../../utils/constants';
 import { useTheme } from '../../hooks/useTheme';
 import {
   ArrowLeft, ArrowRight, Check, CreditCard, Wallet, CurrencyInr,
-  Receipt, Tag, Phone,
+  Receipt, Phone,
 } from '../../components/Icons';
 
 const PaymentMethodIcon = ({ method, active, C }: { method: string; active: boolean; C: any }) => {
@@ -32,7 +32,6 @@ const AddonsScreen = () => {
   const { draft, setStep3 } = useBookingStore();
 
   const [selectedAddons, setSelectedAddons] = useState<string[]>(draft.addons || []);
-  const [amcPlan, setAmcPlan] = useState(draft.amc_plan || '');
   const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card' | 'wallet' | 'cod'>(
     draft.payment_method || 'upi'
   );
@@ -47,7 +46,7 @@ const AddonsScreen = () => {
 
   useEffect(() => {
     fetchPrice();
-  }, [selectedAddons, amcPlan]);
+  }, [selectedAddons]);
 
   const fetchPrice = async () => {
     if (!draft.tank_type || !draft.tank_size_litres) return;
@@ -57,7 +56,6 @@ const AddonsScreen = () => {
         draft.tank_type,
         draft.tank_size_litres,
         selectedAddons,
-        amcPlan || undefined
       ) as any;
       setPricing(res.data?.pricing || res.data);
     } catch (_) {} finally {
@@ -67,8 +65,14 @@ const AddonsScreen = () => {
 
   const handleNext = () => {
     if (!pricing) return Alert.alert('Calculating price...', 'Please wait');
-    setStep3({ addons: selectedAddons, amc_plan: amcPlan, payment_method: paymentMethod, pricing });
-    navigation.navigate('PaymentScreen');
+    setStep3({ addons: selectedAddons, amc_plan: pricing.amc_plan || '', payment_method: paymentMethod, pricing });
+
+    // AMC-covered with no addons = ₹0, skip payment
+    if (pricing.grand_total === 0) {
+      navigation.navigate('PaymentScreen', { skipPayment: true });
+    } else {
+      navigation.navigate('PaymentScreen');
+    }
   };
 
   const fmt = (n: number) => `₹${n.toLocaleString('en-IN')}`;
@@ -108,52 +112,29 @@ const AddonsScreen = () => {
           );
         })}
 
-        {/* AMC Plan */}
-        <View style={styles.labelRow}>
-          <Tag size={16} weight="regular" color={C.primary} />
-          <Text style={styles.labelText}>AMC Plan (Optional)</Text>
-        </View>
-        <Text style={styles.hint}>Get up to 25% off on your base price</Text>
-        <TouchableOpacity
-          style={[styles.addonRow, amcPlan === '' && styles.addonRowActive]}
-          onPress={() => setAmcPlan('')}
-        >
-          <View style={[styles.radio, amcPlan === '' && styles.radioActive]} />
-          <Text style={styles.addonName}>No AMC (one-time booking)</Text>
-        </TouchableOpacity>
-        {AMC_PLANS.map((p) => (
-          <TouchableOpacity
-            key={p.value}
-            style={[styles.addonRow, amcPlan === p.value && styles.addonRowActive]}
-            onPress={() => setAmcPlan(p.value)}
-          >
-            <View style={[styles.radio, amcPlan === p.value && styles.radioActive]} />
-            <View style={styles.addonInfo}>
-              <Text style={styles.addonName}>{p.label}</Text>
+        {/* Payment Method — hide when AMC covers everything */}
+        {(!pricing || pricing.grand_total > 0) && (
+          <>
+            <Text style={styles.label}>Payment Method</Text>
+            <View style={styles.payRow}>
+              {PAYMENT_METHODS.map((m) => {
+                const active = paymentMethod === m.value;
+                return (
+                  <TouchableOpacity
+                    key={m.value}
+                    style={[styles.payBtn, active && styles.payBtnActive]}
+                    onPress={() => setPaymentMethod(m.value as any)}
+                  >
+                    <PaymentMethodIcon method={m.value} active={active} C={C} />
+                    <Text style={[styles.payLabel, active && styles.payLabelActive]}>
+                      {m.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
-            <Text style={styles.addonPrice}>₹{p.price}/yr</Text>
-          </TouchableOpacity>
-        ))}
-
-        {/* Payment Method */}
-        <Text style={styles.label}>Payment Method</Text>
-        <View style={styles.payRow}>
-          {PAYMENT_METHODS.map((m) => {
-            const active = paymentMethod === m.value;
-            return (
-              <TouchableOpacity
-                key={m.value}
-                style={[styles.payBtn, active && styles.payBtnActive]}
-                onPress={() => setPaymentMethod(m.value as any)}
-              >
-                <PaymentMethodIcon method={m.value} active={active} C={C} />
-                <Text style={[styles.payLabel, active && styles.payLabelActive]}>
-                  {m.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+          </>
+        )}
 
         {/* Price Breakdown */}
         <View style={styles.priceCard}>
@@ -167,28 +148,36 @@ const AddonsScreen = () => {
             <>
               <View style={styles.priceRow}>
                 <Text style={styles.priceKey}>Base Price</Text>
-                <Text style={styles.priceVal}>{fmt(pricing.base_price)}</Text>
+                <Text style={pricing.amc_covered ? [styles.priceVal, styles.strikethrough] : styles.priceVal}>
+                  {fmt(pricing.base_price)}
+                </Text>
               </View>
+              {pricing.amc_covered && (
+                <View style={styles.priceRow}>
+                  <Text style={[styles.priceKey, { color: C.success }]}>
+                    Covered by AMC ({pricing.amc_plan?.toUpperCase()})
+                  </Text>
+                  <Text style={[styles.priceVal, { color: C.success }]}>FREE</Text>
+                </View>
+              )}
               {pricing.addon_total > 0 && (
                 <View style={styles.priceRow}>
                   <Text style={styles.priceKey}>Add-ons</Text>
                   <Text style={styles.priceVal}>{fmt(pricing.addon_total)}</Text>
                 </View>
               )}
-              {pricing.discount_amount > 0 && (
+              {pricing.grand_total > 0 && (
                 <View style={styles.priceRow}>
-                  <Text style={[styles.priceKey, { color: C.primary }]}>AMC Discount</Text>
-                  <Text style={[styles.priceVal, { color: C.primary }]}>-{fmt(pricing.discount_amount)}</Text>
+                  <Text style={styles.priceKey}>GST (18%)</Text>
+                  <Text style={styles.priceVal}>{fmt(pricing.gst)}</Text>
                 </View>
               )}
-              <View style={styles.priceRow}>
-                <Text style={styles.priceKey}>GST (18%)</Text>
-                <Text style={styles.priceVal}>{fmt(pricing.gst)}</Text>
-              </View>
               <View style={styles.divider} />
               <View style={styles.priceRow}>
                 <Text style={styles.totalKey}>Total</Text>
-                <Text style={styles.totalVal}>{fmt(pricing.grand_total)}</Text>
+                <Text style={styles.totalVal}>
+                  {pricing.grand_total === 0 ? 'FREE' : fmt(pricing.grand_total)}
+                </Text>
               </View>
             </>
           ) : (
@@ -197,7 +186,9 @@ const AddonsScreen = () => {
         </View>
 
         <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
-          <Text style={styles.nextText}>Proceed to Payment</Text>
+          <Text style={styles.nextText}>
+            {pricing?.grand_total === 0 ? 'Confirm Booking' : 'Proceed to Payment'}
+          </Text>
           <ArrowRight size={18} weight="bold" color={C.primaryFg} />
         </TouchableOpacity>
       </ScrollView>
@@ -224,9 +215,6 @@ const makeStyles = (C: any) => StyleSheet.create({
   progressFill: { height: 4, backgroundColor: C.primary },
   body: { padding: 20, paddingBottom: 40 },
   label: { fontSize: 14, fontWeight: '700', color: C.foreground, marginBottom: 10, marginTop: 16 },
-  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10, marginTop: 16 },
-  labelText: { fontSize: 14, fontWeight: '700', color: C.foreground },
-  hint: { fontSize: 12, color: C.muted, marginBottom: 10, marginTop: -6 },
   addonRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -249,15 +237,6 @@ const makeStyles = (C: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxActive: { borderColor: C.primary, backgroundColor: C.primary },
-  radio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: C.border,
-    marginRight: 12,
-  },
-  radioActive: { borderColor: C.primary, backgroundColor: C.primary },
   addonInfo: { flex: 1 },
   addonName: { fontSize: 14, color: C.foreground, fontWeight: '600' },
   addonPrice: { fontSize: 14, color: C.primary, fontWeight: 'bold' },
@@ -289,6 +268,7 @@ const makeStyles = (C: any) => StyleSheet.create({
   priceRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   priceKey: { fontSize: 14, color: C.muted },
   priceVal: { fontSize: 14, color: C.foreground, fontWeight: '600' },
+  strikethrough: { textDecorationLine: 'line-through', color: C.muted },
   divider: { height: 1, backgroundColor: C.border, marginVertical: 8 },
   totalKey: { fontSize: 16, fontWeight: 'bold', color: C.foreground },
   totalVal: { fontSize: 20, fontWeight: 'bold', color: C.primary },

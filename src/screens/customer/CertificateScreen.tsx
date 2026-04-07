@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  ActivityIndicator, Alert, Linking,
+  ActivityIndicator, Alert, Platform,
 } from 'react-native';
+import { documentDirectory, downloadAsync } from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { certificateAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { Certificate } from '../../types';
 import {
   ArrowLeft, Trophy, Medal, Star, Shield,
-  DownloadSimple, MagnifyingGlass, QrCode, ShieldCheck,
+  DownloadSimple, QrCode, ShieldCheck, ShareNetwork,
 } from '../../components/Icons';
 
 const makeStyles = (C: any) => StyleSheet.create({
@@ -260,16 +262,28 @@ const CertificateScreen = () => {
         {cert.certificate_url && (
           <TouchableOpacity
             style={styles.downloadBtn}
-            onPress={() => Linking.openURL(cert.certificate_url)}
+            onPress={async () => {
+              try {
+                const fileUri = documentDirectory + `ozone_cert_${cert.id.slice(0, 8)}.pdf`;
+                const download = await downloadAsync(cert.certificate_url, fileUri);
+                if (await Sharing.isAvailableAsync()) {
+                  await Sharing.shareAsync(download.uri, { mimeType: 'application/pdf', dialogTitle: 'Share Certificate' });
+                } else {
+                  Alert.alert('Downloaded', 'Certificate saved successfully.');
+                }
+              } catch (_) {
+                Alert.alert('Error', 'Could not download certificate. Try again.');
+              }
+            }}
           >
-            <DownloadSimple size={20} weight="bold" color={C.primaryFg} />
-            <Text style={styles.downloadText}>Download PDF Certificate</Text>
+            <ShareNetwork size={20} weight="bold" color={C.primaryFg} />
+            <Text style={styles.downloadText}>Download & Share PDF</Text>
           </TouchableOpacity>
         )}
 
         <TouchableOpacity
           style={styles.verifyBtn}
-          onPress={() => Alert.alert('Verify', `Certificate ID: ${cert.id}\nStatus: ${cert.status}`)}
+          onPress={() => navigation.navigate('CertVerifyResult', { cert_id: cert.id })}
         >
           <ShieldCheck size={20} weight="regular" color={C.primary} />
           <Text style={styles.verifyText}>Verify Certificate</Text>

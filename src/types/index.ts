@@ -29,12 +29,21 @@ export interface Booking {
   amount_paise: number;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
   created_at: string;
+  // Joined from jobs table (returned by getMyBookings, getBooking, getAllBookings)
+  job_id?: string;
+  job_status?: string;
+  assigned_team_id?: string;
+  team_name?: string;
+  start_otp?: string;
+  end_otp?: string;
+  start_otp_verified?: boolean;
+  end_otp_verified?: boolean;
 }
 
 // ── Job ───────────────────────────────────────────────────────────────────
 export interface Job {
   id: string;
-  booking_id: string;
+  booking_id: string;  // Same ID shown as "Booking #XXXX" in customer view
   customer_id: string;
   customer_name?: string;
   customer_phone?: string;
@@ -51,6 +60,10 @@ export interface Job {
   tank_type?: string;
   tank_size_litres?: number;
   notes?: string;
+  start_otp?: string;
+  end_otp?: string;
+  start_otp_verified?: boolean;
+  end_otp_verified?: boolean;
 }
 
 // ── Compliance ────────────────────────────────────────────────────────────

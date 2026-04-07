@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Image, ActivityIndicator, Alert, TextInput,
+  Image, ActivityIndicator, Alert, TextInput, Platform, StatusBar,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { complianceAPI } from '../../services/api';
 import { uploadAPI } from '../../services/api';
-import { COLORS, COMPLIANCE_STEPS } from '../../utils/constants';
+import { useTheme } from '../../hooks/useTheme';
+import { COMPLIANCE_STEPS } from '../../utils/constants';
 import {
   ArrowLeft, MapPin, Camera, Check, CheckCircle, Clock,
   ShieldCheck, Flask,
@@ -30,6 +31,8 @@ interface StepData {
 const ComplianceStepScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const C = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const { job_id: jobId, step_number: stepNumber } = route.params;
 
   const stepInfo = COMPLIANCE_STEPS.find((s) => s.step === stepNumber);
@@ -107,7 +110,6 @@ const ComplianceStepScreen = () => {
         setData((d) => ({ ...d, photo_after_url: url }));
       }
     } catch (_) {
-      // If upload fails (placeholder R2), use local URI for demo
       if (type === 'before') {
         setData((d) => ({ ...d, photo_before_url: uri }));
       } else {
@@ -167,16 +169,13 @@ const ComplianceStepScreen = () => {
   const showChemicals = stepNumber === 5 || stepNumber === 3;
   const showPpe = stepNumber === 2;
 
-  const ppeIconName = (item: string) => {
-    // All PPE items use ShieldCheck icon with different semantics
-    return item;
-  };
-
   return (
     <View style={styles.root}>
+      <StatusBar barStyle="dark-content" backgroundColor={C.background} />
+
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ArrowLeft size={22} weight="regular" color={COLORS.primary} />
+          <ArrowLeft size={22} weight="regular" color={C.foreground} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.stepNum}>Step {stepNumber} of 8</Text>
@@ -188,7 +187,7 @@ const ComplianceStepScreen = () => {
         {/* GPS Status */}
         <View style={[styles.gpsRow, data.gps_lat !== 0 ? styles.gpsOk : styles.gpsWaiting]}>
           <View style={styles.gpsContent}>
-            <MapPin size={16} weight="fill" color={data.gps_lat !== 0 ? COLORS.success : COLORS.warning} />
+            <MapPin size={16} weight="fill" color={data.gps_lat !== 0 ? C.success : C.warning} />
             <Text style={styles.gpsText}>
               {data.gps_lat !== 0
                 ? `GPS: ${data.gps_lat.toFixed(4)}, ${data.gps_lng.toFixed(4)}`
@@ -204,18 +203,18 @@ const ComplianceStepScreen = () => {
 
         {/* Before Photo */}
         <View style={styles.labelRow}>
-          <Camera size={16} weight="regular" color={COLORS.foreground} />
+          <Camera size={16} weight="regular" color={C.foreground} />
           <Text style={styles.label}>Before Photo</Text>
         </View>
-        <TouchableOpacity style={styles.photoBtn} onPress={() => pickPhoto('before')}>
+        <TouchableOpacity style={styles.photoBtn} onPress={() => pickPhoto('before')} activeOpacity={0.7}>
           {uploading && !data.photo_before_url ? (
-            <ActivityIndicator color={COLORS.primary} />
+            <ActivityIndicator color={C.primary} />
           ) : data.photo_before_url ? (
             <Image source={{ uri: data.photo_before_url }} style={styles.photoPreview} />
           ) : (
             <View style={styles.photoPlaceholder}>
               <View style={styles.photoIconContainer}>
-                <Camera size={28} weight="regular" color={COLORS.muted} />
+                <Camera size={28} weight="regular" color={C.muted} />
               </View>
               <Text style={styles.photoLabel}>Tap to take Before photo</Text>
             </View>
@@ -224,16 +223,16 @@ const ComplianceStepScreen = () => {
 
         {/* After Photo */}
         <View style={styles.labelRow}>
-          <Camera size={16} weight="regular" color={COLORS.foreground} />
+          <Camera size={16} weight="regular" color={C.foreground} />
           <Text style={styles.label}>After Photo</Text>
         </View>
-        <TouchableOpacity style={styles.photoBtn} onPress={() => pickPhoto('after')}>
+        <TouchableOpacity style={styles.photoBtn} onPress={() => pickPhoto('after')} activeOpacity={0.7}>
           {data.photo_after_url ? (
             <Image source={{ uri: data.photo_after_url }} style={styles.photoPreview} />
           ) : (
             <View style={styles.photoPlaceholder}>
               <View style={styles.photoIconContainer}>
-                <Camera size={28} weight="regular" color={COLORS.muted} />
+                <Camera size={28} weight="regular" color={C.muted} />
               </View>
               <Text style={styles.photoLabel}>Tap to take After photo</Text>
             </View>
@@ -244,7 +243,7 @@ const ComplianceStepScreen = () => {
         {showPpe && (
           <>
             <View style={styles.labelRow}>
-              <ShieldCheck size={16} weight="regular" color={COLORS.foreground} />
+              <ShieldCheck size={16} weight="regular" color={C.foreground} />
               <Text style={styles.label}>PPE Checklist</Text>
             </View>
             <View style={styles.ppeGrid}>
@@ -255,14 +254,15 @@ const ComplianceStepScreen = () => {
                     key={item}
                     style={[styles.ppeItem, selected && styles.ppeItemActive]}
                     onPress={() => togglePpe(item)}
+                    activeOpacity={0.7}
                   >
                     <View style={[styles.ppeIconContainer, selected && styles.ppeIconContainerActive]}>
-                      <ShieldCheck size={18} weight={selected ? 'fill' : 'regular'} color={selected ? COLORS.primary : COLORS.muted} />
+                      <ShieldCheck size={18} weight={selected ? 'fill' : 'regular'} color={selected ? C.primary : C.muted} />
                     </View>
                     <Text style={[styles.ppeLabel, selected && styles.ppeLabelActive]}>
                       {item.charAt(0).toUpperCase() + item.slice(1)}
                     </Text>
-                    {selected && <Check size={16} weight="bold" color={COLORS.primary} />}
+                    {selected && <Check size={16} weight="bold" color={C.primary} />}
                   </TouchableOpacity>
                 );
               })}
@@ -274,7 +274,7 @@ const ComplianceStepScreen = () => {
         {showOzone && (
           <>
             <View style={styles.labelRow}>
-              <Clock size={16} weight="regular" color={COLORS.foreground} />
+              <Clock size={16} weight="regular" color={C.foreground} />
               <Text style={styles.label}>Ozone Exposure (minutes)</Text>
             </View>
             <TextInput
@@ -283,7 +283,7 @@ const ComplianceStepScreen = () => {
               keyboardType="number-pad"
               value={data.ozone_exposure_mins}
               onChangeText={(v) => setData((d) => ({ ...d, ozone_exposure_mins: v }))}
-              placeholderTextColor={COLORS.gray}
+              placeholderTextColor={C.muted}
             />
           </>
         )}
@@ -292,7 +292,7 @@ const ComplianceStepScreen = () => {
         {showChemicals && (
           <>
             <View style={styles.labelRow}>
-              <Flask size={16} weight="regular" color={COLORS.foreground} />
+              <Flask size={16} weight="regular" color={C.foreground} />
               <Text style={styles.label}>Chemical Used</Text>
             </View>
             <TextInput
@@ -300,7 +300,7 @@ const ComplianceStepScreen = () => {
               placeholder="Chemical name (e.g. Chlorine)"
               value={data.chemical_type}
               onChangeText={(v) => setData((d) => ({ ...d, chemical_type: v }))}
-              placeholderTextColor={COLORS.gray}
+              placeholderTextColor={C.muted}
             />
             <TextInput
               style={[styles.input, { marginTop: 8 }]}
@@ -308,7 +308,7 @@ const ComplianceStepScreen = () => {
               keyboardType="number-pad"
               value={data.chemical_qty_ml}
               onChangeText={(v) => setData((d) => ({ ...d, chemical_qty_ml: v }))}
-              placeholderTextColor={COLORS.gray}
+              placeholderTextColor={C.muted}
             />
           </>
         )}
@@ -318,12 +318,13 @@ const ComplianceStepScreen = () => {
           style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
           onPress={handleSubmit}
           disabled={loading || uploading}
+          activeOpacity={0.8}
         >
           {loading ? (
-            <ActivityIndicator color={COLORS.primaryFg} />
+            <ActivityIndicator color={C.primaryFg} />
           ) : (
             <View style={styles.submitContent}>
-              <CheckCircle size={18} weight="fill" color={COLORS.primaryFg} />
+              <CheckCircle size={18} weight="fill" color={C.primaryFg} />
               <Text style={styles.submitText}>Save Step {stepNumber}</Text>
             </View>
           )}
@@ -333,43 +334,50 @@ const ComplianceStepScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
+const makeStyles = (C: any) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.background },
   header: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: C.surface,
     paddingTop: 56,
     paddingBottom: 16,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    ...Platform.select({
+      ios: { shadowColor: C.shadowMedium, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 },
+      android: { elevation: 4 },
+    }),
   },
-  backBtn: { marginRight: 12 },
+  backBtn: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: C.surfaceElevated,
+    alignItems: 'center', justifyContent: 'center',
+    marginRight: 12,
+  },
   headerContent: { flex: 1 },
-  stepNum: { fontSize: 12, color: COLORS.muted },
-  stepName: { fontSize: 18, fontWeight: 'bold', color: COLORS.foreground },
+  stepNum: { fontSize: 12, color: C.muted },
+  stepName: { fontSize: 18, fontWeight: '700', color: C.foreground },
   body: { padding: 20, paddingBottom: 40 },
-  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10, marginTop: 16 },
-  label: { fontSize: 14, fontWeight: '700', color: COLORS.foreground },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10, marginTop: 20 },
+  label: { fontSize: 14, fontWeight: '700', color: C.foreground },
   gpsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: 10,
-    padding: 10,
+    borderRadius: 12,
+    padding: 12,
     marginBottom: 4,
   },
-  gpsOk: { backgroundColor: COLORS.successBg, borderWidth: 1, borderColor: COLORS.success },
-  gpsWaiting: { backgroundColor: COLORS.warningBg, borderWidth: 1, borderColor: COLORS.warning },
+  gpsOk: { backgroundColor: C.successBg },
+  gpsWaiting: { backgroundColor: C.warningBg },
   gpsContent: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
-  gpsText: { fontSize: 12, color: COLORS.foreground, fontWeight: '600' },
-  gpsRetry: { fontSize: 12, color: COLORS.primary, fontWeight: 'bold', marginLeft: 8 },
+  gpsText: { fontSize: 12, color: C.foreground, fontWeight: '600' },
+  gpsRetry: { fontSize: 12, color: C.primary, fontWeight: '700', marginLeft: 8 },
   photoBtn: {
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: C.surfaceElevated,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    borderWidth: 1.5,
+    borderColor: C.border,
     borderStyle: 'dashed',
     overflow: 'hidden',
     minHeight: 140,
@@ -382,62 +390,57 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 14,
-    backgroundColor: COLORS.surfaceHighlight,
+    backgroundColor: C.surfaceHighlight,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
-  photoLabel: { fontSize: 14, color: COLORS.muted, fontWeight: '600' },
+  photoLabel: { fontSize: 14, color: C.muted, fontWeight: '600' },
   ppeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   ppeItem: {
     width: '47%',
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: C.surface,
     borderRadius: 12,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    ...Platform.select({
+      ios: { shadowColor: C.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 1, shadowRadius: 4 },
+      android: { elevation: 1 },
+    }),
   },
-  ppeItemActive: { borderColor: COLORS.borderActive, backgroundColor: COLORS.primaryBg },
+  ppeItemActive: { backgroundColor: C.primaryBg },
   ppeIconContainer: {
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: COLORS.surfaceHighlight,
+    backgroundColor: C.surfaceElevated,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
   ppeIconContainerActive: {
-    backgroundColor: COLORS.primaryBg,
-    borderColor: COLORS.borderActive,
+    backgroundColor: C.primaryBg,
   },
-  ppeLabel: { fontSize: 14, color: COLORS.muted, fontWeight: '600', flex: 1 },
-  ppeLabelActive: { color: COLORS.primary },
+  ppeLabel: { fontSize: 14, color: C.muted, fontWeight: '600', flex: 1 },
+  ppeLabelActive: { color: C.primary },
   input: {
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: C.surfaceElevated,
     borderRadius: 12,
     padding: 14,
     fontSize: 15,
-    color: COLORS.foreground,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    color: C.foreground,
   },
   submitBtn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: C.primary,
     borderRadius: 16,
     padding: 18,
     alignItems: 'center',
     marginTop: 24,
   },
-  submitBtnDisabled: { backgroundColor: COLORS.muted },
+  submitBtnDisabled: { backgroundColor: C.muted },
   submitContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  submitText: { color: COLORS.primaryFg, fontWeight: 'bold', fontSize: 16 },
+  submitText: { color: C.primaryFg, fontWeight: '700', fontSize: 16 },
 });
 
 export default ComplianceStepScreen;
