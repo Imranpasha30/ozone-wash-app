@@ -19,6 +19,7 @@ import JobTransferScreen from '../screens/field/JobTransferScreen';
 import PerformanceScreen from '../screens/field/PerformanceScreen';
 import QrScannerScreen from '../screens/shared/QrScannerScreen';
 import CertVerifyResultScreen from '../screens/shared/CertVerifyResultScreen';
+import LiveStreamScreen from '../screens/field/LiveStreamScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -105,6 +106,7 @@ const FieldNavigator = () => (
     <Stack.Screen name="JobTransfer" component={JobTransferScreen} />
     <Stack.Screen name="QrScanner" component={QrScannerScreen} />
     <Stack.Screen name="CertVerifyResult" component={CertVerifyResultScreen} />
+    <Stack.Screen name="LiveStream" component={LiveStreamScreen} />
   </Stack.Navigator>
 );
 

@@ -24,6 +24,7 @@ import AmcConfirmedScreen from '../screens/customer/AmcConfirmedScreen';
 import NotificationsScreen from '../screens/customer/NotificationsScreen';
 import QrScannerScreen from '../screens/shared/QrScannerScreen';
 import CertVerifyResultScreen from '../screens/shared/CertVerifyResultScreen';
+import LiveWatchScreen from '../screens/customer/LiveWatchScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -101,15 +102,35 @@ const CustomerTabs = () => {
   );
 };
 
+const BOOKING_FLOW_OPTIONS = {
+  gestureEnabled: true,
+  gestureDirection: 'horizontal' as const,
+  cardStyleInterpolator: ({ current, next, layouts }: any) => ({
+    cardStyle: {
+      transform: [
+        {
+          translateX: current.progress.interpolate({
+            inputRange: [0, 1],
+            outputRange: [layouts.screen.width, 0],
+          }),
+        },
+      ],
+    },
+    overlayStyle: {
+      opacity: current.progress.interpolate({ inputRange: [0, 1], outputRange: [0, 0.5] }),
+    },
+  }),
+};
+
 const CustomerNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     {/* Main tabs */}
     <Stack.Screen name="CustomerTabs" component={CustomerTabs} />
-    {/* Booking flow */}
-    <Stack.Screen name="TankDetails" component={TankDetailsScreen} />
-    <Stack.Screen name="DateTimeSelect" component={DateTimeScreen} />
-    <Stack.Screen name="AddonsSelect" component={AddonsScreen} />
-    <Stack.Screen name="PaymentScreen" component={PaymentScreen} />
+    {/* Booking flow — gesture swipe enabled */}
+    <Stack.Screen name="TankDetails" component={TankDetailsScreen} options={BOOKING_FLOW_OPTIONS} />
+    <Stack.Screen name="DateTimeSelect" component={DateTimeScreen} options={BOOKING_FLOW_OPTIONS} />
+    <Stack.Screen name="AddonsSelect" component={AddonsScreen} options={BOOKING_FLOW_OPTIONS} />
+    <Stack.Screen name="PaymentScreen" component={PaymentScreen} options={BOOKING_FLOW_OPTIONS} />
     <Stack.Screen name="BookingConfirmed" component={BookingConfirmedScreen} />
     {/* Detail views */}
     <Stack.Screen name="BookingDetail" component={BookingDetailScreen} />
@@ -120,6 +141,7 @@ const CustomerNavigator = () => (
     <Stack.Screen name="Notifications" component={NotificationsScreen} />
     <Stack.Screen name="QrScanner" component={QrScannerScreen} />
     <Stack.Screen name="CertVerifyResult" component={CertVerifyResultScreen} />
+    <Stack.Screen name="LiveWatch" component={LiveWatchScreen} />
   </Stack.Navigator>
 );
 

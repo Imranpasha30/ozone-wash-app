@@ -44,6 +44,9 @@ const PerformanceScreen = () => {
   const inProgress = parseInt(stats?.in_progress || stats?.today_inprogress || '0');
   const pending = parseInt(stats?.pending || '0');
   const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const streakDays = parseInt(stats?.streak_days || '0');
+  const weekTotal = parseInt(stats?.completed_this_week || '0');
+  const monthTotal = parseInt(stats?.completed_this_month || '0');
 
   return (
     <View style={styles.root}>
@@ -108,15 +111,69 @@ const PerformanceScreen = () => {
           </View>
         </View>
 
+        {/* Target vs Achievement */}
+        <View style={styles.targetCard}>
+          <Text style={styles.targetTitle}>Daily Target</Text>
+          <View style={styles.targetRow}>
+            <View style={styles.targetItem}>
+              <Text style={styles.targetNum}>{completed}</Text>
+              <Text style={styles.targetLabel}>Achieved</Text>
+            </View>
+            <View style={styles.targetVs}><Text style={styles.targetVsText}>vs</Text></View>
+            <View style={styles.targetItem}>
+              <Text style={[styles.targetNum, { color: C.muted }]}>5</Text>
+              <Text style={styles.targetLabel}>Target</Text>
+            </View>
+          </View>
+          <View style={styles.targetBarBg}>
+            <View style={[styles.targetBarFill, { width: `${Math.min((completed / 5) * 100, 100)}%` }]} />
+          </View>
+          <Text style={styles.targetSub}>
+            {completed >= 5 ? '🎯 Target achieved!' : `${5 - completed} more to hit today's target`}
+          </Text>
+        </View>
+
+        {/* Weekly / Monthly Summary */}
+        <View style={styles.targetCard}>
+          <Text style={styles.targetTitle}>Period Summary</Text>
+          <View style={styles.targetRow}>
+            <View style={styles.targetItem}>
+              <Text style={styles.targetNum}>{period === 'This Week' ? weekTotal : period === 'This Month' ? monthTotal : total}</Text>
+              <Text style={styles.targetLabel}>Completed</Text>
+            </View>
+            <View style={styles.targetVs}><Text style={styles.targetVsText}>·</Text></View>
+            <View style={styles.targetItem}>
+              <Text style={[styles.targetNum, { color: C.muted, fontSize: 28 }]}>{pending}</Text>
+              <Text style={styles.targetLabel}>Pending</Text>
+            </View>
+            <View style={styles.targetVs}><Text style={styles.targetVsText}>·</Text></View>
+            <View style={styles.targetItem}>
+              <Text style={[styles.targetNum, { color: C.primary, fontSize: 28 }]}>{inProgress}</Text>
+              <Text style={styles.targetLabel}>Active</Text>
+            </View>
+          </View>
+        </View>
+
         {/* Streak Card */}
         <View style={styles.streakCard}>
           <View style={styles.streakIconContainer}>
             <Fire size={24} weight="fill" color={C.warning} />
           </View>
-          <View>
-            <Text style={styles.streakTitle}>Keep it up!</Text>
-            <Text style={styles.streakSub}>{completed} jobs completed today</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.streakTitle}>
+              {streakDays > 0 ? `${streakDays}-day streak! 🔥` : completed > 0 ? `${completed} job${completed > 1 ? 's' : ''} today` : 'No jobs yet today'}
+            </Text>
+            <Text style={styles.streakSub}>
+              {streakDays > 1
+                ? `${streakDays} consecutive days with completed jobs`
+                : `${completionRate}% completion · ${weekTotal} this week · ${monthTotal} this month`}
+            </Text>
           </View>
+          {streakDays >= 5 && (
+            <View style={styles.streakBadge}>
+              <Text style={styles.streakBadgeText}>🏆</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -174,6 +231,23 @@ const makeStyles = (C: any) => StyleSheet.create({
   },
   kpiValue: { fontSize: 28, fontWeight: '700' },
   kpiLabel: { fontSize: 12, color: C.muted, marginTop: 4 },
+  targetCard: {
+    backgroundColor: C.surface, borderRadius: 16, padding: 16, marginBottom: 12,
+    ...Platform.select({
+      ios: { shadowColor: C.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 },
+      android: { elevation: 2 },
+    }),
+  },
+  targetTitle: { fontSize: 13, fontWeight: '700', color: C.muted, textTransform: 'uppercase', marginBottom: 12 },
+  targetRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  targetItem: { flex: 1, alignItems: 'center' },
+  targetNum: { fontSize: 36, fontWeight: '700', color: C.primary },
+  targetLabel: { fontSize: 12, color: C.muted, fontWeight: '600', marginTop: 2 },
+  targetVs: { paddingHorizontal: 16 },
+  targetVsText: { fontSize: 14, color: C.muted, fontWeight: '600' },
+  targetBarBg: { height: 8, backgroundColor: C.surfaceElevated, borderRadius: 4, marginBottom: 8 },
+  targetBarFill: { height: 8, backgroundColor: C.primary, borderRadius: 4 },
+  targetSub: { fontSize: 12, color: C.muted, textAlign: 'center' },
   streakCard: {
     backgroundColor: C.surface, borderRadius: 16, padding: 16,
     flexDirection: 'row', alignItems: 'center',
@@ -188,6 +262,11 @@ const makeStyles = (C: any) => StyleSheet.create({
   },
   streakTitle: { fontSize: 16, fontWeight: '700', color: C.foreground },
   streakSub: { fontSize: 13, color: C.muted, marginTop: 2 },
+  streakBadge: {
+    width: 36, height: 36, borderRadius: 10, backgroundColor: C.warningBg,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  streakBadgeText: { fontSize: 20 },
 });
 
 export default PerformanceScreen;

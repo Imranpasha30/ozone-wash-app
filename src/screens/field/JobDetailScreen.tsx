@@ -4,12 +4,13 @@ import {
   ActivityIndicator, Alert, Linking, Platform, StatusBar,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { jobAPI, complianceAPI } from '../../services/api';
+import { jobAPI, complianceAPI, ecoScoreAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { Job } from '../../types';
 import {
   ArrowLeft, Calendar, Phone, CheckCircle, ArrowsClockwise,
   Hourglass, Key, ClipboardText, Siren, ArrowRight, MapPin, NavigationArrow, QrCode,
+  Trophy, Crown, Star, Lightning,
 } from '../../components/Icons';
 
 const JobDetailScreen = () => {
@@ -21,6 +22,7 @@ const JobDetailScreen = () => {
 
   const [job, setJob] = useState<Job | null>(null);
   const [compliance, setCompliance] = useState<any>(null);
+  const [ecoScore, setEcoScore] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
 
@@ -41,6 +43,12 @@ const JobDetailScreen = () => {
           const cRes = await complianceAPI.getStatus(j.id) as any;
           setCompliance(cRes.data);
         } catch (_) {}
+        if (j.status === 'completed') {
+          try {
+            const eRes = await ecoScoreAPI.getScore(j.id) as any;
+            setEcoScore(eRes.data?.eco_metrics || eRes.data);
+          } catch (_) {}
+        }
       }
     } catch (_) {
       Alert.alert('Error', 'Could not load job details');
@@ -269,6 +277,35 @@ const JobDetailScreen = () => {
                 <Text style={styles.completedTime}>{formatDate(job.completed_at)}</Text>
               )}
             </View>
+
+            {ecoScore && (
+              <View style={styles.ecoCard}>
+                <View style={styles.ecoLeft}>
+                  <View style={styles.ecoCircle}>
+                    <Text style={styles.ecoNum}>{ecoScore.eco_score ?? '--'}</Text>
+                  </View>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.ecoTitle}>EcoScore for this job</Text>
+                  <View style={styles.ecoBadgeRow}>
+                    <Star size={12} weight="fill" color={C.gold} />
+                    <Text style={styles.ecoBadge}>{ecoScore.badge_level?.toUpperCase() || 'UNRATED'}</Text>
+                  </View>
+                  {ecoScore.score_breakdown && (
+                    <Text style={styles.ecoSub}>
+                      Water: {ecoScore.score_breakdown.water_score ?? '-'} · PPE: {ecoScore.score_breakdown.ppe_score ?? '-'} · Chemical: {ecoScore.score_breakdown.chemical_score ?? '-'}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            )}
+
+            {job.amc_plan && (
+              <View style={styles.amcBadge}>
+                <Crown size={14} weight="fill" color={C.gold} />
+                <Text style={styles.amcBadgeText}>AMC Job — {job.amc_plan?.toUpperCase()} Plan</Text>
+              </View>
+            )}
             <TouchableOpacity
               style={[styles.actionBtn, { backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.primary }]}
               onPress={() => navigation.navigate('QrScanner')}
@@ -304,6 +341,16 @@ const JobDetailScreen = () => {
                 <ArrowsClockwise size={20} weight="regular" color={C.primary} />
               </View>
               <Text style={styles.secondaryBtnText}>Transfer Job</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.secondaryBtn}
+              onPress={() => navigation.navigate('LiveStream', { job_id: job.id })}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.secondaryIconContainer, { backgroundColor: '#DC2626' + '22' }]}>
+                <Lightning size={20} weight="fill" color="#DC2626" />
+              </View>
+              <Text style={styles.secondaryBtnText}>Go Live</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -417,6 +464,32 @@ const makeStyles = (C: any) => StyleSheet.create({
   },
   completedText: { fontSize: 18, fontWeight: '700', color: C.success, marginTop: 8 },
   completedTime: { fontSize: 13, color: C.muted, marginTop: 4 },
+  ecoCard: {
+    backgroundColor: C.surface, borderRadius: 16, padding: 16, marginTop: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 16,
+    borderWidth: 1, borderColor: C.borderActive,
+    ...Platform.select({
+      ios: { shadowColor: C.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 },
+      android: { elevation: 2 },
+    }),
+  },
+  ecoLeft: { alignItems: 'center' },
+  ecoCircle: {
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: C.primaryBg, borderWidth: 2, borderColor: C.primary,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  ecoNum: { fontSize: 20, fontWeight: '700', color: C.primary },
+  ecoTitle: { fontSize: 14, fontWeight: '700', color: C.foreground },
+  ecoBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  ecoBadge: { fontSize: 11, fontWeight: '700', color: C.gold },
+  ecoSub: { fontSize: 11, color: C.muted, marginTop: 4 },
+  amcBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: C.goldBg, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8,
+    marginTop: 10, alignSelf: 'flex-start', borderWidth: 1, borderColor: C.gold,
+  },
+  amcBadgeText: { fontSize: 12, fontWeight: '700', color: C.gold },
   link: { color: C.primary, fontWeight: '600' },
   secondaryActions: {
     flexDirection: 'row', gap: 12, marginTop: 16,

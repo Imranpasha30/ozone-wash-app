@@ -79,6 +79,8 @@ const makeStyles = (C: any) => StyleSheet.create({
   confirmBtnDisabled: { backgroundColor: C.surfaceElevated, borderWidth: 1, borderColor: C.border },
   confirmInner: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   confirmText: { color: C.primaryFg, fontWeight: 'bold', fontSize: 17 },
+  pgNoteRow: { marginTop: 12, paddingHorizontal: 4 },
+  pgNote: { fontSize: 11, color: C.muted, textAlign: 'center', lineHeight: 16 },
   disclaimerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 16, justifyContent: 'center' },
   disclaimer: { fontSize: 11, color: C.muted, textAlign: 'center', lineHeight: 16, flex: 1 },
   razorpayContainer: { flex: 1, backgroundColor: C.background, paddingTop: 44 },
@@ -206,10 +208,11 @@ const PaymentScreen = () => {
   };
 
   const goToConfirmed = (bookingId: string) => {
+    const addons = draft.addons || [];
     reset();
     navigation.reset({
       index: 0,
-      routes: [{ name: 'CustomerTabs' }, { name: 'BookingConfirmed', params: { booking_id: bookingId } }],
+      routes: [{ name: 'CustomerTabs' }, { name: 'BookingConfirmed', params: { booking_id: bookingId, addons } }],
     });
   };
 
@@ -281,7 +284,7 @@ const PaymentScreen = () => {
           <Row label="Address" value={draft.address} />
           <Row label="Date & Time" value={formatSlot(draft.slot_time)} />
           {draft.addons.length > 0 && (
-            <Row label="Add-ons" value={draft.addons.map((a) => a.replace(/_/g, ' ')).join(', ')} />
+            <Row label="Upgrades" value={draft.addons.map((a, i) => `${i + 1}. ${a.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}`).join('\n')} />
           )}
           {draft.amc_plan && <Row label="AMC Plan" value={draft.amc_plan.toUpperCase()} />}
         </View>
@@ -299,7 +302,7 @@ const PaymentScreen = () => {
               <Text style={[styles.priceValue, { color: C.success }]}>✓</Text>
             </View>
           )}
-          {draft.addon_total > 0 && <PriceRow label="Add-ons" value={fmt(draft.addon_total)} />}
+          {draft.addon_total > 0 && <PriceRow label="Hygiene Upgrades" value={fmt(draft.addon_total)} />}
           {draft.grand_total > 0 && <PriceRow label="GST (18%)" value={fmt(draft.gst)} />}
           <View style={styles.divider} />
           <PriceRow label="Total" value={draft.grand_total === 0 ? 'FREE' : fmt(draft.grand_total)} isTotal />
@@ -341,6 +344,14 @@ const PaymentScreen = () => {
             </View>
           )}
         </TouchableOpacity>
+
+        {draft.grand_total > 0 && draft.payment_method !== 'cod' && (
+          <View style={styles.pgNoteRow}>
+            <Text style={styles.pgNote}>
+              No extra charges from us — standard bank/UPI processing fees may apply per your bank's policy.
+            </Text>
+          </View>
+        )}
 
         <View style={styles.disclaimerRow}>
           <ShieldCheck size={14} weight="regular" color={C.muted} />

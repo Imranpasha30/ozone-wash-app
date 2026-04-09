@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView,
   ActivityIndicator, RefreshControl, Platform, StatusBar,
@@ -8,7 +8,30 @@ import { jobAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { Job } from '../../types';
 import useAuthStore from '../../store/auth.store';
-import { Clock, Wrench, ArrowRight, HandPalm } from '../../components/Icons';
+import { Clock, Wrench, ArrowRight, HandPalm, Warning, Fire, Siren, NavigationArrow, ArrowsClockwise } from '../../components/Icons';
+import * as Location from 'expo-location';
+
+const formatCountdown = (scheduledAt: string, nowMs: number) => {
+  const slot = new Date(scheduledAt).getTime();
+  const diffMs = slot - nowMs;
+  const absMs = Math.abs(diffMs);
+  const hrs = Math.floor(absMs / (1000 * 60 * 60));
+  const mins = Math.floor((absMs % (1000 * 60 * 60)) / (1000 * 60));
+  if (diffMs < 0) return `${hrs}h ${mins}m overdue`;
+  if (hrs === 0) return `${mins}m left`;
+  return `${hrs}h ${mins}m left`;
+};
+
+const getSlaUrgency = (scheduledAt: string, status: string, nowMs: number) => {
+  if (status === 'completed' || status === 'cancelled') return null;
+  const slot = new Date(scheduledAt).getTime();
+  const hoursUntil = (slot - nowMs) / (1000 * 60 * 60);
+  const countdown = formatCountdown(scheduledAt, nowMs);
+  if (hoursUntil < 0) return { label: 'OVERDUE', countdown, color: '#DC2626', icon: 'fire' };
+  if (hoursUntil < 2) return { label: 'DUE SOON', countdown, color: '#EA580C', icon: 'warning' };
+  if (hoursUntil < 4) return { label: 'TODAY', countdown, color: '#CA8A04', icon: null };
+  return null;
+};
 
 const FILTERS = ['All', 'Scheduled', 'In Progress', 'Completed'];
 
@@ -22,6 +45,17 @@ const JobListScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('All');
+  const [nowMs, setNowMs] = useState(Date.now());
+  const [routeOptimized, setRouteOptimized] = useState(false);
+  const [optimizedJobs, setOptimizedJobs] = useState<Job[]>([]);
+  const [optimizing, setOptimizing] = useState(false);
+  const [routeMethod, setRouteMethod] = useState<string>('');
+
+  // Tick every 60s to keep countdown live
+  useEffect(() => {
+    const t = setInterval(() => setNowMs(Date.now()), 60000);
+    return () => clearInterval(t);
+  }, []);
 
   const fetchJobs = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -42,12 +76,39 @@ const JobListScreen = () => {
   useFocusEffect(
     useCallback(() => {
       fetchJobs();
+      setRouteOptimized(false);
     }, [])
   );
 
+  const handleOptimizeRoute = async () => {
+    setOptimizing(true);
+    try {
+      let lat: number | undefined;
+      let lng: number | undefined;
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          lat = pos.coords.latitude;
+          lng = pos.coords.longitude;
+        }
+      } catch (_) {}
+      const res = await jobAPI.optimizeRoute(lat, lng) as any;
+      const result = res.data;
+      if (result?.optimized?.length > 0) {
+        setOptimizedJobs(result.optimized);
+        setRouteMethod(result.method || 'optimized');
+        setRouteOptimized(true);
+      }
+    } catch (_) {} finally {
+      setOptimizing(false);
+    }
+  };
+
+  const baseJobs = routeOptimized ? optimizedJobs : jobs;
   const filtered = filter === 'All'
-    ? jobs
-    : jobs.filter((j) => {
+    ? baseJobs
+    : baseJobs.filter((j) => {
         if (filter === 'In Progress') return j.status === 'in_progress';
         return j.status === filter.toLowerCase();
       });
@@ -65,12 +126,24 @@ const JobListScreen = () => {
       hour: '2-digit', minute: '2-digit', hour12: true,
     });
 
-  const renderItem = ({ item }: { item: Job }) => (
+  const overdueJobs = filtered.filter(j => getSlaUrgency(j.scheduled_at, j.status, nowMs)?.icon === 'fire');
+
+  const renderItem = ({ item }: { item: Job }) => {
+    const sla = getSlaUrgency(item.scheduled_at, item.status, nowMs);
+    return (
     <TouchableOpacity
-      style={styles.card}
+      style={[styles.card, sla?.icon === 'fire' && styles.cardOverdue]}
       onPress={() => navigation.navigate('JobDetail', { job_id: item.id })}
       activeOpacity={0.7}
     >
+      {sla && (
+        <View style={[styles.slaBanner, { backgroundColor: sla.color }]}>
+          {sla.icon === 'fire' && <Fire size={12} weight="fill" color="#fff" />}
+          {sla.icon === 'warning' && <Warning size={12} weight="fill" color="#fff" />}
+          <Text style={styles.slaBannerText}>{sla.label}</Text>
+          <Text style={styles.slaBannerCountdown}> · {sla.countdown}</Text>
+        </View>
+      )}
       <View style={styles.cardTop}>
         <View style={[styles.statusDot, { backgroundColor: statusColor(item.status) }]} />
         <View style={styles.cardInfo}>
@@ -107,6 +180,7 @@ const JobListScreen = () => {
       )}
     </TouchableOpacity>
   );
+  };
 
   return (
     <View style={styles.root}>
@@ -157,6 +231,39 @@ const JobListScreen = () => {
           </TouchableOpacity>
         ))}
       </ScrollView>
+
+      {/* Route Optimize Button */}
+      {!loading && jobs.length > 1 && (
+        <View style={styles.routeRow}>
+          <TouchableOpacity
+            style={[styles.routeBtn, routeOptimized && styles.routeBtnActive]}
+            onPress={routeOptimized ? () => setRouteOptimized(false) : handleOptimizeRoute}
+            disabled={optimizing}
+          >
+            {optimizing
+              ? <ActivityIndicator size="small" color={routeOptimized ? C.primaryFg : C.primary} />
+              : <NavigationArrow size={15} weight="fill" color={routeOptimized ? C.primaryFg : C.primary} />}
+            <Text style={[styles.routeBtnText, routeOptimized && styles.routeBtnTextActive]}>
+              {routeOptimized ? 'Optimized Route ✓' : 'Optimize Route'}
+            </Text>
+          </TouchableOpacity>
+          {routeOptimized && (
+            <Text style={styles.routeMethod}>
+              {routeMethod === 'google_distance_matrix' ? '📍 Google Maps' : '📐 Estimated'}
+            </Text>
+          )}
+        </View>
+      )}
+
+      {/* Escalation Banner */}
+      {!loading && overdueJobs.length > 0 && (
+        <View style={styles.escalationBanner}>
+          <Siren size={16} weight="fill" color="#fff" />
+          <Text style={styles.escalationText}>
+            {overdueJobs.length} overdue job{overdueJobs.length > 1 ? 's' : ''} — contact supervisor immediately
+          </Text>
+        </View>
+      )}
 
       {loading ? (
         <View style={styles.center}>
@@ -248,6 +355,27 @@ const makeStyles = (C: any) => StyleSheet.create({
   chipTextActive: { color: C.primaryFg, fontWeight: '700' },
   list: { padding: 16 },
   emptyContainer: { flex: 1 },
+  slaBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 12, paddingVertical: 5,
+  },
+  slaBannerText: { fontSize: 11, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
+  slaBannerCountdown: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
+  routeRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, gap: 10 },
+  routeBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
+    borderWidth: 1.5, borderColor: C.primary, backgroundColor: C.primaryBg,
+  },
+  routeBtnActive: { backgroundColor: C.primary },
+  routeBtnText: { fontSize: 13, fontWeight: '700', color: C.primary },
+  routeBtnTextActive: { color: C.primaryFg },
+  routeMethod: { fontSize: 11, color: C.muted, fontWeight: '600' },
+  escalationBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#DC2626', paddingHorizontal: 16, paddingVertical: 10,
+  },
+  escalationText: { fontSize: 13, fontWeight: '700', color: '#fff', flex: 1 },
   card: {
     backgroundColor: C.surface,
     borderRadius: 16,
@@ -258,6 +386,7 @@ const makeStyles = (C: any) => StyleSheet.create({
       android: { elevation: 2 },
     }),
   },
+  cardOverdue: { borderWidth: 1.5, borderColor: '#DC2626' },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start', padding: 16 },
   statusDot: { width: 10, height: 10, borderRadius: 5, marginTop: 5, marginRight: 12 },
   cardInfo: { flex: 1 },

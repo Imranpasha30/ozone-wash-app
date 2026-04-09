@@ -1,12 +1,24 @@
 import { create } from 'zustand';
 
-interface BookingDraft {
-  // Step 1
+export interface TankEntry {
   tank_type: 'overhead' | 'underground' | 'sump' | '';
   tank_size_litres: number;
+  address?: string;       // undefined = same as booking primary address (Tank 1)
+  lat?: number | null;
+  lng?: number | null;
+}
+
+interface BookingDraft {
+  // Step 1
+  property_type: 'residential' | 'commercial' | '';
+  tanks: TankEntry[];                  // multi-tank support
+  tank_type: 'overhead' | 'underground' | 'sump' | '';   // first tank (backward compat)
+  tank_size_litres: number;                               // first tank (backward compat)
   address: string;
   lat: number | null;
   lng: number | null;
+  contact_name: string;
+  contact_phone: string;
   // Step 2
   slot_time: string;
   // Step 3
@@ -20,23 +32,37 @@ interface BookingDraft {
   gst: number;
   grand_total: number;
   amount_paise: number;
-  pricing: any; // full pricing object from backend (includes amc_covered flag)
+  pricing: any;
 }
 
 interface BookingStore {
   draft: BookingDraft;
-  setStep1: (data: { tank_type: 'overhead' | 'underground' | 'sump'; tank_size_litres: number; address: string; lat?: number | null; lng?: number | null }) => void;
+  setStep1: (data: {
+    property_type: 'residential' | 'commercial';
+    tanks: TankEntry[];
+    tank_type: 'overhead' | 'underground' | 'sump';
+    tank_size_litres: number;
+    address: string;
+    lat?: number | null;
+    lng?: number | null;
+    contact_name?: string;
+    contact_phone?: string;
+  }) => void;
   setStep2: (slot_time: string) => void;
   setStep3: (data: { addons: string[]; amc_plan: string; payment_method: 'upi' | 'card' | 'wallet' | 'cod'; pricing: any }) => void;
   reset: () => void;
 }
 
 const defaultDraft: BookingDraft = {
+  property_type: '',
+  tanks: [{ tank_type: '', tank_size_litres: 1000 }],
   tank_type: '',
   tank_size_litres: 1000,
   address: '',
   lat: null,
   lng: null,
+  contact_name: '',
+  contact_phone: '',
   slot_time: '',
   addons: [],
   amc_plan: '',

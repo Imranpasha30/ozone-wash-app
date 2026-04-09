@@ -107,4 +107,6 @@ export {
   Diamond,
   ThumbsUp,
   ThumbsDown,
+  Buildings,
+  LightbulbFilament,
 } from 'phosphor-react-native';

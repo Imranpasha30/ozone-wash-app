@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  ActivityIndicator, Alert,
+  ActivityIndicator, Alert, Linking,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { bookingAPI, complianceAPI, certificateAPI, jobAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import {
   ArrowLeft, ArrowRight, Key, CheckCircle, Hourglass, Trophy,
-  ThumbsUp, ThumbsDown,
+  ThumbsUp, ThumbsDown, QrCode, ShieldCheck, Warning, Lightning,
 } from '../../components/Icons';
 
 const STATUS_STEPS = ['pending', 'confirmed', 'in_progress', 'completed'];
@@ -102,6 +102,8 @@ const makeStyles = (C: any) => StyleSheet.create({
   certSub: { fontSize: 13, color: C.muted, marginTop: 2 },
   certLinkRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
   certLink: { fontSize: 13, color: C.primary, fontWeight: '600' },
+  qrRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
+  qrLink: { fontSize: 11, color: C.muted, flex: 1 },
   otpCard: {
     backgroundColor: C.surface,
     borderRadius: 16,
@@ -131,6 +133,24 @@ const makeStyles = (C: any) => StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   otpHint: { fontSize: 12, color: C.muted, marginTop: 4 },
+  watchLiveBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#DC2626', borderRadius: 16, padding: 16, marginBottom: 12,
+  },
+  watchLiveIcon: {
+    width: 40, height: 40, borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  watchLiveTitle: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  watchLiveSub: { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+  slaBreach: {
+    flexDirection: 'row', alignItems: 'flex-start',
+    backgroundColor: '#FEF3C7', borderRadius: 12, padding: 14,
+    borderWidth: 1, borderColor: '#F59E0B', marginBottom: 16,
+  },
+  slaBreachTitle: { fontSize: 13, fontWeight: '700', color: '#92400E', marginBottom: 2 },
+  slaBreachSub: { fontSize: 12, color: '#92400E', lineHeight: 17 },
   cancelBtn: {
     marginTop: 24,
     borderWidth: 2,
@@ -285,6 +305,13 @@ const BookingDetailScreen = () => {
 
   const stepIdx = STATUS_STEPS.indexOf(booking.status);
 
+  // SLA breach: scheduled time has passed but service hasn't started
+  const slotMs = booking.slot_time ? new Date(booking.slot_time).getTime() : null;
+  const isSlaBreach = slotMs && Date.now() > slotMs &&
+    (booking.status === 'pending' || booking.status === 'confirmed');
+  const hoursOverdue = slotMs ? Math.floor((Date.now() - slotMs) / 3600000) : 0;
+  const minutesOverdue = slotMs ? Math.floor(((Date.now() - slotMs) % 3600000) / 60000) : 0;
+
   return (
     <View style={styles.root}>
       <View style={styles.header}>
@@ -298,6 +325,20 @@ const BookingDetailScreen = () => {
       </View>
 
       <ScrollView contentContainerStyle={styles.body}>
+        {/* SLA Breach Alert */}
+        {isSlaBreach && (
+          <View style={styles.slaBreach}>
+            <Warning size={18} weight="fill" color="#92400E" />
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text style={styles.slaBreachTitle}>Service Overdue</Text>
+              <Text style={styles.slaBreachSub}>
+                Scheduled time has passed by {hoursOverdue > 0 ? `${hoursOverdue}h ` : ''}{minutesOverdue}m.
+                Contact support if your technician hasn't arrived.
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Status Timeline */}
         <Text style={styles.sectionTitle}>Status</Text>
         <View style={styles.timelineCard}>
@@ -324,6 +365,15 @@ const BookingDetailScreen = () => {
           <InfoRow label="Size" value={`${booking.tank_size_litres} Litres`} />
           <InfoRow label="Date & Time" value={formatDate(booking.slot_time)} />
           <InfoRow label="Address" value={booking.address} />
+          {booking.property_type && (
+            <InfoRow label="Property" value={booking.property_type.charAt(0).toUpperCase() + booking.property_type.slice(1)} />
+          )}
+          {booking.contact_name && (
+            <InfoRow label="Contact" value={booking.contact_name} />
+          )}
+          {booking.contact_phone && (
+            <InfoRow label="Contact Ph." value={booking.contact_phone} />
+          )}
           {booking.addons?.length > 0 && (
             <InfoRow label="Add-ons" value={booking.addons.map((a: string) => a.replace(/_/g, ' ')).join(', ')} />
           )}
@@ -507,6 +557,24 @@ const BookingDetailScreen = () => {
           </>
         )}
 
+        {/* Watch Live — shown when job is in progress */}
+        {booking.status === 'in_progress' && booking.job_id && (
+          <TouchableOpacity
+            style={styles.watchLiveBtn}
+            onPress={() => navigation.navigate('LiveWatch', { job_id: booking.job_id })}
+            activeOpacity={0.8}
+          >
+            <View style={styles.watchLiveIcon}>
+              <Lightning size={20} weight="fill" color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.watchLiveTitle}>Watch Live Service</Text>
+              <Text style={styles.watchLiveSub}>Technician may be streaming — tap to watch</Text>
+            </View>
+            <ArrowRight size={16} weight="bold" color="#fff" />
+          </TouchableOpacity>
+        )}
+
         {/* Certificate */}
         {certificate && (
           <>
@@ -520,11 +588,21 @@ const BookingDetailScreen = () => {
               </View>
               <View style={styles.certInfo}>
                 <Text style={styles.certTitle}>Certificate Issued</Text>
-                <Text style={styles.certSub}>EcoScore: {certificate.eco_score} / 100</Text>
+                <Text style={styles.certSub}>EcoScore: {certificate.eco_score} / 100 · {certificate.badge_level?.toUpperCase() || 'BRONZE'}</Text>
                 <View style={styles.certLinkRow}>
                   <Text style={styles.certLink}>View Certificate</Text>
                   <ArrowRight size={14} weight="bold" color={C.primary} />
                 </View>
+                {certificate.id && (
+                  <TouchableOpacity
+                    style={styles.qrRow}
+                    onPress={() => Linking.openURL(`https://api.ozonewash.in/api/v1/certificates/verify/${certificate.id}`)}
+                  >
+                    <QrCode size={14} weight="regular" color={C.muted} />
+                    <Text style={styles.qrLink}>Verify via QR audit trail</Text>
+                    <ShieldCheck size={14} weight="fill" color={C.success} />
+                  </TouchableOpacity>
+                )}
               </View>
             </TouchableOpacity>
           </>

@@ -64,6 +64,7 @@ export interface Job {
   end_otp?: string;
   start_otp_verified?: boolean;
   end_otp_verified?: boolean;
+  amc_plan?: string;
 }
 
 // ── Compliance ────────────────────────────────────────────────────────────
@@ -149,6 +150,8 @@ export interface AmcContract {
   customer_esign?: string;
   admin_esign?: string;
   amount_paise: number;
+  services_availed?: number;
+  services_remaining?: number;
 }
 
 // ── Navigation ────────────────────────────────────────────────────────────

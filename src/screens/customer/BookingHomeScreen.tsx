@@ -13,7 +13,7 @@ import { GOLD_GRADIENT, GOLD_GRADIENT_HORIZONTAL } from '../../utils/constants';
 import { Booking, AmcContract } from '../../types';
 import {
   Bell, Drop, ArrowRight, ClipboardText, Trophy, UserCircle,
-  ShieldCheck, FileText, Calendar, Crown, Star,
+  ShieldCheck, FileText, Calendar, Crown, Star, Warning,
 } from '../../components/Icons';
 
 const makeStyles = (C: any) => StyleSheet.create({
@@ -139,6 +139,16 @@ const makeStyles = (C: any) => StyleSheet.create({
   premiumDivider: { height: 1, backgroundColor: C.premiumSurface, marginVertical: 14 },
   premiumLink: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   premiumLinkText: { fontSize: 14, fontWeight: '600', color: C.premiumGold },
+  amcStatsRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  amcStat: { flex: 1, alignItems: 'center' },
+  amcStatNum: { fontSize: 20, fontWeight: '700', color: C.premiumGold },
+  amcStatLabel: { fontSize: 10, color: C.premiumMuted, marginTop: 2, fontWeight: '600' },
+  amcStatDivider: { width: 1, height: 32, backgroundColor: C.premiumSurface },
+  renewalBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#FEF3C7', borderRadius: 10, padding: 10, marginTop: 10,
+  },
+  renewalText: { flex: 1, fontSize: 12, fontWeight: '600', color: '#92400E' },
 
   // ── AMC Upsell ──────────────────────────────────
   upsellCard: {
@@ -267,7 +277,7 @@ const BookingHomeScreen = () => {
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Hello, {user?.name || 'there'}</Text>
-          <Text style={styles.subGreeting}>Keep your water safe & clean</Text>
+          <Text style={styles.subGreeting}>Hygiene you can see. Health you can feel.</Text>
         </View>
         <TouchableOpacity style={styles.bellBtn} onPress={() => navigation.navigate('Notifications')}>
           <Bell size={22} weight="regular" color={C.foreground} />
@@ -359,6 +369,41 @@ const BookingHomeScreen = () => {
                 </LinearGradient>
                 <Text style={styles.premiumExpiry}>Valid till {formatDate(amc.end_date)}</Text>
               </View>
+              <View style={styles.premiumDivider} />
+              <View style={styles.amcStatsRow}>
+                <View style={styles.amcStat}>
+                  <Text style={styles.amcStatNum}>{amc.services_availed ?? 0}</Text>
+                  <Text style={styles.amcStatLabel}>Services Used</Text>
+                </View>
+                <View style={styles.amcStatDivider} />
+                <View style={styles.amcStat}>
+                  <Text style={styles.amcStatNum}>{amc.services_remaining ?? '∞'}</Text>
+                  <Text style={styles.amcStatLabel}>Remaining</Text>
+                </View>
+                <View style={styles.amcStatDivider} />
+                <View style={styles.amcStat}>
+                  <Text style={styles.amcStatNum}>{amc.sla_terms?.cleaning_freq ?? '--'}</Text>
+                  <Text style={styles.amcStatLabel}>Freq (months)</Text>
+                </View>
+              </View>
+              {/* Renewal CTA — shown when ≤30 days left */}
+              {amc.end_date && (() => {
+                const daysLeft = Math.ceil((new Date(amc.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                if (daysLeft > 30) return null;
+                return (
+                  <TouchableOpacity
+                    style={styles.renewalBanner}
+                    onPress={() => navigation.navigate('AmcPlans')}
+                    activeOpacity={0.85}
+                  >
+                    <Warning size={14} weight="fill" color="#92400E" />
+                    <Text style={styles.renewalText}>
+                      {daysLeft <= 0 ? 'Plan expired — renew now' : `Plan renews in ${daysLeft} day${daysLeft !== 1 ? 's' : ''} — tap to renew`}
+                    </Text>
+                    <ArrowRight size={12} weight="bold" color="#92400E" />
+                  </TouchableOpacity>
+                );
+              })()}
               <View style={styles.premiumDivider} />
               <TouchableOpacity onPress={() => navigation.navigate('AmcPlans')} style={styles.premiumLink}>
                 <Text style={styles.premiumLinkText}>Manage Contract</Text>

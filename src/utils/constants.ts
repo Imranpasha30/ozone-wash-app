@@ -1,8 +1,13 @@
-// API base URL — reads from EXPO_PUBLIC_API_URL env var.
-// Dev: set in .env   → EXPO_PUBLIC_API_URL=http://192.168.31.22:3000/api/v1
-// Prod: set in .env.production → EXPO_PUBLIC_API_URL=https://api.ozonewash.in/api/v1
-export const API_URL =
-  process.env.EXPO_PUBLIC_API_URL || 'http://192.168.31.22:3000/api/v1';
+// API base URL
+// Dev  (__DEV__ = true)  → uses EXPO_PUBLIC_LOCAL_API_URL from .env (your machine's LAN IP)
+// Prod (__DEV__ = false) → uses EXPO_PUBLIC_API_URL from .env (Railway)
+//
+// To switch local IP: update EXPO_PUBLIC_LOCAL_API_URL in .env
+export const API_URL = __DEV__
+  ? (process.env.EXPO_PUBLIC_LOCAL_API_URL || 'http://192.168.31.22:5000/api/v1')
+  : (process.env.EXPO_PUBLIC_API_URL       || 'https://ozone-wash-backend-production.up.railway.app/api/v1');
+
+console.log(`[API] __DEV__=${__DEV__} → ${API_URL}`);
 
 export const ROLES = {
   CUSTOMER: 'customer',

@@ -6,7 +6,30 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { jobAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
-import { Clock, MapPin, MagnifyingGlass, ArrowRight, CheckCircle } from '../../components/Icons';
+import { Clock, MapPin, MagnifyingGlass, ArrowRight, CheckCircle, Warning, ShieldCheck, FirstAid } from '../../components/Icons';
+
+// Derive PPE / safety flags from job data (no extra API call needed)
+const getComplianceFlags = (job: any): { label: string; color: string; bg: string }[] => {
+  const flags: { label: string; color: string; bg: string }[] = [];
+  const addons: string[] = typeof job.addons === 'string'
+    ? (() => { try { return JSON.parse(job.addons); } catch { return []; } })()
+    : (job.addons || []);
+  const tankType: string = job.tank_type || '';
+  const sizeLitres: number = parseInt(job.tank_size_litres || '0');
+
+  if (addons.some((a: string) => a.includes('chemical') || a.includes('disinfect')))
+    flags.push({ label: 'Chemical PPE', color: '#92400E', bg: '#FEF3C7' });
+  if (tankType === 'underground' || tankType === 'sump')
+    flags.push({ label: 'Confined Space', color: '#7C3AED', bg: '#EDE9FE' });
+  if (addons.some((a: string) => a.includes('bio') || a.includes('bacteria')))
+    flags.push({ label: 'Biohazard Protocol', color: '#065F46', bg: '#D1FAE5' });
+  if (addons.some((a: string) => a.includes('deep') || a.includes('scrub')))
+    flags.push({ label: 'Heavy Equipment', color: '#1D4ED8', bg: '#DBEAFE' });
+  if (sizeLitres >= 3000)
+    flags.push({ label: '2-Person Job', color: '#BE185D', bg: '#FCE7F3' });
+
+  return flags;
+};
 
 const AvailableJobsScreen = () => {
   const C = useTheme();
@@ -85,6 +108,20 @@ const AvailableJobsScreen = () => {
             Add-ons: {(typeof item.addons === 'string' ? JSON.parse(item.addons) : item.addons).map((a: string) => a.replace(/_/g, ' ')).join(', ')}
           </Text>
         )}
+        {(() => {
+          const flags = getComplianceFlags(item);
+          if (flags.length === 0) return null;
+          return (
+            <View style={styles.flagRow}>
+              {flags.map((f, i) => (
+                <View key={i} style={[styles.flagChip, { backgroundColor: f.bg, borderColor: f.color }]}>
+                  <Warning size={10} weight="fill" color={f.color} />
+                  <Text style={[styles.flagText, { color: f.color }]}>{f.label}</Text>
+                </View>
+              ))}
+            </View>
+          );
+        })()}
       </View>
 
       {item.requested ? (
@@ -183,6 +220,9 @@ const makeStyles = (C: any) => StyleSheet.create({
   address: { fontSize: 12, color: C.muted, flex: 1 },
   time: { fontSize: 12, color: C.primary, fontWeight: '600' },
   addons: { fontSize: 11, color: C.accent, marginTop: 6, fontWeight: '600' },
+  flagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  flagChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
+  flagText: { fontSize: 10, fontWeight: '700' },
   requestBtn: {
     backgroundColor: C.primary,
     paddingVertical: 12,

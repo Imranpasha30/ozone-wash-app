@@ -20,6 +20,9 @@ const PPE_ITEMS = ['mask', 'gloves', 'boots', 'suit'];
 interface StepData {
   photo_before_url: string;
   photo_after_url: string;
+  microbial_test_url: string;
+  microbial_result: 'pass' | 'fail' | '';
+  microbial_notes: string;
   ppe_list: string[];
   ozone_exposure_mins: string;
   chemical_type: string;
@@ -42,6 +45,9 @@ const ComplianceStepScreen = () => {
   const [data, setData] = useState<StepData>({
     photo_before_url: '',
     photo_after_url: '',
+    microbial_test_url: '',
+    microbial_result: '',
+    microbial_notes: '',
     ppe_list: [],
     ozone_exposure_mins: '',
     chemical_type: '',
@@ -63,7 +69,7 @@ const ComplianceStepScreen = () => {
     } catch (_) {}
   };
 
-  const pickPhoto = async (type: 'before' | 'after') => {
+  const pickPhoto = async (type: 'before' | 'after' | 'microbial') => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permission Required', 'Camera permission is needed to take photos');
@@ -99,22 +105,18 @@ const ComplianceStepScreen = () => {
     ]);
   };
 
-  const uploadPhoto = async (uri: string, type: 'before' | 'after') => {
+  const uploadPhoto = async (uri: string, type: 'before' | 'after' | 'microbial') => {
     setUploading(true);
     try {
       const res = await uploadAPI.uploadPhoto(uri, 'compliance') as any;
       const url = res.data?.url || res.url || uri;
-      if (type === 'before') {
-        setData((d) => ({ ...d, photo_before_url: url }));
-      } else {
-        setData((d) => ({ ...d, photo_after_url: url }));
-      }
+      if (type === 'before') setData((d) => ({ ...d, photo_before_url: url }));
+      else if (type === 'after') setData((d) => ({ ...d, photo_after_url: url }));
+      else setData((d) => ({ ...d, microbial_test_url: url }));
     } catch (_) {
-      if (type === 'before') {
-        setData((d) => ({ ...d, photo_before_url: uri }));
-      } else {
-        setData((d) => ({ ...d, photo_after_url: uri }));
-      }
+      if (type === 'before') setData((d) => ({ ...d, photo_before_url: uri }));
+      else if (type === 'after') setData((d) => ({ ...d, photo_after_url: uri }));
+      else setData((d) => ({ ...d, microbial_test_url: uri }));
     } finally {
       setUploading(false);
     }
@@ -135,6 +137,9 @@ const ComplianceStepScreen = () => {
     step_name: stepInfo?.name || `Step ${stepNumber}`,
     photo_before_url: data.photo_before_url || undefined,
     photo_after_url: data.photo_after_url || undefined,
+    microbial_test_url: data.microbial_test_url || undefined,
+    microbial_result: data.microbial_result || undefined,
+    microbial_notes: data.microbial_notes || undefined,
     ppe_list: data.ppe_list,
     ozone_exposure_mins: data.ozone_exposure_mins ? parseInt(data.ozone_exposure_mins) : undefined,
     chemical_type: data.chemical_type || undefined,
@@ -168,6 +173,7 @@ const ComplianceStepScreen = () => {
   const showOzone = stepNumber === 5;
   const showChemicals = stepNumber === 5 || stepNumber === 3;
   const showPpe = stepNumber === 2;
+  const showMicrobialTest = stepNumber === 6;
 
   return (
     <View style={styles.root}>
@@ -238,6 +244,62 @@ const ComplianceStepScreen = () => {
             </View>
           )}
         </TouchableOpacity>
+
+        {/* Microbial Test Result — Step 6 */}
+        {showMicrobialTest && (
+          <>
+            <View style={styles.labelRow}>
+              <Flask size={16} weight="regular" color={C.foreground} />
+              <Text style={styles.label}>Microbial Test Result Photo</Text>
+            </View>
+            <TouchableOpacity style={styles.photoBtn} onPress={() => pickPhoto('microbial')} activeOpacity={0.7}>
+              {data.microbial_test_url ? (
+                <Image source={{ uri: data.microbial_test_url }} style={styles.photoPreview} />
+              ) : (
+                <View style={styles.photoPlaceholder}>
+                  <View style={styles.photoIconContainer}>
+                    <Flask size={28} weight="regular" color={C.muted} />
+                  </View>
+                  <Text style={styles.photoLabel}>Upload test result / report photo</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </>
+        )}
+
+        {/* Microbial Test Result — Pass/Fail + Notes */}
+        {showMicrobialTest && (
+          <>
+            <View style={styles.labelRow}>
+              <Flask size={16} weight="regular" color={C.foreground} />
+              <Text style={styles.label}>Test Result</Text>
+            </View>
+            <View style={styles.resultRow}>
+              <TouchableOpacity
+                style={[styles.resultBtn, data.microbial_result === 'pass' && styles.resultBtnPass]}
+                onPress={() => setData(d => ({ ...d, microbial_result: 'pass' }))}
+              >
+                <Text style={[styles.resultBtnText, data.microbial_result === 'pass' && { color: '#fff' }]}>✓ Pass</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.resultBtn, data.microbial_result === 'fail' && styles.resultBtnFail]}
+                onPress={() => setData(d => ({ ...d, microbial_result: 'fail' }))}
+              >
+                <Text style={[styles.resultBtnText, data.microbial_result === 'fail' && { color: '#fff' }]}>✗ Fail</Text>
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={[styles.input, { marginTop: 10, minHeight: 80 }]}
+              placeholder="Test notes — bacteria count, observations..."
+              multiline
+              numberOfLines={3}
+              value={data.microbial_notes}
+              onChangeText={(v) => setData(d => ({ ...d, microbial_notes: v }))}
+              placeholderTextColor={C.muted}
+              textAlignVertical="top"
+            />
+          </>
+        )}
 
         {/* PPE Check */}
         {showPpe && (
@@ -424,6 +486,11 @@ const makeStyles = (C: any) => StyleSheet.create({
   },
   ppeLabel: { fontSize: 14, color: C.muted, fontWeight: '600', flex: 1 },
   ppeLabelActive: { color: C.primary },
+  resultRow: { flexDirection: 'row', gap: 12, marginBottom: 4 },
+  resultBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center', borderWidth: 1.5, borderColor: C.border, backgroundColor: C.surfaceElevated },
+  resultBtnPass: { backgroundColor: C.success, borderColor: C.success },
+  resultBtnFail: { backgroundColor: C.danger, borderColor: C.danger },
+  resultBtnText: { fontSize: 15, fontWeight: '700', color: C.muted },
   input: {
     backgroundColor: C.surfaceElevated,
     borderRadius: 12,

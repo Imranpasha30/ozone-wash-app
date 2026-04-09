@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, ActivityIndicator, KeyboardAvoidingView,
-  Platform, Alert, StatusBar,
+  Platform, Alert, StatusBar, Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import useAuthStore from '../../store/auth.store';
 import { COLORS } from '../../utils/constants';
-import { Phone, ArrowRight, Drop } from '../../components/Icons';
+import { ArrowRight } from '../../components/Icons';
 
 const PhoneInputScreen = () => {
   const [phone, setPhone] = useState('');
@@ -39,14 +39,14 @@ const PhoneInputScreen = () => {
         {/* Hero Section */}
         <View style={styles.hero}>
           <View style={styles.logoWrap}>
-            <View style={styles.logoOuter}>
-              <View style={styles.logoInner}>
-                <Drop size={32} weight="fill" color={COLORS.primary} />
-              </View>
-            </View>
+            <Image
+              source={require('../../../assets/logo.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
           <Text style={styles.brand}>OZONE WASH</Text>
-          <Text style={styles.tagline}>Professional tank hygiene at your doorstep</Text>
+          <Text style={styles.tagline}>Hygiene you can see. Health you can feel.</Text>
         </View>
 
         {/* Form Card */}
@@ -113,18 +113,9 @@ const styles = StyleSheet.create({
   inner: { flex: 1, justifyContent: 'space-between', paddingHorizontal: 24 },
 
   // ── Hero ────────────────────────────────────────
-  hero: { alignItems: 'center', marginTop: 100 },
-  logoWrap: { marginBottom: 20 },
-  logoOuter: {
-    width: 80, height: 80, borderRadius: 24,
-    backgroundColor: COLORS.primaryBg,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  logoInner: {
-    width: 56, height: 56, borderRadius: 16,
-    backgroundColor: COLORS.primaryDim,
-    alignItems: 'center', justifyContent: 'center',
-  },
+  hero: { alignItems: 'center', marginTop: 80 },
+  logoWrap: { marginBottom: 16 },
+  logoImage: { width: 110, height: 110 },
   brand: {
     fontSize: 26, fontWeight: '700', color: COLORS.foreground,
     letterSpacing: 3,

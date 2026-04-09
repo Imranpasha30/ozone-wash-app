@@ -5,12 +5,13 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import useBookingStore from '../../store/booking.store';
+import usePremiumStore from '../../store/premium.store';
 import { bookingAPI } from '../../services/api';
 import { ADDONS, PAYMENT_METHODS } from '../../utils/constants';
 import { useTheme } from '../../hooks/useTheme';
 import {
   ArrowLeft, ArrowRight, Check, CreditCard, Wallet, CurrencyInr,
-  Receipt, Phone,
+  Receipt, Phone, Star, ShieldCheck,
 } from '../../components/Icons';
 
 const PaymentMethodIcon = ({ method, active, C }: { method: string; active: boolean; C: any }) => {
@@ -30,6 +31,7 @@ const AddonsScreen = () => {
 
   const navigation = useNavigation<any>();
   const { draft, setStep3 } = useBookingStore();
+  const isPremium = usePremiumStore((s) => s.isPremium);
 
   const [selectedAddons, setSelectedAddons] = useState<string[]>(draft.addons || []);
   const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card' | 'wallet' | 'cod'>(
@@ -83,7 +85,7 @@ const AddonsScreen = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <ArrowLeft size={22} weight="regular" color={C.foreground} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add-ons & Payment</Text>
+        <Text style={styles.headerTitle}>Hygiene Upgrades</Text>
         <Text style={styles.stepText}>Step 3 / 4</Text>
       </View>
       <View style={styles.progressBar}>
@@ -91,9 +93,28 @@ const AddonsScreen = () => {
       </View>
 
       <ScrollView contentContainerStyle={styles.body}>
-        {/* Add-ons */}
-        <Text style={styles.label}>Optional Add-ons</Text>
-        {ADDONS.map((a) => {
+        {/* AMC Upsell Banner — only shown to non-AMC customers */}
+        {!isPremium && (
+          <TouchableOpacity
+            style={styles.amcBanner}
+            onPress={() => navigation.navigate('AmcPlans')}
+            activeOpacity={0.85}
+          >
+            <View style={styles.amcBannerIcon}>
+              <ShieldCheck size={22} weight="fill" color={C.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.amcBannerTitle}>Save with an AMC Plan</Text>
+              <Text style={styles.amcBannerSub}>Get FREE tank cleanings year-round. Tap to explore plans →</Text>
+            </View>
+            <Star size={16} weight="fill" color={C.warning} />
+          </TouchableOpacity>
+        )}
+
+        {/* Hygiene Upgrades */}
+        <Text style={styles.label}>Hygiene Upgrades</Text>
+        <Text style={styles.labelSub}>Optional add-ons for deeper hygiene protection</Text>
+        {ADDONS.map((a, index) => {
           const selected = selectedAddons.includes(a.value);
           return (
             <TouchableOpacity
@@ -105,7 +126,7 @@ const AddonsScreen = () => {
                 {selected && <Check size={14} weight="bold" color={C.primaryFg} />}
               </View>
               <View style={styles.addonInfo}>
-                <Text style={styles.addonName}>{a.label}</Text>
+                <Text style={styles.addonName}>{index + 1}. {a.label}</Text>
               </View>
               <Text style={styles.addonPrice}>+₹{a.price}</Text>
             </TouchableOpacity>
@@ -162,8 +183,16 @@ const AddonsScreen = () => {
               )}
               {pricing.addon_total > 0 && (
                 <View style={styles.priceRow}>
-                  <Text style={styles.priceKey}>Add-ons</Text>
+                  <Text style={styles.priceKey}>Hygiene Upgrades</Text>
                   <Text style={styles.priceVal}>{fmt(pricing.addon_total)}</Text>
+                </View>
+              )}
+              {pricing.eco_discount_amount > 0 && (
+                <View style={styles.priceRow}>
+                  <Text style={[styles.priceKey, { color: '#10B981' }]}>
+                    {pricing.eco_discount_label || `EcoLoyalty ${pricing.eco_discount_pct}% off`}
+                  </Text>
+                  <Text style={[styles.priceVal, { color: '#10B981' }]}>-{fmt(pricing.eco_discount_amount)}</Text>
                 </View>
               )}
               {pricing.grand_total > 0 && (
@@ -214,7 +243,8 @@ const makeStyles = (C: any) => StyleSheet.create({
   progressBar: { height: 4, backgroundColor: C.border },
   progressFill: { height: 4, backgroundColor: C.primary },
   body: { padding: 20, paddingBottom: 40 },
-  label: { fontSize: 14, fontWeight: '700', color: C.foreground, marginBottom: 10, marginTop: 16 },
+  label: { fontSize: 14, fontWeight: '700', color: C.foreground, marginBottom: 4, marginTop: 16 },
+  labelSub: { fontSize: 12, color: C.muted, marginBottom: 10 },
   addonRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -273,6 +303,17 @@ const makeStyles = (C: any) => StyleSheet.create({
   totalKey: { fontSize: 16, fontWeight: 'bold', color: C.foreground },
   totalVal: { fontSize: 20, fontWeight: 'bold', color: C.primary },
   calcText: { color: C.muted, textAlign: 'center', marginVertical: 8 },
+  amcBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: C.primaryBg, borderRadius: 14, padding: 14,
+    borderWidth: 1.5, borderColor: C.primary, marginBottom: 4,
+  },
+  amcBannerIcon: {
+    width: 40, height: 40, borderRadius: 10, backgroundColor: C.surface,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  amcBannerTitle: { fontSize: 13, fontWeight: '700', color: C.primary },
+  amcBannerSub: { fontSize: 11, color: C.muted, marginTop: 2 },
   nextBtn: {
     backgroundColor: C.primary,
     borderRadius: 16,

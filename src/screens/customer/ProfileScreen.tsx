@@ -1,15 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Alert,
+  Alert, TextInput, ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import useAuthStore from '../../store/auth.store';
+import useSettingsStore, { FontScale } from '../../store/settings.store';
 import { useTheme } from '../../hooks/useTheme';
+import { authAPI, jobAPI } from '../../services/api';
 import {
   ClipboardText, Trophy, FileText, Wrench,
-  CaretRight, SignOut, Phone, User, Eye, EyeSlash,
+  CaretRight, SignOut, Phone, User, Eye, EyeSlash, PencilSimple, Check, X,
+  ShieldCheck, Medal, Crown,
 } from '../../components/Icons';
+
+type CertTier = { label: string; sub: string; color: string; bg: string; icon: React.ReactNode };
+
+const getCertTier = (monthJobs: number, C: any): CertTier => {
+  if (monthJobs >= 31) return { label: 'Gold Certified', sub: 'Expert technician · 31+ jobs/month', color: '#B45309', bg: '#FEF3C7', icon: <Crown size={22} weight="fill" color="#B45309" /> };
+  if (monthJobs >= 11) return { label: 'Silver Verified', sub: 'Experienced technician · 11–30 jobs/month', color: '#4B5563', bg: '#F3F4F6', icon: <Medal size={22} weight="fill" color="#6B7280" /> };
+  if (monthJobs >= 1) return { label: 'Bronze Trained', sub: 'Active technician · 1–10 jobs/month', color: '#92400E', bg: '#FEF3C7', icon: <ShieldCheck size={22} weight="fill" color="#D97706" /> };
+  return { label: 'New Technician', sub: 'Complete jobs to earn your badge', color: C.muted, bg: C.surfaceElevated, icon: <ShieldCheck size={22} weight="regular" color={C.muted} /> };
+};
+
+const FONT_SIZES: { label: string; value: FontScale; preview: string }[] = [
+  { label: 'Normal', value: 1, preview: 'A' },
+  { label: 'Large', value: 1.15, preview: 'A' },
+  { label: 'Extra Large', value: 1.3, preview: 'A' },
+];
 
 const makeStyles = (C: any) => StyleSheet.create({
   root: { flex: 1, backgroundColor: C.background },
@@ -101,6 +119,33 @@ const makeStyles = (C: any) => StyleSheet.create({
   },
   logoutInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   logoutText: { fontSize: 16, fontWeight: 'bold', color: C.danger },
+  cardTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  editBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: C.primaryBg },
+  editBtnText: { fontSize: 13, color: C.primary, fontWeight: '600' },
+  editRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: C.border },
+  editInput: { flex: 1, fontSize: 13, fontWeight: '600', borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+  editActions: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  editActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 10, borderWidth: 1.5 },
+  editActionText: { fontSize: 14, fontWeight: '700' },
+  certBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 14 },
+  certBadgeIcon: { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  certBadgeLabel: { fontSize: 15, fontWeight: '700', marginBottom: 2 },
+  certBadgeSub: { fontSize: 12, color: C.muted },
+  certStatsRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surfaceElevated, borderRadius: 12, padding: 12 },
+  certStat: { flex: 1, alignItems: 'center' },
+  certStatNum: { fontSize: 22, fontWeight: '700' },
+  certStatLabel: { fontSize: 11, color: C.muted, fontWeight: '600', marginTop: 2 },
+  certStatDivider: { width: 1, height: 32, backgroundColor: C.border },
+  fontScaleRow: { flexDirection: 'row', gap: 10, marginTop: 4 },
+  fontScaleBtn: {
+    flex: 1, alignItems: 'center', paddingVertical: 14,
+    borderRadius: 12, backgroundColor: C.surfaceElevated,
+    borderWidth: 1.5, borderColor: C.border,
+  },
+  fontScaleBtnActive: { borderColor: C.primary, backgroundColor: C.primaryBg },
+  fontScalePreview: { fontWeight: '700', color: C.muted },
+  fontScaleLabel: { fontSize: 11, color: C.muted, fontWeight: '600', marginTop: 4 },
+  fontScaleLabelActive: { color: C.primary },
 });
 
 const ProfileScreen = () => {
@@ -109,7 +154,52 @@ const ProfileScreen = () => {
 
   const navigation = useNavigation<any>();
   const { user, logout } = useAuthStore();
+  const { fontScale, setFontScale, lang, setLang } = useSettingsStore();
   const [showId, setShowId] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [fieldStats, setFieldStats] = useState<any>(null);
+
+  useEffect(() => {
+    if (user?.role === 'field_team') {
+      (jobAPI.getTodayStats() as any).then((res: any) => {
+        setFieldStats(res.data?.stats || res.stats || res.data);
+      }).catch(() => {});
+    }
+  }, [user?.role]);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const startEdit = () => {
+    setEditName(user?.name || '');
+    setEditEmail(user?.email || '');
+    setEditing(true);
+  };
+
+  const cancelEdit = () => setEditing(false);
+
+  const saveProfile = async () => {
+    const trimmedName = editName.trim();
+    const trimmedEmail = editEmail.trim();
+    if (!trimmedName) {
+      Alert.alert('Validation', 'Name cannot be empty.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await authAPI.updateProfile({ name: trimmedName, email: trimmedEmail || undefined }) as any;
+      const updated = res.data?.user || res.user;
+      if (updated) {
+        // Patch the zustand store so header updates immediately
+        useAuthStore.setState((s: any) => ({ user: { ...s.user, name: updated.name, email: updated.email } }));
+      }
+      setEditing(false);
+    } catch {
+      Alert.alert('Error', 'Could not save profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -164,27 +254,177 @@ const ProfileScreen = () => {
 
       {/* Account Info */}
       <View style={styles.infoCard}>
-        <Text style={styles.cardTitle}>Account Info</Text>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Phone</Text>
-          <Text style={styles.infoValue}>+91 {user?.phone}</Text>
+        <View style={styles.cardTitleRow}>
+          <Text style={styles.cardTitle}>Account Info</Text>
+          {!editing && (
+            <TouchableOpacity onPress={startEdit} style={styles.editBtn}>
+              <PencilSimple size={15} weight="regular" color={C.primary} />
+              <Text style={styles.editBtnText}>Edit</Text>
+            </TouchableOpacity>
+          )}
         </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Role</Text>
-          <Text style={styles.infoValue}>{user?.role}</Text>
-        </View>
-        <TouchableOpacity style={styles.infoRow} onPress={() => setShowId(!showId)}>
-          <Text style={styles.infoLabel}>User ID</Text>
-          <View style={styles.infoValueRow}>
-            <Text style={styles.infoValue} numberOfLines={1}>
-              {showId ? user?.id : '(tap to reveal)'}
-            </Text>
-            {showId
-              ? <EyeSlash size={16} weight="regular" color={C.muted} />
-              : <Eye size={16} weight="regular" color={C.muted} />}
+
+        {editing ? (
+          <View>
+            <View style={styles.editRow}>
+              <Text style={styles.infoLabel}>Name</Text>
+              <TextInput
+                style={[styles.editInput, { color: C.foreground, borderColor: C.border }]}
+                value={editName}
+                onChangeText={setEditName}
+                placeholder="Your name"
+                placeholderTextColor={C.muted}
+                autoCapitalize="words"
+              />
+            </View>
+            <View style={styles.editRow}>
+              <Text style={styles.infoLabel}>Email</Text>
+              <TextInput
+                style={[styles.editInput, { color: C.foreground, borderColor: C.border }]}
+                value={editEmail}
+                onChangeText={setEditEmail}
+                placeholder="your@email.com (optional)"
+                placeholderTextColor={C.muted}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+            <View style={styles.editActions}>
+              <TouchableOpacity style={[styles.editActionBtn, { borderColor: C.border }]} onPress={cancelEdit}>
+                <X size={16} weight="bold" color={C.muted} />
+                <Text style={[styles.editActionText, { color: C.muted }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.editActionBtn, { borderColor: C.primary, backgroundColor: C.primaryBg }]}
+                onPress={saveProfile}
+                disabled={saving}
+              >
+                {saving
+                  ? <ActivityIndicator size="small" color={C.primary} />
+                  : <Check size={16} weight="bold" color={C.primary} />}
+                <Text style={[styles.editActionText, { color: C.primary }]}>Save</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </TouchableOpacity>
+        ) : (
+          <View>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Name</Text>
+              <Text style={styles.infoValue}>{user?.name || '—'}</Text>
+            </View>
+            {user?.email ? (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Email</Text>
+                <Text style={styles.infoValue}>{user.email}</Text>
+              </View>
+            ) : null}
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Phone</Text>
+              <Text style={styles.infoValue}>+91 {user?.phone}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Role</Text>
+              <Text style={styles.infoValue}>{user?.role}</Text>
+            </View>
+            <TouchableOpacity style={styles.infoRow} onPress={() => setShowId(!showId)}>
+              <Text style={styles.infoLabel}>User ID</Text>
+              <View style={styles.infoValueRow}>
+                <Text style={styles.infoValue} numberOfLines={1}>
+                  {showId ? user?.id : '(tap to reveal)'}
+                </Text>
+                {showId
+                  ? <EyeSlash size={16} weight="regular" color={C.muted} />
+                  : <Eye size={16} weight="regular" color={C.muted} />}
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
+
+      {/* Language */}
+      <View style={styles.infoCard}>
+        <Text style={styles.cardTitle}>Language / భాష</Text>
+        <View style={styles.fontScaleRow}>
+          {([{ label: 'English', value: 'en' }, { label: 'తెలుగు', value: 'te' }] as const).map((l) => {
+            const active = lang === l.value;
+            return (
+              <TouchableOpacity
+                key={l.value}
+                style={[styles.fontScaleBtn, active && styles.fontScaleBtnActive]}
+                onPress={() => setLang(l.value)}
+              >
+                <Text style={[styles.fontScalePreview, { fontSize: 18 }, active && { color: C.primary }]}>
+                  {l.value === 'en' ? '🇬🇧' : '🇮🇳'}
+                </Text>
+                <Text style={[styles.fontScaleLabel, active && styles.fontScaleLabelActive]}>{l.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        {lang === 'te' && (
+          <Text style={{ fontSize: 11, color: C.muted, marginTop: 10, textAlign: 'center' }}>
+            తెలుగు అనువాదం త్వరలో అందుబాటులోకి వస్తుంది
+          </Text>
+        )}
+      </View>
+
+      {/* Text Size */}
+      <View style={styles.infoCard}>
+        <Text style={styles.cardTitle}>Text Size</Text>
+        <View style={styles.fontScaleRow}>
+          {FONT_SIZES.map((f) => {
+            const active = fontScale === f.value;
+            return (
+              <TouchableOpacity
+                key={f.value}
+                style={[styles.fontScaleBtn, active && styles.fontScaleBtnActive]}
+                onPress={() => setFontScale(f.value)}
+              >
+                <Text style={[styles.fontScalePreview, { fontSize: 16 * f.value }, active && { color: C.primary }]}>
+                  {f.preview}
+                </Text>
+                <Text style={[styles.fontScaleLabel, active && styles.fontScaleLabelActive]}>{f.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* Field Team Compliance Badge */}
+      {user?.role === 'field_team' && (() => {
+        const monthJobs = parseInt(fieldStats?.completed_this_month || '0');
+        const tier = getCertTier(monthJobs, C);
+        return (
+          <View style={[styles.infoCard, { borderLeftWidth: 4, borderLeftColor: tier.color }]}>
+            <Text style={styles.cardTitle}>Compliance Badge</Text>
+            <View style={styles.certBadgeRow}>
+              <View style={[styles.certBadgeIcon, { backgroundColor: tier.bg }]}>
+                {tier.icon}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.certBadgeLabel, { color: tier.color }]}>{tier.label}</Text>
+                <Text style={styles.certBadgeSub}>{tier.sub}</Text>
+              </View>
+            </View>
+            <View style={styles.certStatsRow}>
+              <View style={styles.certStat}>
+                <Text style={[styles.certStatNum, { color: C.primary }]}>{fieldStats?.completed_this_month || 0}</Text>
+                <Text style={styles.certStatLabel}>This Month</Text>
+              </View>
+              <View style={styles.certStatDivider} />
+              <View style={styles.certStat}>
+                <Text style={[styles.certStatNum, { color: C.success }]}>{fieldStats?.streak_days || 0}</Text>
+                <Text style={styles.certStatLabel}>Day Streak</Text>
+              </View>
+              <View style={styles.certStatDivider} />
+              <View style={styles.certStat}>
+                <Text style={[styles.certStatNum, { color: C.warning }]}>{fieldStats?.completed_this_week || 0}</Text>
+                <Text style={styles.certStatLabel}>This Week</Text>
+              </View>
+            </View>
+          </View>
+        );
+      })()}
 
       {/* App Info */}
       <View style={styles.appInfoCard}>

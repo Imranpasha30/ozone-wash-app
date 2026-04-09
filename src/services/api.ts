@@ -101,6 +101,11 @@ export const authAPI = {
 
   getProfile: () =>
     cachedGet('/auth/profile'),
+
+  updateProfile: (data: { name?: string; email?: string }) => {
+    invalidateCache('/auth/profile');
+    return api.patch('/auth/profile', data);
+  },
 };
 
 // ── Bookings ──────────────────────────────────────────────────────────────────
@@ -193,6 +198,10 @@ export const jobAPI = {
     invalidateCache('/jobs');
     return api.post(`/jobs/${jobId}/transfer`, { new_team_id, reason });
   },
+
+  // Route optimization (field team)
+  optimizeRoute: (lat?: number, lng?: number) =>
+    api.get('/jobs/route-optimize', { params: lat && lng ? { lat, lng } : {} }),
 
   // Available jobs (field team browses unassigned)
   getAvailableJobs: () =>
@@ -392,6 +401,12 @@ export const uploadAPI = {
     });
     return response.data;
   },
+};
+
+// ── Livestream ────────────────────────────────────────────────────────────────
+export const livestreamAPI = {
+  getToken: (channel: string, role: 'publisher' | 'subscriber') =>
+    api.get('/livestream/token', { params: { channel, role } }),
 };
 
 export default api;
