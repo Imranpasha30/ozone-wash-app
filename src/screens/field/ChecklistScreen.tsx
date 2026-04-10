@@ -4,7 +4,7 @@ import {
   ActivityIndicator, Alert, Platform, StatusBar,
 } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
-import { complianceAPI, jobAPI, ecoScoreAPI, certificateAPI } from '../../services/api';
+import { complianceAPI, jobAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { COMPLIANCE_STEPS } from '../../utils/constants';
 import {
@@ -49,32 +49,20 @@ const ChecklistScreen = () => {
     }
 
     Alert.alert(
-      'Complete Job',
-      'Are all steps done? This will generate the EcoScore and hygiene certificate.',
+      'Send End OTP',
+      'All 8 steps are complete. This will generate an End OTP for the customer to confirm job completion.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Complete Job',
+          text: 'Generate OTP',
           onPress: async () => {
             setCompleting(true);
             try {
               await complianceAPI.completeCompliance(jobId);
-              await jobAPI.completeJob(jobId);
-              await ecoScoreAPI.calculateScore(jobId);
-              await certificateAPI.generate(jobId);
-
-              Alert.alert(
-                'Job Complete!',
-                'EcoScore calculated and certificate generated.',
-                [
-                  {
-                    text: 'Back to Jobs',
-                    onPress: () => navigation.navigate('FieldTabs'),
-                  },
-                ]
-              );
+              await jobAPI.generateEndOtp(jobId);
+              navigation.navigate('OtpEntry', { jobId, type: 'end' });
             } catch (err: any) {
-              Alert.alert('Error', err.message || 'Could not complete job');
+              Alert.alert('Error', err.message || 'Could not generate OTP');
             } finally {
               setCompleting(false);
             }
@@ -210,7 +198,7 @@ const ChecklistScreen = () => {
             <View style={styles.completeBtnContent}>
               {pct >= 100 && <Confetti size={18} weight="fill" color={C.primaryFg} />}
               <Text style={styles.completeBtnText}>
-                {pct < 100 ? `Complete ${8 - completedCount} more steps to finish` : 'Complete Job & Generate Certificate'}
+                {pct < 100 ? `Complete ${8 - completedCount} more steps to finish` : 'Send End OTP to Customer'}
               </Text>
             </View>
           )}

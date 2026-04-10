@@ -4,7 +4,7 @@ import {
   ActivityIndicator, Vibration, Platform, StatusBar,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { jobAPI } from '../../services/api';
+import { jobAPI, ecoScoreAPI, certificateAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { ArrowLeft, Key, Lock } from '../../components/Icons';
 
@@ -52,8 +52,11 @@ const OtpEntryScreen = () => {
         ]);
       } else {
         await jobAPI.verifyEndOtp(jobId, otp);
-        Alert.alert('Job Completed', 'End OTP verified. The job is now closed.', [
-          { text: 'OK', onPress: () => navigation.goBack() },
+        await jobAPI.completeJob(jobId);
+        await ecoScoreAPI.calculateScore(jobId);
+        await certificateAPI.generate(jobId);
+        Alert.alert('Job Completed!', 'End OTP verified. EcoScore calculated and hygiene certificate generated.', [
+          { text: 'Done', onPress: () => navigation.navigate('FieldTabs') },
         ]);
       }
     } catch (err: any) {

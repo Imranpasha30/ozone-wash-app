@@ -5,9 +5,9 @@ import {
   Modal, Pressable,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { adminAPI } from '../../services/api';
+import { adminAPI, jobAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
-import { Wrench, Users, Check, X, Phone } from '../../components/Icons';
+import { Wrench, Users, Check, X, Phone, Warning, ArrowsClockwise } from '../../components/Icons';
 
 const FILTERS = ['All', 'Scheduled', 'In Progress', 'Completed', 'Cancelled'];
 
@@ -17,26 +17,37 @@ const AdminJobsScreen = () => {
   const [jobs, setJobs] = useState<any[]>([]);
   const [teams, setTeams] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
+  const [concerns, setConcerns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('All');
   const [assignLoading, setAssignLoading] = useState<string | null>(null);
   const [showRequests, setShowRequests] = useState(false);
+  const [showConcerns, setShowConcerns] = useState(false);
   const [requestActionLoading, setRequestActionLoading] = useState<string | null>(null);
   const [assignJobId, setAssignJobId] = useState<string | null>(null);
+  // Per-team conflict results for the open assign modal
+  const [teamConflicts, setTeamConflicts] = useState<Record<string, any[]>>({});
+  const [conflictsLoading, setConflictsLoading] = useState(false);
+  // Warning modal when admin tries to assign a conflicting team
+  const [conflictWarning, setConflictWarning] = useState<{
+    teamId: string; teamName: string; jobId: string; conflicts: any[];
+  } | null>(null);
 
   const fetchData = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     try {
-      const [jobsRes, teamsRes, reqRes] = await Promise.allSettled([
+      const [jobsRes, teamsRes, reqRes, concernsRes] = await Promise.allSettled([
         adminAPI.getAllJobs() as any,
         adminAPI.getTeamList() as any,
         adminAPI.getJobRequests({ status: 'pending' }) as any,
+        jobAPI.getConcerns() as any,
       ]);
       if (jobsRes.status === 'fulfilled') setJobs(jobsRes.value?.data?.jobs || []);
       if (teamsRes.status === 'fulfilled') setTeams(teamsRes.value?.data?.teams || []);
       if (reqRes.status === 'fulfilled') setRequests(reqRes.value?.data?.requests || []);
+      if (concernsRes.status === 'fulfilled') setConcerns(concernsRes.value?.data?.concerns || []);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -46,18 +57,95 @@ const AdminJobsScreen = () => {
   useFocusEffect(useCallback(() => { fetchData(); }, []));
 
   const filterKey = (f: string) => f.toLowerCase().replace(' ', '_');
+  const filtered = filter === 'All' ? jobs : jobs.filter((j) => j.status === filterKey(filter));
 
-  const filtered = filter === 'All'
-    ? jobs
-    : jobs.filter((j) => j.status === filterKey(filter));
+  // ── Assign Modal ────────────────────────────────────────────────────────────
 
-  const handleApproveRequest = async (requestId: string) => {
+  const openAssignModal = async (jobId: string) => {
+    if (teams.length === 0) {
+      Alert.alert('No Teams', 'No field teams available to assign.');
+      return;
+    }
+    setAssignJobId(jobId);
+    setTeamConflicts({});
+
+    // Check conflicts for every team in parallel
+    const job = jobs.find((j) => j.id === jobId);
+    if (!job?.scheduled_at) return;
+    setConflictsLoading(true);
+    try {
+      const results = await Promise.allSettled(
+        teams.map((t: any) =>
+          jobAPI.checkConflict(t.id, job.scheduled_at, jobId) as any
+        )
+      );
+      const map: Record<string, any[]> = {};
+      results.forEach((r, i) => {
+        if (r.status === 'fulfilled' && r.value?.data?.has_conflict) {
+          map[teams[i].id] = r.value.data.conflicts;
+        }
+      });
+      setTeamConflicts(map);
+    } catch (_) {}
+    finally { setConflictsLoading(false); }
+  };
+
+  const handleAssignTeam = (teamId: string, teamName: string) => {
+    if (!assignJobId) return;
+    const conflicts = teamConflicts[teamId];
+    if (conflicts?.length > 0) {
+      // Show warning — don't block, let admin decide
+      setConflictWarning({ teamId, teamName, jobId: assignJobId, conflicts });
+      return;
+    }
+    doAssign(assignJobId, teamId, teamName);
+  };
+
+  const doAssign = async (jobId: string, teamId: string, teamName: string) => {
+    setAssignJobId(null);
+    setConflictWarning(null);
+    setAssignLoading(jobId);
+    try {
+      await adminAPI.assignTeam(jobId, teamId);
+      setJobs((prev) => prev.map((j) =>
+        j.id === jobId ? { ...j, assigned_team_id: teamId, team_name: teamName } : j
+      ));
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Failed to assign team');
+    } finally {
+      setAssignLoading(null);
+    }
+  };
+
+  // ── Request Actions ─────────────────────────────────────────────────────────
+
+  const handleApproveRequest = async (request: any) => {
+    // Check conflict before approving
+    try {
+      const res = await jobAPI.checkConflict(request.team_id, request.scheduled_at, request.job_id) as any;
+      if (res?.data?.has_conflict && res.data.conflicts?.length > 0) {
+        const conflicting = res.data.conflicts[0];
+        const conflictTime = new Date(conflicting.scheduled_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+        Alert.alert(
+          '⚠️ Schedule Conflict',
+          `${request.team_name} already has a job at ${conflictTime} (${conflicting.customer_name || 'another customer'}).\n\nApprove this request anyway?`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Approve Anyway', style: 'destructive', onPress: () => confirmApprove(request.id) },
+          ]
+        );
+        return;
+      }
+    } catch (_) {}
+    confirmApprove(request.id);
+  };
+
+  const confirmApprove = async (requestId: string) => {
     setRequestActionLoading(requestId);
     try {
       await adminAPI.approveJobRequest(requestId);
       setRequests((prev) => prev.filter((r) => r.id !== requestId));
       fetchData(true);
-      Alert.alert('Approved', 'Team has been assigned to the job.');
     } catch (err: any) {
       Alert.alert('Error', err?.response?.data?.message || 'Failed to approve');
     } finally {
@@ -85,28 +173,24 @@ const AdminJobsScreen = () => {
     ]);
   };
 
-  const openAssignModal = (jobId: string) => {
-    if (teams.length === 0) {
-      Alert.alert('No Teams', 'No field teams available to assign.');
-      return;
+  // ── Concerns ────────────────────────────────────────────────────────────────
+
+  const handleResolveConcern = async (jobId: string) => {
+    try {
+      await jobAPI.resolveConcern(jobId);
+      setConcerns((prev) => prev.filter((c) => c.id !== jobId));
+      Alert.alert('Resolved', 'Concern marked as resolved. Team member has been notified.');
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Failed to resolve');
     }
-    setAssignJobId(jobId);
   };
 
-  const handleAssignTeam = async (teamId: string, teamName: string) => {
-    if (!assignJobId) return;
-    const jobId = assignJobId;
-    setAssignJobId(null);
-    setAssignLoading(jobId);
-    try {
-      await adminAPI.assignTeam(jobId, teamId);
-      setJobs((prev) => prev.map((j) => j.id === jobId ? { ...j, assigned_team_id: teamId, team_name: teamName } : j));
-    } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to assign team');
-    } finally {
-      setAssignLoading(null);
-    }
+  const handleReassignFromConcern = (jobId: string) => {
+    setShowConcerns(false);
+    openAssignModal(jobId);
   };
+
+  // ── Helpers ─────────────────────────────────────────────────────────────────
 
   const statusColor = (s: string) => {
     if (s === 'completed') return C.success;
@@ -118,31 +202,26 @@ const AdminJobsScreen = () => {
   const getInitials = (name: string) => {
     if (!name) return '?';
     const parts = name.trim().split(/\s+/);
-    return parts.length >= 2
-      ? (parts[0][0] + parts[1][0]).toUpperCase()
-      : name.slice(0, 2).toUpperCase();
+    return parts.length >= 2 ? (parts[0][0] + parts[1][0]).toUpperCase() : name.slice(0, 2).toUpperCase();
   };
 
-  const assigningJob = assignJobId ? jobs.find((j) => j.id === assignJobId) : null;
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
 
-  const renderItem = ({ item }: { item: any }) => (
+  const assigningJob = assignJobId ? jobs.find((j) => j.id === assignJobId) : null;
+  const activeTab = showConcerns ? 'concerns' : showRequests ? 'requests' : 'jobs';
+
+  // ── Render ───────────────────────────────────────────────────────────────────
+
+  const renderJob = ({ item }: { item: any }) => (
     <View style={styles.card}>
       <View style={styles.cardTop}>
         <View style={styles.cardInfo}>
           <Text style={styles.jobId}>Job #{item.id?.slice(0, 8).toUpperCase()}</Text>
-          {item.booking_id && (
-            <Text style={styles.jobId}>Booking #{item.booking_id?.slice(0, 8).toUpperCase()}</Text>
-          )}
-          <Text style={styles.customerName}>{item.customer_name || item.customer_phone || '\u2014'}</Text>
-          <Text style={styles.cardDetail}>
-            {item.tank_type?.toUpperCase()} · {item.tank_size_litres}L
-          </Text>
-          <Text style={styles.cardDate}>
-            {new Date(item.scheduled_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}
-          </Text>
-          <Text style={styles.teamText}>
-            {item.team_name ? `Team: ${item.team_name}` : 'Unassigned'}
-          </Text>
+          <Text style={styles.customerName}>{item.customer_name || item.customer_phone || '—'}</Text>
+          <Text style={styles.cardDetail}>{item.tank_type?.toUpperCase()} · {item.tank_size_litres}L</Text>
+          <Text style={styles.cardDate}>{formatDate(item.scheduled_at)}</Text>
+          <Text style={styles.teamText}>{item.team_name ? `Team: ${item.team_name}` : 'Unassigned'}</Text>
         </View>
         <View style={[styles.badge, { backgroundColor: statusColor(item.status) + '22', borderColor: statusColor(item.status) }]}>
           <Text style={[styles.badgeText, { color: statusColor(item.status) }]}>
@@ -150,7 +229,6 @@ const AdminJobsScreen = () => {
           </Text>
         </View>
       </View>
-
       {item.status === 'scheduled' && (
         <TouchableOpacity
           style={styles.assignBtn}
@@ -163,7 +241,7 @@ const AdminJobsScreen = () => {
             : (
               <View style={styles.assignBtnInner}>
                 <Users size={16} weight="bold" color={C.primary} />
-                <Text style={styles.assignText}> {item.assigned_team_id ? 'Reassign Team' : 'Assign Team'}</Text>
+                <Text style={styles.assignText}>{item.assigned_team_id ? 'Reassign Team' : 'Assign Team'}</Text>
               </View>
             )}
         </TouchableOpacity>
@@ -175,66 +253,116 @@ const AdminJobsScreen = () => {
     <View style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor={C.background} />
 
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{showRequests ? 'Job Requests' : 'All Jobs'}</Text>
-        <TouchableOpacity
-          style={[styles.requestsToggle, showRequests && styles.requestsToggleActive]}
-          onPress={() => setShowRequests(!showRequests)}
-          activeOpacity={0.7}
-        >
-          <Users size={16} weight="bold" color={showRequests ? C.primaryFg : C.primary} />
-          <Text style={[styles.requestsToggleText, showRequests && styles.requestsToggleTextActive]}>
-            Requests{requests.length > 0 ? ` (${requests.length})` : ''}
-          </Text>
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>
+          {activeTab === 'concerns' ? 'Concerns' : activeTab === 'requests' ? 'Job Requests' : 'All Jobs'}
+        </Text>
+        <View style={styles.tabBtns}>
+          <TouchableOpacity
+            style={[styles.tabBtn, showConcerns && styles.tabBtnActive]}
+            onPress={() => { setShowConcerns(true); setShowRequests(false); }}
+          >
+            <Warning size={14} weight="bold" color={showConcerns ? C.primaryFg : C.warning} />
+            <Text style={[styles.tabBtnText, showConcerns && styles.tabBtnTextActive]}>
+              {concerns.length > 0 ? `${concerns.length}` : 'Issues'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabBtn, showRequests && !showConcerns && styles.tabBtnActive]}
+            onPress={() => { setShowRequests(true); setShowConcerns(false); }}
+          >
+            <Users size={14} weight="bold" color={(showRequests && !showConcerns) ? C.primaryFg : C.primary} />
+            <Text style={[styles.tabBtnText, (showRequests && !showConcerns) && styles.tabBtnTextActive]}>
+              {requests.length > 0 ? `Req (${requests.length})` : 'Requests'}
+            </Text>
+          </TouchableOpacity>
+          {(showRequests || showConcerns) && (
+            <TouchableOpacity
+              style={styles.tabBtn}
+              onPress={() => { setShowRequests(false); setShowConcerns(false); }}
+            >
+              <Text style={styles.tabBtnText}>Jobs</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
-      {!showRequests && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filterRow}
-          contentContainerStyle={styles.filterContent}
-        >
+      {/* Filter chips — only on jobs tab */}
+      {activeTab === 'jobs' && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.filterContent}>
           {FILTERS.map((f) => (
-            <TouchableOpacity
-              key={f}
-              style={[styles.chip, filter === f && styles.chipActive]}
-              onPress={() => setFilter(f)}
-              activeOpacity={0.75}
-            >
-              <Text style={[styles.chipText, filter === f && styles.chipTextActive]} numberOfLines={1}>{f}</Text>
+            <TouchableOpacity key={f} style={[styles.chip, filter === f && styles.chipActive]} onPress={() => setFilter(f)}>
+              <Text style={[styles.chipText, filter === f && styles.chipTextActive]}>{f}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
       )}
 
       {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={C.primary} />
-        </View>
-      ) : showRequests ? (
+        <View style={styles.center}><ActivityIndicator size="large" color={C.primary} /></View>
+      ) : activeTab === 'concerns' ? (
+        /* ── Concerns Tab ── */
+        <FlatList
+          data={concerns}
+          keyExtractor={(c) => c.id}
+          contentContainerStyle={concerns.length === 0 ? styles.emptyContainer : styles.list}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} tintColor={C.primary} />}
+          renderItem={({ item: c }) => (
+            <View style={[styles.card, styles.concernCard]}>
+              <View style={styles.concernBanner}>
+                <Warning size={14} weight="fill" color={C.warning} />
+                <Text style={styles.concernBannerText}>Schedule Conflict Raised</Text>
+                <Text style={styles.concernTime}>
+                  {new Date(c.concern_raised_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}
+                </Text>
+              </View>
+              <View style={styles.cardTop}>
+                <View style={styles.cardInfo}>
+                  <Text style={styles.customerName}>{c.team_name} · {c.team_phone}</Text>
+                  <Text style={styles.cardDetail}>{c.tank_type?.toUpperCase()} · {c.tank_size_litres}L · {c.customer_name}</Text>
+                  <Text style={styles.cardDate}>{formatDate(c.scheduled_at)}</Text>
+                  {c.address && <Text style={styles.cardDetail} numberOfLines={1}>{c.address}</Text>}
+                  <View style={styles.concernMsgBox}>
+                    <Text style={styles.concernMsg}>"{c.concern_message}"</Text>
+                  </View>
+                </View>
+              </View>
+              <View style={styles.requestActions}>
+                <TouchableOpacity style={styles.approveBtn} onPress={() => handleReassignFromConcern(c.id)} activeOpacity={0.7}>
+                  <ArrowsClockwise size={15} weight="bold" color={C.primaryFg} />
+                  <Text style={styles.approveBtnText}>Reassign</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.resolveBtn} onPress={() => handleResolveConcern(c.id)} activeOpacity={0.7}>
+                  <Check size={15} weight="bold" color={C.success} />
+                  <Text style={styles.resolveBtnText}>Resolve</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+          ListEmptyComponent={
+            <View style={styles.emptyBox}>
+              <Check size={48} weight="regular" color={C.success} />
+              <Text style={styles.emptyTitle}>No open concerns</Text>
+              <Text style={styles.emptySub}>All scheduling conflicts have been resolved.</Text>
+            </View>
+          }
+        />
+      ) : activeTab === 'requests' ? (
+        /* ── Requests Tab ── */
         <FlatList
           data={requests}
           keyExtractor={(r) => r.id}
           contentContainerStyle={requests.length === 0 ? styles.emptyContainer : styles.list}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} tintColor={C.primary} />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} tintColor={C.primary} />}
           renderItem={({ item: r }) => (
             <View style={styles.card}>
               <View style={styles.cardTop}>
                 <View style={styles.cardInfo}>
                   <Text style={styles.customerName}>{r.team_name || r.team_phone}</Text>
-                  <Text style={[styles.cardDetail, { color: C.primary, fontWeight: '700' }]}>
-                    wants to do this job:
-                  </Text>
-                  <Text style={styles.cardDetail}>
-                    {r.customer_name} · {r.tank_type?.toUpperCase()} · {r.tank_size_litres}L
-                  </Text>
-                  <Text style={styles.cardDate}>
-                    {new Date(r.scheduled_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}
-                  </Text>
+                  <Text style={[styles.cardDetail, { color: C.primary, fontWeight: '700' }]}>wants to do this job:</Text>
+                  <Text style={styles.cardDetail}>{r.customer_name} · {r.tank_type?.toUpperCase()} · {r.tank_size_litres}L</Text>
+                  <Text style={styles.cardDate}>{formatDate(r.scheduled_at)}</Text>
                   {r.address && <Text style={styles.cardDetail} numberOfLines={1}>{r.address}</Text>}
                 </View>
               </View>
@@ -243,7 +371,7 @@ const AdminJobsScreen = () => {
                   <ActivityIndicator size="small" color={C.primary} />
                 ) : (
                   <>
-                    <TouchableOpacity style={styles.approveBtn} onPress={() => handleApproveRequest(r.id)} activeOpacity={0.7}>
+                    <TouchableOpacity style={styles.approveBtn} onPress={() => handleApproveRequest(r)} activeOpacity={0.7}>
                       <Check size={16} weight="bold" color={C.primaryFg} />
                       <Text style={styles.approveBtnText}>Approve & Assign</Text>
                     </TouchableOpacity>
@@ -263,14 +391,13 @@ const AdminJobsScreen = () => {
           }
         />
       ) : (
+        /* ── Jobs Tab ── */
         <FlatList
           data={filtered}
           keyExtractor={(j) => j.id}
-          renderItem={renderItem}
+          renderItem={renderJob}
           contentContainerStyle={filtered.length === 0 ? styles.emptyContainer : styles.list}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} tintColor={C.primary} />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} tintColor={C.primary} />}
           ListEmptyComponent={
             <View style={styles.emptyBox}>
               <Wrench size={48} weight="regular" color={C.muted} />
@@ -280,77 +407,116 @@ const AdminJobsScreen = () => {
         />
       )}
 
-      {/* ── Assign Team Modal ──────────────────────────────────────────── */}
-      <Modal
-        visible={!!assignJobId}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setAssignJobId(null)}
-      >
+      {/* ── Assign Team Modal ─────────────────────────────────────────────────── */}
+      <Modal visible={!!assignJobId} transparent animationType="slide" onRequestClose={() => setAssignJobId(null)}>
         <Pressable style={styles.modalOverlay} onPress={() => setAssignJobId(null)}>
           <Pressable style={styles.modalSheet} onPress={() => {}}>
-            {/* Handle */}
             <View style={styles.modalHandle} />
-
-            {/* Header */}
             <Text style={styles.modalTitle}>Assign Team</Text>
             {assigningJob && (
               <Text style={styles.modalSub}>
-                Job #{assigningJob.id?.slice(0, 8).toUpperCase()} · {assigningJob.customer_name || assigningJob.customer_phone}
+                Job #{assigningJob.id?.slice(0, 8).toUpperCase()} · {assigningJob.customer_name || assigningJob.customer_phone} · {formatDate(assigningJob.scheduled_at)}
               </Text>
             )}
 
-            {/* Team List */}
-            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
-              {teams.map((t: any) => (
-                <TouchableOpacity
-                  key={t.id}
-                  style={[
-                    styles.teamCard,
-                    assigningJob?.assigned_team_id === t.id && styles.teamCardActive,
-                  ]}
-                  onPress={() => handleAssignTeam(t.id, t.name)}
-                  activeOpacity={0.7}
-                >
-                  <View style={[
-                    styles.teamAvatar,
-                    assigningJob?.assigned_team_id === t.id && styles.teamAvatarActive,
-                  ]}>
-                    <Text style={[
-                      styles.teamAvatarText,
-                      assigningJob?.assigned_team_id === t.id && styles.teamAvatarTextActive,
-                    ]}>
-                      {getInitials(t.name || t.phone)}
-                    </Text>
-                  </View>
-                  <View style={styles.teamInfo}>
-                    <Text style={styles.teamName}>{t.name || 'Unnamed'}</Text>
-                    <View style={styles.teamPhoneRow}>
-                      <Phone size={12} weight="regular" color={C.muted} />
-                      <Text style={styles.teamPhone}>{t.phone}</Text>
-                    </View>
-                  </View>
-                  {assigningJob?.assigned_team_id === t.id ? (
-                    <View style={styles.currentBadge}>
-                      <Text style={styles.currentBadgeText}>Current</Text>
-                    </View>
-                  ) : (
-                    <View style={styles.assignTeamBtn}>
-                      <Text style={styles.assignTeamBtnText}>Assign</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            {conflictsLoading && (
+              <View style={styles.conflictLoadingRow}>
+                <ActivityIndicator size="small" color={C.primary} />
+                <Text style={styles.conflictLoadingText}>Checking schedules...</Text>
+              </View>
+            )}
 
-            {/* Cancel */}
-            <TouchableOpacity
-              style={styles.modalCancel}
-              onPress={() => setAssignJobId(null)}
-              activeOpacity={0.7}
-            >
+            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+              {teams.map((t: any) => {
+                const conflicts = teamConflicts[t.id] || [];
+                const hasConflict = conflicts.length > 0;
+                return (
+                  <TouchableOpacity
+                    key={t.id}
+                    style={[styles.teamCard, assigningJob?.assigned_team_id === t.id && styles.teamCardActive, hasConflict && styles.teamCardConflict]}
+                    onPress={() => handleAssignTeam(t.id, t.name)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.teamAvatar, assigningJob?.assigned_team_id === t.id && styles.teamAvatarActive]}>
+                      <Text style={[styles.teamAvatarText, assigningJob?.assigned_team_id === t.id && styles.teamAvatarTextActive]}>
+                        {getInitials(t.name || t.phone)}
+                      </Text>
+                    </View>
+                    <View style={styles.teamInfo}>
+                      <Text style={styles.teamName}>{t.name || 'Unnamed'}</Text>
+                      <View style={styles.teamPhoneRow}>
+                        <Phone size={12} weight="regular" color={C.muted} />
+                        <Text style={styles.teamPhone}>{t.phone}</Text>
+                      </View>
+                      {hasConflict && (
+                        <View style={styles.conflictChip}>
+                          <Warning size={11} weight="fill" color={C.warning} />
+                          <Text style={styles.conflictChipText}>
+                            Has job at {new Date(conflicts[0].scheduled_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    {assigningJob?.assigned_team_id === t.id ? (
+                      <View style={styles.currentBadge}><Text style={styles.currentBadgeText}>Current</Text></View>
+                    ) : (
+                      <View style={[styles.assignTeamBtn, hasConflict && styles.assignTeamBtnWarn]}>
+                        <Text style={[styles.assignTeamBtnText, hasConflict && styles.assignTeamBtnTextWarn]}>
+                          {hasConflict ? 'Assign ⚠️' : 'Assign'}
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            <TouchableOpacity style={styles.modalCancel} onPress={() => setAssignJobId(null)} activeOpacity={0.7}>
               <Text style={styles.modalCancelText}>Cancel</Text>
             </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ── Conflict Warning Modal ────────────────────────────────────────────── */}
+      <Modal visible={!!conflictWarning} transparent animationType="fade" onRequestClose={() => setConflictWarning(null)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setConflictWarning(null)}>
+          <Pressable style={styles.warnSheet} onPress={() => {}}>
+            <View style={styles.warnIconRow}>
+              <Warning size={32} weight="fill" color={C.warning} />
+            </View>
+            <Text style={styles.warnTitle}>Schedule Conflict</Text>
+            {conflictWarning && (
+              <>
+                <Text style={styles.warnBody}>
+                  <Text style={{ fontWeight: '700' }}>{conflictWarning.teamName}</Text> already has{' '}
+                  {conflictWarning.conflicts.length} job{conflictWarning.conflicts.length > 1 ? 's' : ''} within 1 hour of this slot:
+                </Text>
+                {conflictWarning.conflicts.map((c: any) => (
+                  <View key={c.id} style={styles.warnConflictRow}>
+                    <Text style={styles.warnConflictTime}>
+                      {new Date(c.scheduled_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                    </Text>
+                    <Text style={styles.warnConflictDetail} numberOfLines={1}>
+                      {c.customer_name || 'Customer'} · {c.tank_type?.toUpperCase()}
+                    </Text>
+                  </View>
+                ))}
+                <Text style={styles.warnNote}>
+                  You can still assign — sometimes clients agree to a time adjustment over a call.
+                </Text>
+              </>
+            )}
+            <View style={styles.warnActions}>
+              <TouchableOpacity style={styles.warnCancelBtn} onPress={() => setConflictWarning(null)}>
+                <Text style={styles.warnCancelText}>Go Back</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.warnProceedBtn}
+                onPress={() => conflictWarning && doAssign(conflictWarning.jobId, conflictWarning.teamId, conflictWarning.teamName)}
+              >
+                <Text style={styles.warnProceedText}>Assign Anyway</Text>
+              </TouchableOpacity>
+            </View>
           </Pressable>
         </Pressable>
       </Modal>
@@ -362,19 +528,23 @@ const makeStyles = (C: any) => StyleSheet.create({
   root: { flex: 1, backgroundColor: C.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
-    backgroundColor: C.surface,
-    paddingTop: 56,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    backgroundColor: C.surface, paddingTop: 56, paddingBottom: 16, paddingHorizontal: 20,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     ...Platform.select({
       ios: { shadowColor: C.shadowMedium, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 },
       android: { elevation: 4 },
     }),
   },
   headerTitle: { fontSize: 20, fontWeight: '700', color: C.foreground },
+  tabBtns: { flexDirection: 'row', gap: 6 },
+  tabBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999,
+    borderWidth: 1.5, borderColor: C.border, backgroundColor: C.surface,
+  },
+  tabBtnActive: { backgroundColor: C.primary, borderColor: C.primary },
+  tabBtnText: { fontSize: 11, fontWeight: '700', color: C.foreground },
+  tabBtnTextActive: { color: C.primaryFg },
   filterRow: { backgroundColor: C.surface, flexShrink: 0, flexGrow: 0 },
   filterContent: { paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center' },
   chip: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 999, backgroundColor: C.surfaceElevated, marginRight: 8, borderWidth: 1.5, borderColor: C.muted, flexShrink: 0 },
@@ -390,6 +560,15 @@ const makeStyles = (C: any) => StyleSheet.create({
       android: { elevation: 2 },
     }),
   },
+  concernCard: { borderWidth: 1.5, borderColor: C.warningBg },
+  concernBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: C.warningBg, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, marginBottom: 10,
+  },
+  concernBannerText: { flex: 1, fontSize: 12, fontWeight: '700', color: C.warning },
+  concernTime: { fontSize: 10, color: C.warning },
+  concernMsgBox: { backgroundColor: C.surfaceElevated, borderRadius: 8, padding: 8, marginTop: 6 },
+  concernMsg: { fontSize: 12, color: C.foreground, fontStyle: 'italic' },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start' },
   cardInfo: { flex: 1, marginRight: 8 },
   jobId: { fontSize: 11, color: C.primary, fontFamily: 'monospace', fontWeight: '600', marginBottom: 2 },
@@ -407,15 +586,7 @@ const makeStyles = (C: any) => StyleSheet.create({
   assignText: { color: C.primary, fontWeight: '700', fontSize: 13 },
   emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, gap: 12 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: C.foreground },
-  requestsToggle: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: 999, borderWidth: 1.5, borderColor: C.primary,
-    backgroundColor: C.surface,
-  },
-  requestsToggleActive: { backgroundColor: C.primary },
-  requestsToggleText: { fontSize: 12, fontWeight: '700', color: C.primary },
-  requestsToggleTextActive: { color: C.primaryFg },
+  emptySub: { fontSize: 14, color: C.muted, textAlign: 'center' },
   requestActions: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingTop: 12, marginTop: 12, borderTopWidth: 1, borderTopColor: C.border,
@@ -425,136 +596,58 @@ const makeStyles = (C: any) => StyleSheet.create({
     backgroundColor: C.primary, borderRadius: 12, paddingVertical: 10,
   },
   approveBtnText: { color: C.primaryFg, fontWeight: '700', fontSize: 13 },
-  rejectBtn: {
-    width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: C.dangerBg,
+  resolveBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    backgroundColor: C.successBg, borderRadius: 12, paddingVertical: 10, borderWidth: 1, borderColor: C.success,
   },
+  resolveBtnText: { color: C.success, fontWeight: '700', fontSize: 13 },
+  rejectBtn: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: C.dangerBg },
 
-  // ── Modal ──────────────────────────────────────────────────────
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end',
-  },
-  modalSheet: {
-    backgroundColor: C.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
-    maxHeight: '70%',
-  },
-  modalHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: C.border,
-    alignSelf: 'center',
-    marginTop: 12,
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: C.foreground,
-    marginBottom: 4,
-  },
-  modalSub: {
-    fontSize: 13,
-    color: C.muted,
-    marginBottom: 16,
-  },
-  modalList: {
-    maxHeight: 340,
-  },
-  teamCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    borderRadius: 14,
-    backgroundColor: C.surfaceElevated,
-    marginBottom: 10,
-    borderWidth: 1.5,
-    borderColor: 'transparent',
-  },
-  teamCardActive: {
-    borderColor: C.primary,
-    backgroundColor: C.primaryBg,
-  },
-  teamAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: C.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  teamAvatarActive: {
-    backgroundColor: C.primary,
-  },
-  teamAvatarText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.foreground,
-  },
-  teamAvatarTextActive: {
-    color: C.primaryFg,
-  },
-  teamInfo: {
-    flex: 1,
-  },
-  teamName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: C.foreground,
-    marginBottom: 2,
-  },
-  teamPhoneRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  teamPhone: {
-    fontSize: 13,
-    color: C.muted,
-  },
-  currentBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: C.primary,
-  },
-  currentBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: C.primary,
-  },
-  assignTeamBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: C.primary,
-  },
-  assignTeamBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: C.primaryFg,
-  },
-  modalCancel: {
-    marginTop: 12,
-    paddingVertical: 14,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: C.border,
-    alignItems: 'center',
-  },
-  modalCancelText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: C.muted,
-  },
+  // ── Assign Modal ──────────────────────────────────────────────────────────
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  modalSheet: { backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: Platform.OS === 'ios' ? 34 : 20, maxHeight: '75%' },
+  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginTop: 12, marginBottom: 16 },
+  modalTitle: { fontSize: 20, fontWeight: '700', color: C.foreground, marginBottom: 4 },
+  modalSub: { fontSize: 12, color: C.muted, marginBottom: 12 },
+  conflictLoadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  conflictLoadingText: { fontSize: 12, color: C.muted },
+  modalList: { maxHeight: 380 },
+  teamCard: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 14, backgroundColor: C.surfaceElevated, marginBottom: 10, borderWidth: 1.5, borderColor: 'transparent' },
+  teamCardActive: { borderColor: C.primary, backgroundColor: C.primaryBg },
+  teamCardConflict: { borderColor: C.warning, backgroundColor: C.warningBg },
+  teamAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: C.border, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  teamAvatarActive: { backgroundColor: C.primary },
+  teamAvatarText: { fontSize: 16, fontWeight: '700', color: C.foreground },
+  teamAvatarTextActive: { color: C.primaryFg },
+  teamInfo: { flex: 1 },
+  teamName: { fontSize: 15, fontWeight: '700', color: C.foreground, marginBottom: 2 },
+  teamPhoneRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  teamPhone: { fontSize: 13, color: C.muted },
+  conflictChip: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  conflictChipText: { fontSize: 11, color: C.warning, fontWeight: '600' },
+  currentBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: C.primary },
+  currentBadgeText: { fontSize: 11, fontWeight: '700', color: C.primary },
+  assignTeamBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, backgroundColor: C.primary },
+  assignTeamBtnWarn: { backgroundColor: C.warningBg, borderWidth: 1, borderColor: C.warning },
+  assignTeamBtnText: { fontSize: 13, fontWeight: '700', color: C.primaryFg },
+  assignTeamBtnTextWarn: { color: C.warning },
+  modalCancel: { marginTop: 12, paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, borderColor: C.border, alignItems: 'center' },
+  modalCancelText: { fontSize: 15, fontWeight: '700', color: C.muted },
+
+  // ── Conflict Warning Modal ────────────────────────────────────────────────
+  warnSheet: { backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: Platform.OS === 'ios' ? 34 : 24 },
+  warnIconRow: { alignItems: 'center', marginBottom: 12 },
+  warnTitle: { fontSize: 20, fontWeight: '700', color: C.foreground, textAlign: 'center', marginBottom: 12 },
+  warnBody: { fontSize: 14, color: C.foreground, lineHeight: 22, marginBottom: 12 },
+  warnConflictRow: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.warningBg, borderRadius: 10, padding: 10, marginBottom: 6 },
+  warnConflictTime: { fontSize: 13, fontWeight: '700', color: C.warning },
+  warnConflictDetail: { flex: 1, fontSize: 12, color: C.foreground },
+  warnNote: { fontSize: 12, color: C.muted, fontStyle: 'italic', marginTop: 10, lineHeight: 18 },
+  warnActions: { flexDirection: 'row', gap: 10, marginTop: 20 },
+  warnCancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, borderColor: C.border, alignItems: 'center' },
+  warnCancelText: { fontSize: 15, fontWeight: '700', color: C.muted },
+  warnProceedBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: C.warning, alignItems: 'center' },
+  warnProceedText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 });
 
 export default AdminJobsScreen;

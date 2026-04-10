@@ -212,6 +212,26 @@ export const jobAPI = {
     invalidateCache('/jobs');
     return api.post(`/jobs/${jobId}/request`);
   },
+
+  // Conflict detection — check if a team member has a job at the given time
+  checkConflict: (teamId: string, scheduledAt: string, excludeJobId?: string) =>
+    api.get('/jobs/conflict-check', { params: { team_id: teamId, scheduled_at: scheduledAt, ...(excludeJobId ? { exclude_job_id: excludeJobId } : {}) } }),
+
+  // Field team raises a scheduling concern
+  raiseConcern: (jobId: string, message: string) => {
+    invalidateCache('/jobs');
+    return api.post(`/jobs/${jobId}/raise-concern`, { message });
+  },
+
+  // Admin: get all unresolved concerns
+  getConcerns: () =>
+    api.get('/jobs/concerns'),
+
+  // Admin: resolve a concern
+  resolveConcern: (jobId: string) => {
+    invalidateCache('/jobs');
+    return api.patch(`/jobs/${jobId}/resolve-concern`);
+  },
 };
 
 // ── Compliance ────────────────────────────────────────────────────────────────

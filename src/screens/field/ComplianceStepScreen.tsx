@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   Image, ActivityIndicator, Alert, TextInput, Platform, StatusBar,
@@ -6,6 +6,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { complianceAPI } from '../../services/api';
 import { uploadAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
@@ -41,6 +42,8 @@ const ComplianceStepScreen = () => {
   const stepInfo = COMPLIANCE_STEPS.find((s) => s.step === stepNumber);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const draftKey = `compliance_draft_${jobId}_${stepNumber}`;
+  const draftLoaded = useRef(false);
 
   const [data, setData] = useState<StepData>({
     photo_before_url: '',
@@ -56,9 +59,27 @@ const ComplianceStepScreen = () => {
     gps_lng: 0,
   });
 
+  // Load saved draft on mount
   useEffect(() => {
+    const loadDraft = async () => {
+      try {
+        const saved = await AsyncStorage.getItem(draftKey);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setData(parsed);
+        }
+      } catch (_) {}
+      draftLoaded.current = true;
+    };
+    loadDraft();
     getLocation();
   }, []);
+
+  // Save draft whenever data changes (after initial load)
+  useEffect(() => {
+    if (!draftLoaded.current) return;
+    AsyncStorage.setItem(draftKey, JSON.stringify(data)).catch(() => {});
+  }, [data]);
 
   const getLocation = async () => {
     try {
@@ -160,6 +181,7 @@ const ComplianceStepScreen = () => {
     setLoading(true);
     try {
       await complianceAPI.logStep(buildPayload());
+      await AsyncStorage.removeItem(draftKey);
       Alert.alert('Step Saved', `Step ${stepNumber} logged successfully!`, [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);

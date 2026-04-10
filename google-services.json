@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "000000000000",
-    "project_id": "ozone-wash-placeholder",
-    "storage_bucket": "ozone-wash-placeholder.appspot.com"
+    "project_number": "884456858606",
+    "project_id": "ozone-49104",
+    "storage_bucket": "ozone-49104.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+        "mobilesdk_app_id": "1:884456858606:android:cfa65d961e353b6580e4ff",
         "android_client_info": {
           "package_name": "in.ozonewash.app"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "placeholder-replace-with-real-key-from-firebase-console"
+          "current_key": "AIzaSyDMbqzfX-ldU_vTMYf-A2jhktzN86h6Dzs"
         }
       ],
       "services": {

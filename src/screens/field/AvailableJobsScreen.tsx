@@ -6,6 +6,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { jobAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
+import useAuthStore from '../../store/auth.store';
 import { Clock, MapPin, MagnifyingGlass, ArrowRight, CheckCircle, Warning, ShieldCheck, FirstAid } from '../../components/Icons';
 
 // Derive PPE / safety flags from job data (no extra API call needed)
@@ -38,6 +39,7 @@ const AvailableJobsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [requesting, setRequesting] = useState<string | null>(null);
+  const userId = useAuthStore((s) => s.user?.id || '');
 
   const fetchJobs = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -53,29 +55,45 @@ const AvailableJobsScreen = () => {
 
   useFocusEffect(useCallback(() => { fetchJobs(); }, []));
 
-  const handleRequest = (jobId: string) => {
+  const doRequest = async (jobId: string) => {
+    setRequesting(jobId);
+    try {
+      await jobAPI.requestJob(jobId);
+      Alert.alert('Request Sent', 'Admin will review your request.');
+      setJobs((prev) => prev.map((j) => j.id === jobId ? { ...j, requested: true } : j));
+    } catch (err: any) {
+      Alert.alert('Error', err?.response?.data?.message || err.message || 'Failed to send request');
+    } finally {
+      setRequesting(null);
+    }
+  };
+
+  const handleRequest = async (job: any) => {
+    // Check if this member already has a job at this time
+    if (userId) {
+      try {
+        const res = await jobAPI.checkConflict(userId, job.scheduled_at) as any;
+        if (res?.data?.has_conflict && res.data.conflicts?.length > 0) {
+          const c = res.data.conflicts[0];
+          const conflictTime = new Date(c.scheduled_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+          Alert.alert(
+            '⚠️ You Have a Job at This Time',
+            `You already have a job scheduled at ${conflictTime} (${c.customer_name || 'another customer'}).\n\nYou can still request — if admin approves, make sure to coordinate with your client.`,
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Request Anyway', onPress: () => doRequest(job.id) },
+            ]
+          );
+          return;
+        }
+      } catch (_) {}
+    }
     Alert.alert(
       'Request Job',
       'Send a request to the admin to assign this job to you?',
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Send Request',
-          onPress: async () => {
-            setRequesting(jobId);
-            try {
-              await jobAPI.requestJob(jobId);
-              Alert.alert('Request Sent', 'Admin will review your request.');
-              setJobs((prev) => prev.map((j) =>
-                j.id === jobId ? { ...j, requested: true } : j
-              ));
-            } catch (err: any) {
-              Alert.alert('Error', err?.response?.data?.message || err.message || 'Failed to send request');
-            } finally {
-              setRequesting(null);
-            }
-          },
-        },
+        { text: 'Send Request', onPress: () => doRequest(job.id) },
       ]
     );
   };
@@ -132,7 +150,7 @@ const AvailableJobsScreen = () => {
       ) : (
         <TouchableOpacity
           style={styles.requestBtn}
-          onPress={() => handleRequest(item.id)}
+          onPress={() => handleRequest(item)}
           disabled={requesting === item.id}
           activeOpacity={0.8}
         >

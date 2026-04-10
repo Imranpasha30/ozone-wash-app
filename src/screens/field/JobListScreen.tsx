@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView,
   ActivityIndicator, RefreshControl, Platform, StatusBar,
+  Modal, Pressable, TextInput, Alert as RNAlert,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { jobAPI } from '../../services/api';
@@ -50,6 +51,9 @@ const JobListScreen = () => {
   const [optimizedJobs, setOptimizedJobs] = useState<Job[]>([]);
   const [optimizing, setOptimizing] = useState(false);
   const [routeMethod, setRouteMethod] = useState<string>('');
+  const [concernJobId, setConcernJobId] = useState<string | null>(null);
+  const [concernText, setConcernText] = useState('');
+  const [submittingConcern, setSubmittingConcern] = useState(false);
 
   // Tick every 60s to keep countdown live
   useEffect(() => {
@@ -106,6 +110,41 @@ const JobListScreen = () => {
   };
 
   const baseJobs = routeOptimized ? optimizedJobs : jobs;
+
+  // Jobs that have a scheduling conflict (another job within ±60 min)
+  const conflictJobIds = useMemo(() => {
+    const conflicting = new Set<string>();
+    const active = baseJobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress');
+    for (let i = 0; i < active.length; i++) {
+      for (let k = i + 1; k < active.length; k++) {
+        const diff = Math.abs(
+          new Date(active[i].scheduled_at).getTime() - new Date(active[k].scheduled_at).getTime()
+        );
+        if (diff <= 60 * 60 * 1000) {
+          conflicting.add(active[i].id);
+          conflicting.add(active[k].id);
+        }
+      }
+    }
+    return conflicting;
+  }, [baseJobs]);
+
+  const handleRaiseConcern = async () => {
+    if (!concernJobId || !concernText.trim()) return;
+    setSubmittingConcern(true);
+    try {
+      const { jobAPI } = require('../../services/api');
+      await jobAPI.raiseConcern(concernJobId, concernText.trim());
+      setConcernJobId(null);
+      setConcernText('');
+      RNAlert.alert('Concern Raised', 'Admin has been notified. They will review and reassign if needed.');
+    } catch (err: any) {
+      RNAlert.alert('Error', err?.message || 'Failed to raise concern');
+    } finally {
+      setSubmittingConcern(false);
+    }
+  };
+
   const filtered = filter === 'All'
     ? baseJobs
     : baseJobs.filter((j) => {
@@ -130,12 +169,25 @@ const JobListScreen = () => {
 
   const renderItem = ({ item }: { item: Job }) => {
     const sla = getSlaUrgency(item.scheduled_at, item.status, nowMs);
+    const hasConflict = conflictJobIds.has(item.id);
     return (
     <TouchableOpacity
-      style={[styles.card, sla?.icon === 'fire' && styles.cardOverdue]}
+      style={[styles.card, sla?.icon === 'fire' && styles.cardOverdue, hasConflict && styles.cardConflict]}
       onPress={() => navigation.navigate('JobDetail', { job_id: item.id })}
       activeOpacity={0.7}
     >
+      {hasConflict && (
+        <View style={styles.conflictBanner}>
+          <Warning size={12} weight="fill" color="#fff" />
+          <Text style={styles.conflictBannerText}>SCHEDULE CONFLICT — another job at this time</Text>
+          <TouchableOpacity
+            style={styles.raiseConcernBtn}
+            onPress={(e) => { e.stopPropagation?.(); setConcernJobId(item.id); setConcernText(''); }}
+          >
+            <Text style={styles.raiseConcernText}>Raise Concern</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       {sla && (
         <View style={[styles.slaBanner, { backgroundColor: sla.color }]}>
           {sla.icon === 'fire' && <Fire size={12} weight="fill" color="#fff" />}
@@ -265,6 +317,47 @@ const JobListScreen = () => {
         </View>
       )}
 
+      {/* Raise Concern Modal */}
+      <Modal visible={!!concernJobId} transparent animationType="slide" onRequestClose={() => setConcernJobId(null)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setConcernJobId(null)}>
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalTitleRow}>
+              <Warning size={20} weight="fill" color={C.warning} />
+              <Text style={styles.modalTitle}>Raise Schedule Concern</Text>
+            </View>
+            <Text style={styles.modalSub}>
+              Describe the conflict — admin will be notified and can reassign one of the jobs.
+            </Text>
+            <TextInput
+              style={styles.concernInput}
+              placeholder="e.g. I have 2 jobs at 10 AM, please reassign one to another team member"
+              placeholderTextColor={C.muted}
+              multiline
+              numberOfLines={4}
+              value={concernText}
+              onChangeText={setConcernText}
+              textAlignVertical="top"
+              autoFocus
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setConcernJobId(null)}>
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalSubmitBtn, (!concernText.trim() || submittingConcern) && { opacity: 0.5 }]}
+                onPress={handleRaiseConcern}
+                disabled={!concernText.trim() || submittingConcern}
+              >
+                {submittingConcern
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Text style={styles.modalSubmitText}>Send to Admin</Text>}
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={C.primary} />
@@ -387,6 +480,30 @@ const makeStyles = (C: any) => StyleSheet.create({
     }),
   },
   cardOverdue: { borderWidth: 1.5, borderColor: '#DC2626' },
+  cardConflict: { borderWidth: 1.5, borderColor: '#EA580C' },
+  conflictBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#EA580C', paddingHorizontal: 12, paddingVertical: 7,
+  },
+  conflictBannerText: { flex: 1, fontSize: 10, fontWeight: '700', color: '#fff', letterSpacing: 0.3 },
+  raiseConcernBtn: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  raiseConcernText: { fontSize: 10, fontWeight: '700', color: '#fff' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  modalSheet: { backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: Platform.OS === 'ios' ? 34 : 20 },
+  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginBottom: 16 },
+  modalTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: C.foreground },
+  modalSub: { fontSize: 13, color: C.muted, marginBottom: 14, lineHeight: 20 },
+  concernInput: {
+    backgroundColor: C.surfaceElevated, borderRadius: 12, padding: 14,
+    fontSize: 14, color: C.foreground, borderWidth: 1.5, borderColor: C.border,
+    minHeight: 100, marginBottom: 16,
+  },
+  modalActions: { flexDirection: 'row', gap: 10 },
+  modalCancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, borderColor: C.border, alignItems: 'center' },
+  modalCancelText: { fontSize: 15, fontWeight: '700', color: C.muted },
+  modalSubmitBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: C.warning, alignItems: 'center' },
+  modalSubmitText: { fontSize: 15, fontWeight: '700', color: '#fff' },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start', padding: 16 },
   statusDot: { width: 10, height: 10, borderRadius: 5, marginTop: 5, marginRight: 12 },
   cardInfo: { flex: 1 },
