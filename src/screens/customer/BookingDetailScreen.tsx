@@ -303,7 +303,14 @@ const BookingDetailScreen = () => {
     );
   }
 
-  const stepIdx = STATUS_STEPS.indexOf(booking.status);
+  // Use job status to drive the timeline — booking.status lags behind job.status
+  const effectiveStatus = (() => {
+    const js = job?.status || booking.job_status;
+    if (js === 'completed') return 'completed';
+    if (js === 'in_progress') return 'in_progress';
+    return booking.status;
+  })();
+  const stepIdx = STATUS_STEPS.indexOf(effectiveStatus);
 
   // SLA breach: scheduled time has passed but service hasn't started
   const slotMs = booking.slot_time ? new Date(booking.slot_time).getTime() : null;
@@ -319,8 +326,8 @@ const BookingDetailScreen = () => {
           <ArrowLeft size={22} weight="regular" color={C.foreground} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Booking Details</Text>
-        <View style={[styles.statusBadge, { backgroundColor: statusColor(booking.status) }]}>
-          <Text style={styles.statusText}>{booking.status?.toUpperCase()}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: statusColor(effectiveStatus) }]}>
+          <Text style={styles.statusText}>{effectiveStatus?.replace('_', ' ').toUpperCase()}</Text>
         </View>
       </View>
 
@@ -388,7 +395,7 @@ const BookingDetailScreen = () => {
           const teamId = booking.assigned_team_id || job?.assigned_team_id;
           const teamName = booking.team_name || job?.team_name;
           const startOtp = booking.start_otp || job?.start_otp;
-          const endOtp = booking.end_otp || job?.end_otp;
+          const endOtp = booking.end_otp_satisfied || job?.end_otp_satisfied;
           const startVerified = booking.start_otp_verified || job?.start_otp_verified;
           const endVerified = booking.end_otp_verified || job?.end_otp_verified;
           const jobStatus = booking.job_status || job?.status;
@@ -608,8 +615,9 @@ const BookingDetailScreen = () => {
           </>
         )}
 
-        {/* Cancel Button */}
-        {(booking.status === 'pending' || booking.status === 'confirmed') && (
+        {/* Cancel Button — hide once job has started (start OTP verified) */}
+        {(booking.status === 'pending' || booking.status === 'confirmed') &&
+         !job?.start_otp_verified && !booking.start_otp_verified && (
           <TouchableOpacity
             style={[styles.cancelBtn, cancelling && styles.cancelBtnDisabled]}
             onPress={handleCancel}

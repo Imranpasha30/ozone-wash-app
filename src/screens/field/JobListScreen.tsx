@@ -196,20 +196,19 @@ const JobListScreen = () => {
           <Text style={styles.slaBannerCountdown}> · {sla.countdown}</Text>
         </View>
       )}
+      {/* Left accent bar */}
+      <View style={[styles.cardAccent, { backgroundColor: statusColor(item.status) }]} />
+
       <View style={styles.cardTop}>
-        <View style={[styles.statusDot, { backgroundColor: statusColor(item.status) }]} />
         <View style={styles.cardInfo}>
-          <Text style={styles.jobId}>Job #{item.id?.slice(0, 8).toUpperCase()}</Text>
-          {item.booking_id && (
-            <Text style={styles.jobId}>Booking #{item.booking_id?.slice(0, 8).toUpperCase()}</Text>
-          )}
+          <Text style={styles.jobId}>JOB #{item.id?.slice(0, 8).toUpperCase()}</Text>
           <Text style={styles.jobType}>
             {item.tank_type?.replace('_', ' ').toUpperCase() || 'CLEANING JOB'} · {item.tank_size_litres}L
           </Text>
           <Text style={styles.customer}>{item.customer_name || 'Customer'} · {item.customer_phone}</Text>
           <Text style={styles.address} numberOfLines={1}>{item.address}</Text>
           <View style={styles.timeRow}>
-            <Clock size={14} weight="regular" color={C.primary} />
+            <Clock size={13} weight="fill" color={C.primary} />
             <Text style={styles.time}>{formatDate(item.scheduled_at)}</Text>
           </View>
         </View>
@@ -219,14 +218,14 @@ const JobListScreen = () => {
       </View>
 
       {item.status === 'scheduled' && (
-        <View style={styles.actionHint}>
-          <Text style={styles.actionHintText}>Tap to start checklist</Text>
+        <View style={[styles.actionHint, { backgroundColor: C.successBg, marginHorizontal: 16, marginBottom: 14 }]}>
+          <Text style={[styles.actionHintText, { color: C.success }]}>Tap to start checklist</Text>
           <ArrowRight size={14} weight="bold" color={C.success} />
         </View>
       )}
       {item.status === 'in_progress' && (
-        <View style={[styles.actionHint, { backgroundColor: C.primaryBg }]}>
-          <Text style={[styles.actionHintText, { color: C.primary }]}>In progress — tap to continue checklist</Text>
+        <View style={[styles.actionHint, { backgroundColor: C.primaryBg, marginHorizontal: 16, marginBottom: 14 }]}>
+          <Text style={[styles.actionHintText, { color: C.primary }]}>In progress — tap to continue</Text>
           <ArrowRight size={14} weight="bold" color={C.primary} />
         </View>
       )}
@@ -387,9 +386,12 @@ const JobListScreen = () => {
 };
 
 const StatChip = ({ label, value, color, C }: { label: string; value: number; color: string; C: any }) => (
-  <View style={{ flex: 1, alignItems: 'center', borderRightWidth: 1, borderRightColor: C.border }}>
-    <Text style={{ fontSize: 20, fontWeight: '700' as const, color }}>{value}</Text>
-    <Text style={{ fontSize: 10, color: C.muted, fontWeight: '600' as const }}>{label}</Text>
+  <View style={{
+    flex: 1, alignItems: 'center', paddingVertical: 10,
+    backgroundColor: color + '12', borderRadius: 12, marginHorizontal: 4,
+  }}>
+    <Text style={{ fontSize: 22, fontWeight: '800' as const, color }}>{value}</Text>
+    <Text style={{ fontSize: 10, color: C.muted, fontWeight: '600' as const, marginTop: 2 }}>{label}</Text>
   </View>
 );
 
@@ -399,40 +401,43 @@ const makeStyles = (C: any) => StyleSheet.create({
   header: {
     backgroundColor: C.surface,
     paddingTop: 56,
-    paddingBottom: 16,
+    paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
     ...Platform.select({
-      ios: { shadowColor: C.shadowMedium, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 },
-      android: { elevation: 4 },
+      ios: { shadowColor: C.shadowMedium, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 1, shadowRadius: 12 },
+      android: { elevation: 6 },
     }),
   },
   greetingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  greeting: { fontSize: 18, fontWeight: '700', color: C.foreground },
-  headerSub: { fontSize: 13, color: C.muted, marginTop: 2 },
+  greeting: { fontSize: 20, fontWeight: '800', color: C.foreground },
+  headerSub: { fontSize: 13, color: C.muted, marginTop: 3 },
   statsBox: {
     alignItems: 'center',
     backgroundColor: C.primaryBg,
-    borderRadius: 12,
-    padding: 10,
-    ...Platform.select({
-      ios: { shadowColor: C.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 1, shadowRadius: 4 },
-      android: { elevation: 2 },
-    }),
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: C.borderActive,
   },
-  statNum: { fontSize: 24, fontWeight: '700', color: C.primary },
-  statLabel: { fontSize: 11, color: C.muted },
+  statNum: { fontSize: 26, fontWeight: '800', color: C.primary },
+  statLabel: { fontSize: 10, color: C.primary, fontWeight: '600', marginTop: 1 },
   statsBar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 12,
     backgroundColor: C.surface,
+    gap: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
   },
   filterRow: { backgroundColor: C.background, flexShrink: 0, flexGrow: 0 },
-  filterContent: { paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center' },
+  filterContent: { paddingHorizontal: 16, paddingVertical: 10, flexDirection: 'row', alignItems: 'center' },
   chip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -440,19 +445,19 @@ const makeStyles = (C: any) => StyleSheet.create({
     backgroundColor: C.surfaceElevated,
     marginRight: 8,
     borderWidth: 1.5,
-    borderColor: C.muted,
+    borderColor: C.border,
     flexShrink: 0,
   },
   chipActive: { backgroundColor: C.primary, borderColor: C.primary },
-  chipText: { fontSize: 13, color: C.foreground, fontWeight: '600', flexShrink: 0 },
+  chipText: { fontSize: 13, color: C.muted, fontWeight: '600', flexShrink: 0 },
   chipTextActive: { color: C.primaryFg, fontWeight: '700' },
   list: { padding: 16 },
   emptyContainer: { flex: 1 },
   slaBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 12, paddingVertical: 5,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, paddingVertical: 7,
   },
-  slaBannerText: { fontSize: 11, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
+  slaBannerText: { fontSize: 11, fontWeight: '800', color: '#fff', letterSpacing: 0.8 },
   slaBannerCountdown: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
   routeRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, gap: 10 },
   routeBtn: {
@@ -466,73 +471,72 @@ const makeStyles = (C: any) => StyleSheet.create({
   routeMethod: { fontSize: 11, color: C.muted, fontWeight: '600' },
   escalationBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#DC2626', paddingHorizontal: 16, paddingVertical: 10,
+    backgroundColor: '#DC2626', paddingHorizontal: 16, paddingVertical: 12,
   },
   escalationText: { fontSize: 13, fontWeight: '700', color: '#fff', flex: 1 },
   card: {
     backgroundColor: C.surface,
-    borderRadius: 16,
-    marginBottom: 12,
+    borderRadius: 18,
+    marginBottom: 14,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: C.border,
     ...Platform.select({
-      ios: { shadowColor: C.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 },
-      android: { elevation: 2 },
+      ios: { shadowColor: C.shadowMedium, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 12 },
+      android: { elevation: 4 },
     }),
   },
-  cardOverdue: { borderWidth: 1.5, borderColor: '#DC2626' },
-  cardConflict: { borderWidth: 1.5, borderColor: '#EA580C' },
+  cardOverdue: { borderColor: '#DC2626', borderWidth: 1.5 },
+  cardConflict: { borderColor: '#EA580C', borderWidth: 1.5 },
   conflictBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#EA580C', paddingHorizontal: 12, paddingVertical: 7,
+    backgroundColor: '#EA580C', paddingHorizontal: 14, paddingVertical: 8,
   },
-  conflictBannerText: { flex: 1, fontSize: 10, fontWeight: '700', color: '#fff', letterSpacing: 0.3 },
-  raiseConcernBtn: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  raiseConcernText: { fontSize: 10, fontWeight: '700', color: '#fff' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  modalSheet: { backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: Platform.OS === 'ios' ? 34 : 20 },
-  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginBottom: 16 },
-  modalTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: C.foreground },
-  modalSub: { fontSize: 13, color: C.muted, marginBottom: 14, lineHeight: 20 },
+  conflictBannerText: { flex: 1, fontSize: 10, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
+  raiseConcernBtn: { backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+  raiseConcernText: { fontSize: 10, fontWeight: '800', color: '#fff' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
+  modalSheet: { backgroundColor: C.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 24 },
+  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginBottom: 20 },
+  modalTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: C.foreground },
+  modalSub: { fontSize: 13, color: C.muted, marginBottom: 16, lineHeight: 20 },
   concernInput: {
-    backgroundColor: C.surfaceElevated, borderRadius: 12, padding: 14,
+    backgroundColor: C.surfaceElevated, borderRadius: 14, padding: 16,
     fontSize: 14, color: C.foreground, borderWidth: 1.5, borderColor: C.border,
-    minHeight: 100, marginBottom: 16,
+    minHeight: 110, marginBottom: 16,
   },
-  modalActions: { flexDirection: 'row', gap: 10 },
-  modalCancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, borderColor: C.border, alignItems: 'center' },
+  modalActions: { flexDirection: 'row', gap: 12 },
+  modalCancelBtn: { flex: 1, paddingVertical: 15, borderRadius: 14, borderWidth: 1.5, borderColor: C.border, alignItems: 'center' },
   modalCancelText: { fontSize: 15, fontWeight: '700', color: C.muted },
-  modalSubmitBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: C.warning, alignItems: 'center' },
+  modalSubmitBtn: { flex: 2, paddingVertical: 15, borderRadius: 14, backgroundColor: C.warning, alignItems: 'center' },
   modalSubmitText: { fontSize: 15, fontWeight: '700', color: '#fff' },
-  cardTop: { flexDirection: 'row', alignItems: 'flex-start', padding: 16 },
+  // Card layout
+  cardAccent: { width: 4, position: 'absolute', left: 0, top: 0, bottom: 0, borderTopLeftRadius: 18, borderBottomLeftRadius: 18 },
+  cardTop: { flexDirection: 'row', alignItems: 'flex-start', padding: 16, paddingLeft: 20 },
   statusDot: { width: 10, height: 10, borderRadius: 5, marginTop: 5, marginRight: 12 },
   cardInfo: { flex: 1 },
-  jobId: { fontSize: 11, color: C.primary, fontFamily: 'monospace', fontWeight: '600', marginBottom: 2 },
-  jobType: { fontSize: 13, fontWeight: '700', color: C.foreground },
-  customer: { fontSize: 12, color: C.muted, marginTop: 2 },
-  address: { fontSize: 11, color: C.muted, marginTop: 2 },
-  timeRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
-  time: { fontSize: 12, color: C.primary, fontWeight: '600' },
-  badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginLeft: 8 },
-  badgeText: { color: C.primaryFg, fontSize: 9, fontWeight: '700' },
-  actionHint: {
-    backgroundColor: C.successBg,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  jobId: { fontSize: 10, color: C.muted, fontFamily: 'monospace', fontWeight: '700', marginBottom: 3, letterSpacing: 0.5 },
+  jobType: { fontSize: 15, fontWeight: '800', color: C.foreground, marginBottom: 2 },
+  customer: { fontSize: 13, color: C.foreground, fontWeight: '600', marginTop: 1 },
+  address: { fontSize: 12, color: C.muted, marginTop: 2 },
+  timeRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 },
+  time: { fontSize: 12, color: C.primary, fontWeight: '700' },
+  badge: {
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, marginLeft: 8, alignSelf: 'flex-start',
   },
-  actionHintText: { fontSize: 12, color: C.success, fontWeight: '600' },
+  badgeText: { color: '#fff', fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
+  actionHint: {
+    marginHorizontal: 16, marginBottom: 14, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 10,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  },
+  actionHintText: { fontSize: 12, fontWeight: '700' },
   emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
   emptyIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
+    width: 72, height: 72, borderRadius: 20,
     backgroundColor: C.surfaceElevated,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 16,
   },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: C.foreground, marginBottom: 6 },
   emptySub: { fontSize: 14, color: C.muted, textAlign: 'center' },
