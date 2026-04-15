@@ -35,6 +35,13 @@ yarn-error.*
 .env.local
 .env.production
 .env*.local
+.env.client
+.env.*
+
+# iOS Firebase credentials (contains server-side private key — do NOT commit)
+GoogleService-Info.plist
+# Note: google-services.json (Android) is intentionally tracked — it is a
+# client-side config file. Firebase/Google explicitly states it is safe to commit.
 
 # typescript
 *.tsbuildinfo

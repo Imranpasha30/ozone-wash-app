@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   ScrollView, Alert, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import useBookingStore, { TankEntry } from '../../store/booking.store';
@@ -45,6 +45,7 @@ const TankDetailsScreen = () => {
   const styles = React.useMemo(() => makeStyles(C), [C]);
 
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const { draft, setStep1 } = useBookingStore();
   const isPremium = usePremiumStore((s) => s.isPremium);
 
@@ -71,7 +72,6 @@ const TankDetailsScreen = () => {
   const [tankCoords, setTankCoords] = useState<({ lat: number; lng: number } | null)[]>(
     (draft.tanks || []).map((t: any) => (t.lat && t.lng ? { lat: t.lat, lng: t.lng } : null))
   );
-  const [locatingTank, setLocatingTank] = useState<number | null>(null);
   const [savedAddresses, setSavedAddresses] = useState<string[]>([]);
   const userId = useAuthStore((s) => s.user?.id || '');
 
@@ -81,6 +81,22 @@ const TankDetailsScreen = () => {
       if (raw) setSavedAddresses(JSON.parse(raw));
     }).catch(() => {});
   }, [userId]);
+
+  // Receive address picked from AddressPickerScreen
+  useEffect(() => {
+    const p = route.params;
+    if (!p?.pickedAddress) return;
+    if (p.pickedFor === 'primary') {
+      setAddress(p.pickedAddress);
+      setCoords({ lat: p.pickedLat, lng: p.pickedLng });
+    } else if (typeof p.pickedFor === 'number') {
+      const idx = p.pickedFor as number;
+      setTankAddresses(prev => prev.map((a, i) => i === idx ? p.pickedAddress : a));
+      setTankCoords(prev => prev.map((c, i) => i === idx ? { lat: p.pickedLat, lng: p.pickedLng } : c));
+    }
+    // Clear params so re-focus doesn't re-apply
+    navigation.setParams({ pickedAddress: undefined, pickedLat: undefined, pickedLng: undefined, pickedFor: undefined });
+  }, [route.params?.pickedAddress]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveCurrentAddress = async () => {
     const trimmed = address.trim();
@@ -114,29 +130,6 @@ const TankDetailsScreen = () => {
     setSameLocation(prev => prev.filter((_, i) => i !== idx));
     setTankAddresses(prev => prev.filter((_, i) => i !== idx));
     setTankCoords(prev => prev.filter((_, i) => i !== idx));
-  };
-
-  const handleTankLocate = async (idx: number) => {
-    setLocatingTank(idx);
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Allow location access to use this feature.');
-        return;
-      }
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-      const { latitude, longitude } = pos.coords;
-      setTankCoords(prev => prev.map((c, i) => i === idx ? { lat: latitude, lng: longitude } : c));
-      const [geo] = await Location.reverseGeocodeAsync({ latitude, longitude });
-      if (geo) {
-        const parts = [geo.name, geo.street, geo.district, geo.city, geo.region, geo.postalCode].filter(Boolean);
-        setTankAddresses(prev => prev.map((a, i) => i === idx ? parts.join(', ') : a));
-      }
-    } catch (err: any) {
-      Alert.alert('Location Error', err.message || 'Could not get your location.');
-    } finally {
-      setLocatingTank(null);
-    }
   };
 
   const handleUseMyLocation = async () => {
@@ -342,37 +335,34 @@ const TankDetailsScreen = () => {
                   {!sameLocation[idx] && (
                     <View style={styles.tankAddrBlock}>
                       <TouchableOpacity
-                        style={styles.locationBtn}
-                        onPress={() => handleTankLocate(idx)}
-                        disabled={locatingTank === idx}
+                        style={styles.addrPickerCard}
+                        onPress={() => navigation.navigate('AddressPicker', {
+                          pickingFor: idx,
+                          initialAddress: tankAddresses[idx] || undefined,
+                          initialLat: tankCoords[idx]?.lat,
+                          initialLng: tankCoords[idx]?.lng,
+                        })}
+                        activeOpacity={0.75}
                       >
-                        {locatingTank === idx
-                          ? <ActivityIndicator size="small" color={C.primary} />
-                          : <NavigationArrow size={16} weight="fill" color={C.primary} />}
-                        <Text style={styles.locationBtnText}>
-                          {locatingTank === idx ? 'Getting location...' : 'Use Current Location'}
-                        </Text>
-                      </TouchableOpacity>
-                      {tankCoords[idx] && (
-                        <View style={styles.coordsBadge}>
-                          <MapPin size={12} weight="fill" color={C.success} />
-                          <Text style={styles.coordsText}>
-                            GPS: {tankCoords[idx]!.lat.toFixed(5)}, {tankCoords[idx]!.lng.toFixed(5)}
-                          </Text>
+                        <View style={styles.addrPickerIconWrap}>
+                          <MapPin size={18} weight="fill" color={tankAddresses[idx] ? C.primary : C.muted} />
                         </View>
-                      )}
-                      <TextInput
-                        style={[styles.input, styles.textArea, { marginTop: 6 }]}
-                        placeholder={`Tank ${idx + 1} address — flat / house no, street, area`}
-                        multiline
-                        numberOfLines={3}
-                        value={tankAddresses[idx] || ''}
-                        onChangeText={(v) =>
-                          setTankAddresses(prev => prev.map((a, i) => i === idx ? v : a))
-                        }
-                        placeholderTextColor={C.gray}
-                        textAlignVertical="top"
-                      />
+                        <View style={styles.addrPickerTextWrap}>
+                          {tankAddresses[idx] ? (
+                            <>
+                              <Text style={styles.addrPickerValue} numberOfLines={2}>{tankAddresses[idx]}</Text>
+                              {tankCoords[idx] && (
+                                <Text style={styles.addrPickerCoords}>
+                                  GPS verified
+                                </Text>
+                              )}
+                            </>
+                          ) : (
+                            <Text style={styles.addrPickerPlaceholder}>Tap to select Tank {idx + 1} location</Text>
+                          )}
+                        </View>
+                        <NavigationArrow size={16} weight="fill" color={C.primary} />
+                      </TouchableOpacity>
                     </View>
                   )}
                 </View>
@@ -402,7 +392,7 @@ const TankDetailsScreen = () => {
             <Text style={styles.labelWithIcon}>Service Address <Text style={styles.required}>*</Text></Text>
           </View>
 
-          {/* Saved addresses */}
+          {/* Saved addresses quick-select */}
           {savedAddresses.length > 0 && (
             <View style={styles.savedAddrList}>
               {savedAddresses.map((addr, i) => (
@@ -422,30 +412,48 @@ const TankDetailsScreen = () => {
             </View>
           )}
 
+          {/* Map picker card — Zomato/Rapido style */}
+          <TouchableOpacity
+            style={styles.addrPickerCard}
+            onPress={() => navigation.navigate('AddressPicker', {
+              pickingFor: 'primary',
+              initialAddress: address || undefined,
+              initialLat: coords?.lat,
+              initialLng: coords?.lng,
+            })}
+            activeOpacity={0.75}
+          >
+            <View style={styles.addrPickerIconWrap}>
+              <MapPin size={20} weight="fill" color={address ? C.primary : C.muted} />
+            </View>
+            <View style={styles.addrPickerTextWrap}>
+              {address ? (
+                <>
+                  <Text style={styles.addrPickerValue} numberOfLines={2}>{address}</Text>
+                  <Text style={styles.addrPickerChange}>
+                    {coords ? 'GPS verified — tap to change' : 'Tap to change'}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.addrPickerPlaceholder}>Tap to select your location</Text>
+                  <Text style={styles.addrPickerHint}>Search, use GPS or drag the map</Text>
+                </>
+              )}
+            </View>
+            <NavigationArrow size={18} weight="fill" color={C.primary} />
+          </TouchableOpacity>
+
+          {/* Quick GPS fill */}
           <TouchableOpacity style={styles.locationBtn} onPress={handleUseMyLocation} disabled={locating}>
             {locating
               ? <ActivityIndicator size="small" color={C.primary} />
-              : <NavigationArrow size={18} weight="fill" color={C.primary} />}
+              : <NavigationArrow size={16} weight="fill" color={C.primary} />}
             <Text style={styles.locationBtnText}>
-              {locating ? 'Getting location...' : 'Use My Current Location'}
+              {locating ? 'Getting location...' : 'Quick: Use My GPS Location'}
             </Text>
           </TouchableOpacity>
-          {coords && (
-            <View style={styles.coordsBadge}>
-              <MapPin size={12} weight="fill" color={C.success} />
-              <Text style={styles.coordsText}>GPS: {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}</Text>
-            </View>
-          )}
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="Or type address — flat / house no, street, area"
-            multiline
-            numberOfLines={3}
-            value={address}
-            onChangeText={(text) => { setAddress(text); if (!text.trim()) setCoords(null); }}
-            placeholderTextColor={C.gray}
-            textAlignVertical="top"
-          />
+
           {address.trim() && !savedAddresses.includes(address.trim()) && (
             <TouchableOpacity style={styles.saveAddrBtn} onPress={saveCurrentAddress}>
               <Star size={13} weight="regular" color={C.primary} />
@@ -605,6 +613,25 @@ const makeStyles = (C: any) => StyleSheet.create({
   savedAddrRemove: { padding: 10 },
   saveAddrBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 6, paddingHorizontal: 4 },
   saveAddrText: { fontSize: 12, color: C.primary, fontWeight: '600' },
+  addrPickerCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: C.surface, borderRadius: 14, padding: 14,
+    borderWidth: 1.5, borderColor: C.borderActive, marginBottom: 8,
+    ...Platform.select({
+      ios: { shadowColor: C.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 6 },
+      android: { elevation: 2 },
+    }),
+  },
+  addrPickerIconWrap: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: C.primaryBg, alignItems: 'center', justifyContent: 'center',
+  },
+  addrPickerTextWrap: { flex: 1 },
+  addrPickerValue: { fontSize: 14, fontWeight: '600', color: C.foreground, lineHeight: 20 },
+  addrPickerChange: { fontSize: 11, color: C.primary, marginTop: 2 },
+  addrPickerPlaceholder: { fontSize: 14, fontWeight: '600', color: C.muted },
+  addrPickerHint: { fontSize: 11, color: C.gray, marginTop: 2 },
+  addrPickerCoords: { fontSize: 11, color: C.success, marginTop: 2 },
   tankLocationSection: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border },
   sameLocRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
   sameLocBtn: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center', borderWidth: 1.5, borderColor: C.border, backgroundColor: C.surfaceElevated },

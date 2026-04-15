@@ -25,6 +25,8 @@ import NotificationsScreen from '../screens/customer/NotificationsScreen';
 import QrScannerScreen from '../screens/shared/QrScannerScreen';
 import CertVerifyResultScreen from '../screens/shared/CertVerifyResultScreen';
 import LiveWatchScreen from '../screens/customer/LiveWatchScreen';
+import AddressPickerScreen from '../screens/customer/AddressPickerScreen';
+import PolicyScreen from '../screens/shared/PolicyScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -142,6 +144,27 @@ const CustomerNavigator = () => (
     <Stack.Screen name="QrScanner" component={QrScannerScreen} />
     <Stack.Screen name="CertVerifyResult" component={CertVerifyResultScreen} />
     <Stack.Screen name="LiveWatch" component={LiveWatchScreen} />
+    <Stack.Screen
+      name="AddressPicker"
+      component={AddressPickerScreen}
+      options={{
+        gestureEnabled: true,
+        gestureDirection: 'horizontal' as const,
+        cardStyleInterpolator: ({ current, next, layouts }: any) => ({
+          cardStyle: {
+            transform: [
+              {
+                translateX: current.progress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [layouts.screen.width, 0],
+                }),
+              },
+            ],
+          },
+        }),
+      }}
+    />
+    <Stack.Screen name="Policy" component={PolicyScreen} />
   </Stack.Navigator>
 );
 

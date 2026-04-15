@@ -442,6 +442,25 @@ const ProfileScreen = () => {
         </View>
       </View>
 
+      {/* Legal */}
+      <View style={styles.menuCard}>
+        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Policy', { type: 'terms' })}>
+          <View style={styles.menuIconWrap}><FileText size={20} weight="regular" color={C.primary} /></View>
+          <Text style={styles.menuLabel}>Terms & Conditions</Text>
+          <CaretRight size={18} weight="regular" color={C.muted} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Policy', { type: 'privacy' })}>
+          <View style={styles.menuIconWrap}><ShieldCheck size={20} weight="regular" color={C.primary} /></View>
+          <Text style={styles.menuLabel}>Privacy Policy</Text>
+          <CaretRight size={18} weight="regular" color={C.muted} />
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} onPress={() => navigation.navigate('Policy', { type: 'refund' })}>
+          <View style={styles.menuIconWrap}><ClipboardText size={20} weight="regular" color={C.primary} /></View>
+          <Text style={styles.menuLabel}>Refund Policy</Text>
+          <CaretRight size={18} weight="regular" color={C.muted} />
+        </TouchableOpacity>
+      </View>
+
       {/* Logout */}
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
         <View style={styles.logoutInner}>
