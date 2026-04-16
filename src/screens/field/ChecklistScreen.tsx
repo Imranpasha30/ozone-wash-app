@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   ActivityIndicator, Alert, Platform, StatusBar,
 } from 'react-native';
+import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { complianceAPI, jobAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
@@ -16,6 +17,7 @@ const ChecklistScreen = () => {
   const route = useRoute<any>();
   const C = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
+  const scrollRef = useWebScrollFix();
   const jobId = route.params?.job_id;
 
   const [checklist, setChecklist] = useState<any>(null);
@@ -105,7 +107,7 @@ const ChecklistScreen = () => {
         <Text style={styles.progressText}>{pct}% complete</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
         {steps.map((step: any, i: number) => {
           const isCompleted = step.completed;
           const isLocked = i > 0 && !steps[i - 1].completed;

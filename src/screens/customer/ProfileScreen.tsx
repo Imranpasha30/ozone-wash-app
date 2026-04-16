@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   Alert, TextInput, ActivityIndicator,
 } from 'react-native';
+import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { useNavigation } from '@react-navigation/native';
 import useAuthStore from '../../store/auth.store';
 import useSettingsStore, { FontScale } from '../../store/settings.store';
@@ -151,6 +152,7 @@ const makeStyles = (C: any) => StyleSheet.create({
 const ProfileScreen = () => {
   const C = useTheme();
   const styles = React.useMemo(() => makeStyles(C), [C]);
+  const scrollRef = useWebScrollFix();
 
   const navigation = useNavigation<any>();
   const { user, logout } = useAuthStore();
@@ -228,7 +230,7 @@ const ProfileScreen = () => {
   ] : [];
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.container}>
+    <ScrollView ref={scrollRef} style={styles.root} contentContainerStyle={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.avatarCircle}>

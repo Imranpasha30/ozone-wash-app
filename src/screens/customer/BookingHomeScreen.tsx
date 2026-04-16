@@ -9,6 +9,7 @@ import useAuthStore from '../../store/auth.store';
 import usePremiumStore from '../../store/premium.store';
 import { bookingAPI, amcAPI, ecoScoreAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
+import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { GOLD_GRADIENT, GOLD_GRADIENT_HORIZONTAL } from '../../utils/constants';
 import { Booking, AmcContract } from '../../types';
 import {
@@ -204,6 +205,7 @@ const makeStyles = (C: any) => StyleSheet.create({
 const BookingHomeScreen = () => {
   const C = useTheme();
   const styles = React.useMemo(() => makeStyles(C), [C]);
+  const scrollRef = useWebScrollFix();
 
   const navigation = useNavigation<any>();
   const { user } = useAuthStore();
@@ -267,9 +269,14 @@ const BookingHomeScreen = () => {
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={styles.container}
       contentContainerStyle={{ paddingBottom: 32 }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchAll(true)} tintColor={C.primary} />}
+      refreshControl={
+        Platform.OS !== 'web'
+          ? <RefreshControl refreshing={refreshing} onRefresh={() => fetchAll(true)} tintColor={C.primary} />
+          : undefined
+      }
     >
       <StatusBar barStyle={usePremiumStore.getState().isPremium ? 'light-content' : 'dark-content'} />
 

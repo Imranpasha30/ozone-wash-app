@@ -6,6 +6,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
+import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { complianceAPI } from '../../services/api';
 import { uploadAPI } from '../../services/api';
@@ -37,6 +38,7 @@ const ComplianceStepScreen = () => {
   const route = useRoute<any>();
   const C = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
+  const scrollRef = useWebScrollFix();
   const { job_id: jobId, step_number: stepNumber } = route.params;
 
   const stepInfo = COMPLIANCE_STEPS.find((s) => s.step === stepNumber);
@@ -82,6 +84,15 @@ const ComplianceStepScreen = () => {
   }, [data]);
 
   const getLocation = async () => {
+    if (Platform.OS === 'web') {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setData((d) => ({ ...d, gps_lat: pos.coords.latitude, gps_lng: pos.coords.longitude })),
+        () => {},
+        { enableHighAccuracy: true, timeout: 10000 },
+      );
+      return;
+    }
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') return;
@@ -91,6 +102,11 @@ const ComplianceStepScreen = () => {
   };
 
   const pickPhoto = async (type: 'before' | 'after' | 'microbial') => {
+    if (Platform.OS === 'web') {
+      const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, allowsEditing: false });
+      if (!result.canceled && result.assets[0]) await uploadPhoto(result.assets[0].uri, type);
+      return;
+    }
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permission Required', 'Camera permission is needed to take photos');
@@ -101,25 +117,15 @@ const ComplianceStepScreen = () => {
       {
         text: 'Camera',
         onPress: async () => {
-          const result = await ImagePicker.launchCameraAsync({
-            quality: 0.7,
-            allowsEditing: false,
-          });
-          if (!result.canceled && result.assets[0]) {
-            await uploadPhoto(result.assets[0].uri, type);
-          }
+          const result = await ImagePicker.launchCameraAsync({ quality: 0.7, allowsEditing: false });
+          if (!result.canceled && result.assets[0]) await uploadPhoto(result.assets[0].uri, type);
         },
       },
       {
         text: 'Gallery',
         onPress: async () => {
-          const result = await ImagePicker.launchImageLibraryAsync({
-            quality: 0.7,
-            allowsEditing: false,
-          });
-          if (!result.canceled && result.assets[0]) {
-            await uploadPhoto(result.assets[0].uri, type);
-          }
+          const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, allowsEditing: false });
+          if (!result.canceled && result.assets[0]) await uploadPhoto(result.assets[0].uri, type);
         },
       },
       { text: 'Cancel', style: 'cancel' },
@@ -174,7 +180,7 @@ const ComplianceStepScreen = () => {
     if (!data.photo_before_url && !data.photo_after_url) {
       return Alert.alert('Photo Required', 'Please take at least one photo before submitting');
     }
-    if (data.gps_lat === 0 && data.gps_lng === 0) {
+    if (Platform.OS !== 'web' && data.gps_lat === 0 && data.gps_lng === 0) {
       return Alert.alert('GPS Required', 'GPS location not captured. Please enable location and try again.');
     }
 
@@ -211,7 +217,7 @@ const ComplianceStepScreen = () => {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         {/* GPS Status */}
         <View style={[styles.gpsRow, data.gps_lat !== 0 ? styles.gpsOk : styles.gpsWaiting]}>
           <View style={styles.gpsContent}>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, ActivityIndicator, KeyboardAvoidingView,
-  Platform, Alert, StatusBar, Image,
+  Platform, Alert, StatusBar, Image, ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -127,6 +127,22 @@ const PhoneInputScreen = () => {
           {formContent}
         </View>
       </View>
+    );
+  }
+
+  // On web, KeyboardAvoidingView does nothing — use a ScrollView so the page
+  // can scroll to keep the focused input above the software keyboard.
+  if (Platform.OS === 'web') {
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+        {formContent}
+      </ScrollView>
     );
   }
 

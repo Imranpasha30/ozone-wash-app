@@ -89,14 +89,24 @@ const JobListScreen = () => {
     try {
       let lat: number | undefined;
       let lng: number | undefined;
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-          lat = pos.coords.latitude;
-          lng = pos.coords.longitude;
-        }
-      } catch (_) {}
+      if (Platform.OS !== 'web') {
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status === 'granted') {
+            const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            lat = pos.coords.latitude;
+            lng = pos.coords.longitude;
+          }
+        } catch (_) {}
+      } else if (typeof navigator !== 'undefined' && navigator.geolocation) {
+        await new Promise<void>((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => { lat = pos.coords.latitude; lng = pos.coords.longitude; resolve(); },
+            () => resolve(),
+            { enableHighAccuracy: false, timeout: 5000 },
+          );
+        });
+      }
       const res = await jobAPI.optimizeRoute(lat, lng) as any;
       const result = res.data;
       if (result?.optimized?.length > 0) {
@@ -368,7 +378,9 @@ const JobListScreen = () => {
           renderItem={renderItem}
           contentContainerStyle={filtered.length === 0 ? styles.emptyContainer : styles.list}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => fetchJobs(true)} tintColor={C.primary} />
+            Platform.OS !== 'web'
+              ? <RefreshControl refreshing={refreshing} onRefresh={() => fetchJobs(true)} tintColor={C.primary} />
+              : undefined
           }
           ListEmptyComponent={
             <View style={styles.emptyBox}>

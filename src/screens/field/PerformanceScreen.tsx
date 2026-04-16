@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
   ScrollView, Platform, StatusBar,
 } from 'react-native';
+import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { jobAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import {
@@ -14,6 +15,7 @@ const PERIODS = ['This Week', 'This Month', 'All Time'] as const;
 const PerformanceScreen = () => {
   const C = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
+  const scrollRef = useWebScrollFix();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<string>('This Week');
@@ -56,7 +58,7 @@ const PerformanceScreen = () => {
         <Text style={styles.headerTitle}>My Performance</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
         {/* Period Selector */}
         <View style={styles.periodRow}>
           {PERIODS.map(p => (

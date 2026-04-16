@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import useBookingStore from '../../store/booking.store';
+import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import usePremiumStore from '../../store/premium.store';
 import { bookingAPI } from '../../services/api';
 import { ADDONS, PAYMENT_METHODS } from '../../utils/constants';
@@ -28,6 +29,7 @@ const PaymentMethodIcon = ({ method, active, C }: { method: string; active: bool
 const AddonsScreen = () => {
   const C = useTheme();
   const styles = React.useMemo(() => makeStyles(C), [C]);
+  const scrollRef = useWebScrollFix();
 
   const navigation = useNavigation<any>();
   const { draft, setStep3 } = useBookingStore();
@@ -92,7 +94,7 @@ const AddonsScreen = () => {
         <View style={[styles.progressFill, { width: '75%' }]} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
         {/* AMC Upsell Banner — only shown to non-AMC customers */}
         {!isPremium && (
           <TouchableOpacity

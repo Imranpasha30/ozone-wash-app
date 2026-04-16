@@ -187,7 +187,9 @@ const AvailableJobsScreen = () => {
           renderItem={renderItem}
           contentContainerStyle={jobs.length === 0 ? styles.emptyContainer : styles.list}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => fetchJobs(true)} tintColor={C.primary} />
+            Platform.OS !== 'web'
+              ? <RefreshControl refreshing={refreshing} onRefresh={() => fetchJobs(true)} tintColor={C.primary} />
+              : undefined
           }
           ListEmptyComponent={
             <View style={styles.emptyBox}>

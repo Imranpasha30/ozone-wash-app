@@ -2,6 +2,7 @@ import React from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform,
 } from 'react-native';
+import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../../hooks/useTheme';
 import { ArrowLeft } from '../../components/Icons';
@@ -231,6 +232,7 @@ const CONTENT: Record<PolicyType, string> = {
 const PolicyScreen = () => {
   const C = useTheme();
   const styles = React.useMemo(() => makeStyles(C), [C]);
+  const scrollRef = useWebScrollFix();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const type: PolicyType = route.params?.type ?? 'terms';
@@ -254,6 +256,7 @@ const PolicyScreen = () => {
 
       {/* Content */}
       <ScrollView
+        ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}

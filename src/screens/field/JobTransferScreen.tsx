@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   ActivityIndicator, Alert, TextInput, Platform, StatusBar,
 } from 'react-native';
+import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { jobAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
@@ -21,6 +22,7 @@ const JobTransferScreen = () => {
   const route = useRoute<any>();
   const C = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
+  const scrollRef = useWebScrollFix();
   const jobId = route.params?.job_id;
 
   const [teams, setTeams] = useState<any[]>([]);
@@ -88,7 +90,7 @@ const JobTransferScreen = () => {
         <Text style={styles.headerTitle}>Transfer Job</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         {/* Reason */}
         <View style={styles.labelRow}>
           <ArrowsClockwise size={16} weight="regular" color={C.foreground} />

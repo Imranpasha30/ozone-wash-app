@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, ActivityIndicator, RefreshControl, Platform, StatusBar,
 } from 'react-native';
+import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { adminAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
@@ -16,6 +17,7 @@ const AdminDashboardScreen = () => {
   const navigation = useNavigation<any>();
   const C = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
+  const scrollRef = useWebScrollFix();
   const [stats, setStats] = useState<any>(null);
   const [recentBookings, setRecentBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,9 +61,10 @@ const AdminDashboardScreen = () => {
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={styles.root}
       contentContainerStyle={styles.body}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} tintColor={C.primary} />}
+      refreshControl={Platform.OS !== 'web' ? <RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} tintColor={C.primary} /> : undefined}
     >
       <StatusBar barStyle="dark-content" backgroundColor={C.background} />
 

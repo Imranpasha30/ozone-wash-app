@@ -5,6 +5,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { AMC_PLANS } from '../../utils/constants';
 import { useTheme } from '../../hooks/useTheme';
+import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import {
   ArrowLeft, Crown, ShieldCheck, Star, CheckCircle, ArrowRight,
 } from '../../components/Icons';
@@ -22,6 +23,7 @@ const AmcPlansScreen = () => {
   const navigation = useNavigation<any>();
   const C = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
+  const scrollRef = useWebScrollFix();
 
   return (
     <View style={styles.root}>
@@ -35,7 +37,7 @@ const AmcPlansScreen = () => {
         <Crown size={20} weight="fill" color={C.primary} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
         {/* Hero */}
         <View style={styles.hero}>
           <View style={styles.heroIconWrap}>

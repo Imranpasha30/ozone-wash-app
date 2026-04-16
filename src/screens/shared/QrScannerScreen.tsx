@@ -2,10 +2,18 @@ import React, { useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Platform, StatusBar,
 } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../hooks/useTheme';
 import { ArrowLeft, QrCode, Warning } from '../../components/Icons';
+
+// expo-camera is native-only — lazy import so web bundler never touches it
+let CameraView: any = null;
+let useCameraPermissions: any = () => [null, () => {}];
+if (Platform.OS !== 'web') {
+  const cam = require('expo-camera');
+  CameraView = cam.CameraView;
+  useCameraPermissions = cam.useCameraPermissions;
+}
 
 const QrScannerScreen = () => {
   const navigation = useNavigation<any>();
@@ -13,6 +21,33 @@ const QrScannerScreen = () => {
   const styles = useMemo(() => makeStyles(C), [C]);
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
+
+  // Web: show a text input fallback for manual cert ID entry
+  if (Platform.OS === 'web') {
+    return (
+      <View style={styles.root}>
+        <StatusBar barStyle="dark-content" />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <ArrowLeft size={22} weight="regular" color={C.foreground} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Verify Certificate</Text>
+        </View>
+        <View style={styles.center}>
+          <View style={styles.permIconWrap}>
+            <QrCode size={40} weight="regular" color={C.primary} />
+          </View>
+          <Text style={styles.permTitle}>QR Scanning</Text>
+          <Text style={styles.permText}>
+            QR scanning requires the mobile app. On web, visit the certificate URL directly or use the Ozone Wash app to scan.
+          </Text>
+          <TouchableOpacity style={styles.permBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
+            <Text style={styles.permBtnText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   const handleBarCodeScanned = ({ data }: { data: string }) => {
     if (scanned) return;

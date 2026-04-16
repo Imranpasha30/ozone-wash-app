@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { incidentAPI, uploadAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import {
@@ -16,6 +17,7 @@ const IncidentReportScreen = () => {
   const route = useRoute<any>();
   const C = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
+  const scrollRef = useWebScrollFix();
   const jobId = route.params?.job_id;
 
   const SEVERITIES = [
@@ -31,6 +33,17 @@ const IncidentReportScreen = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const pickPhoto = async () => {
+    if (Platform.OS === 'web') {
+      // Camera not reliably available on web — use gallery/file picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 0.7,
+      });
+      if (!result.canceled && result.assets[0]) {
+        setPhotoUri(result.assets[0].uri);
+      }
+      return;
+    }
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ['images'],
       quality: 0.7,
@@ -82,7 +95,7 @@ const IncidentReportScreen = () => {
         <Text style={styles.headerTitle}>Report Incident</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         {/* Severity */}
         <View style={styles.labelRow}>
           <Warning size={16} weight="fill" color={C.foreground} />

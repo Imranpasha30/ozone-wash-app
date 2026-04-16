@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RootNavigator from './src/navigation/RootNavigator';
@@ -55,6 +55,37 @@ const saveNotification = async (title: string, body: string, data?: Record<strin
 
 export default function App() {
   console.log('[4] App() render called');
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    // Fix viewport so content scrolls above the software keyboard on mobile web.
+    // interactive-widget=resizes-content shrinks the layout viewport (not just visual
+    // viewport) when the keyboard appears, pushing content up automatically.
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (viewport) {
+      const content = viewport.getAttribute('content') || '';
+      if (!content.includes('interactive-widget')) {
+        viewport.setAttribute('content', content + ',interactive-widget=resizes-content');
+      }
+    }
+
+    // Inject web-specific CSS
+    const style = document.createElement('style');
+    style.id = 'ozone-web-fixes';
+    style.textContent = `
+      html { height: 100%; }
+      body { height: 100%; overflow: hidden; }
+      #root { height: 100%; }
+      /* Smooth momentum scrolling inside scroll containers */
+      [style*="overflow"] { -webkit-overflow-scrolling: touch; }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      document.getElementById('ozone-web-fixes')?.remove();
+    };
+  }, []);
 
   useEffect(() => {
     // Listen for notifications received while app is in foreground

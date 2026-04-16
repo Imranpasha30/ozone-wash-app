@@ -307,7 +307,7 @@ const AdminJobsScreen = () => {
           data={concerns}
           keyExtractor={(c) => c.id}
           contentContainerStyle={concerns.length === 0 ? styles.emptyContainer : styles.list}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} tintColor={C.primary} />}
+          refreshControl={Platform.OS !== 'web' ? <RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} tintColor={C.primary} /> : undefined}
           renderItem={({ item: c }) => (
             <View style={[styles.card, styles.concernCard]}>
               <View style={styles.concernBanner}>
@@ -354,7 +354,7 @@ const AdminJobsScreen = () => {
           data={requests}
           keyExtractor={(r) => r.id}
           contentContainerStyle={requests.length === 0 ? styles.emptyContainer : styles.list}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} tintColor={C.primary} />}
+          refreshControl={Platform.OS !== 'web' ? <RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} tintColor={C.primary} /> : undefined}
           renderItem={({ item: r }) => (
             <View style={styles.card}>
               <View style={styles.cardTop}>
@@ -397,7 +397,7 @@ const AdminJobsScreen = () => {
           keyExtractor={(j) => j.id}
           renderItem={renderJob}
           contentContainerStyle={filtered.length === 0 ? styles.emptyContainer : styles.list}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} tintColor={C.primary} />}
+          refreshControl={Platform.OS !== 'web' ? <RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} tintColor={C.primary} /> : undefined}
           ListEmptyComponent={
             <View style={styles.emptyBox}>
               <Wrench size={48} weight="regular" color={C.muted} />

@@ -57,10 +57,13 @@ const useScrollReveal = (
   type: AnimType = 'fadeUp',
   staggerDelay: number = 0,
 ) => {
-  const opacity    = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(type === 'fadeUp'    ? 40  : 0)).current;
-  const translateX = useRef(new Animated.Value(type === 'slideLeft' ? -40 : 0)).current;
-  const scale      = useRef(new Animated.Value(type === 'zoom'      ? 0.6 : 1)).current;
+  // On web, measureLayout is unreliable — skip animations and start fully visible.
+  const isWeb = Platform.OS === 'web';
+
+  const opacity    = useRef(new Animated.Value(isWeb ? 1 : 0)).current;
+  const translateY = useRef(new Animated.Value(isWeb ? 0 : (type === 'fadeUp'    ? 40  : 0))).current;
+  const translateX = useRef(new Animated.Value(isWeb ? 0 : (type === 'slideLeft' ? -40 : 0))).current;
+  const scale      = useRef(new Animated.Value(isWeb ? 1 : (type === 'zoom'      ? 0.6 : 1))).current;
 
   const viewRef      = useRef<any>(null);
   const posY         = useRef(-1);
@@ -68,15 +71,17 @@ const useScrollReveal = (
   const staggerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const measureSelf = useCallback(() => {
+    if (isWeb) return; // web: already fully visible, no need to measure
     if (!viewRef.current || !scrollContentRef.current) return;
     viewRef.current.measureLayout(
       scrollContentRef.current,
       (_x: number, y: number) => { posY.current = y; },
       () => {},
     );
-  }, [scrollContentRef]);
+  }, [isWeb, scrollContentRef]);
 
   const checkVisibility = useCallback((scrollOffset: number) => {
+    if (isWeb) return; // web: already fully visible, skip scroll check
     if (posY.current < 0) return;
     const viewBottom = scrollOffset + screenH;
     const inView =
@@ -114,7 +119,7 @@ const useScrollReveal = (
       }
       Animated.parallel(out).start();
     }
-  }, [type, staggerDelay, opacity, translateY, translateX, scale, screenH]);
+  }, [isWeb, type, staggerDelay, opacity, translateY, translateX, scale, screenH]);
 
   const animStyle =
     type === 'fadeUp'    ? { opacity, transform: [{ translateY }] } :
@@ -133,6 +138,25 @@ const LandingScreen = () => {
 
   const scrollContentRef = useRef<View>(null);
   const scrollYRef       = useRef(0);
+  const scrollViewRef    = useRef<any>(null);
+
+  // On web, directly fix the ScrollView's DOM node so it actually scrolls.
+  // RNW sets overflow:hidden on the outer wrapper and height:auto on the inner
+  // container, which prevents scrolling. We override both after mount.
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const sv = scrollViewRef.current;
+    if (!sv) return;
+    const inner = (sv.getScrollableNode?.() ?? sv) as HTMLElement;
+    if (inner) {
+      // flex-grow expands the element to fill its unconstrained parent (matching
+      // content height), so `height` alone loses. max-height CANNOT be overridden
+      // by flex-grow — this forces the scroll container to stay at viewport height.
+      inner.style.maxHeight = `${screenH}px`;
+      inner.style.overflowY = 'scroll';
+      inner.style.overflowX = 'hidden';
+    }
+  }, [screenH]);
 
   // ── Hero animation ───────────────────────────────────────────────
   const heroOpacity    = useRef(new Animated.Value(0)).current;
@@ -216,7 +240,9 @@ const LandingScreen = () => {
     <View style={s.root}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      <ScrollView
+<ScrollView
+        ref={scrollViewRef}
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}

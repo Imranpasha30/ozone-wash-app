@@ -206,7 +206,9 @@ const MyBookingsScreen = () => {
           renderItem={renderItem}
           contentContainerStyle={bookings.length === 0 ? styles.emptyContainer : styles.list}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => fetchBookings(true)} tintColor={C.primary} />
+            Platform.OS !== 'web'
+              ? <RefreshControl refreshing={refreshing} onRefresh={() => fetchBookings(true)} tintColor={C.primary} />
+              : undefined
           }
           ListEmptyComponent={
             <View style={styles.emptyBox}>

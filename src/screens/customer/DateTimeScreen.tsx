@@ -7,11 +7,13 @@ import { useNavigation } from '@react-navigation/native';
 import useBookingStore from '../../store/booking.store';
 import { bookingAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
+import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { ArrowLeft, ArrowRight, Calendar, Clock, HandPalm, Info } from '../../components/Icons';
 
 const DateTimeScreen = () => {
   const C = useTheme();
   const styles = React.useMemo(() => makeStyles(C), [C]);
+  const scrollRef = useWebScrollFix();
 
   const navigation = useNavigation<any>();
   const { setStep2 } = useBookingStore();
@@ -92,7 +94,7 @@ const DateTimeScreen = () => {
         <View style={[styles.progressFill, { width: '50%' }]} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
         {/* Date Picker */}
         <View style={styles.labelRow}>
           <Calendar size={16} weight="regular" color={C.primary} />

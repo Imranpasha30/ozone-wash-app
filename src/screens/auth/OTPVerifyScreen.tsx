@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, ActivityIndicator, Alert,
-  KeyboardAvoidingView, Platform, StatusBar,
+  KeyboardAvoidingView, Platform, StatusBar, ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -151,6 +151,22 @@ const OTPVerifyScreen = () => {
           {formContent}
         </View>
       </View>
+    );
+  }
+
+  // On web, KeyboardAvoidingView does nothing — use a ScrollView so the page
+  // can scroll to keep the focused OTP input above the software keyboard.
+  if (Platform.OS === 'web') {
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+        {formContent}
+      </ScrollView>
     );
   }
 

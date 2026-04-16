@@ -3,10 +3,16 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Alert, Modal, Platform, StatusBar,
 } from 'react-native';
-import { WebView } from 'react-native-webview';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { amcAPI, paymentAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
+import { useWebScrollFix } from '../../utils/useWebScrollFix';
+
+// react-native-webview is native-only
+let WebView: any = null;
+if (Platform.OS !== 'web') {
+  WebView = require('react-native-webview').WebView;
+}
 import {
   ArrowLeft, Crown, ShieldCheck, CheckCircle, CreditCard,
   Calendar, Receipt, X,
@@ -30,6 +36,7 @@ const AmcEnrollmentScreen = () => {
   const route = useRoute<any>();
   const C = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
+  const scrollRef = useWebScrollFix();
 
   const { plan_type, plan_label, plan_price } = route.params || {};
   const features = PLAN_FEATURES[plan_type] || [];
@@ -159,7 +166,7 @@ const AmcEnrollmentScreen = () => {
         <Text style={styles.headerTitle}>Enroll in AMC</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
         {/* Plan Summary Card */}
         <View style={styles.planCard}>
           <View style={styles.planCardHeader}>
@@ -256,23 +263,25 @@ const AmcEnrollmentScreen = () => {
         </View>
       </ScrollView>
 
-      {/* Razorpay WebView Modal */}
-      <Modal visible={showRazorpay} animationType="slide" onRequestClose={() => setShowRazorpay(false)}>
-        <View style={styles.razorpayContainer}>
-          <TouchableOpacity style={styles.razorpayClose} onPress={() => setShowRazorpay(false)}>
-            <X size={20} weight="bold" color={C.danger} />
-            <Text style={styles.razorpayCloseText}>Close</Text>
-          </TouchableOpacity>
-          <WebView
-            originWhitelist={['*']}
-            source={{ html: razorpayHtml }}
-            onMessage={handleRazorpayMessage}
-            javaScriptEnabled
-            domStorageEnabled
-            style={{ flex: 1, backgroundColor: C.background }}
-          />
-        </View>
-      </Modal>
+      {/* Razorpay WebView Modal — native only */}
+      {Platform.OS !== 'web' && WebView && (
+        <Modal visible={showRazorpay} animationType="slide" onRequestClose={() => setShowRazorpay(false)}>
+          <View style={styles.razorpayContainer}>
+            <TouchableOpacity style={styles.razorpayClose} onPress={() => setShowRazorpay(false)}>
+              <X size={20} weight="bold" color={C.danger} />
+              <Text style={styles.razorpayCloseText}>Close</Text>
+            </TouchableOpacity>
+            <WebView
+              originWhitelist={['*']}
+              source={{ html: razorpayHtml }}
+              onMessage={handleRazorpayMessage}
+              javaScriptEnabled
+              domStorageEnabled
+              style={{ flex: 1, backgroundColor: C.background }}
+            />
+          </View>
+        </Modal>
+      )}
     </View>
   );
 };

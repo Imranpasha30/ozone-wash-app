@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   ScrollView, Alert, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
+import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -43,6 +44,7 @@ const TankTypeIcon = ({ type, active, C }: { type: string; active: boolean; C: a
 const TankDetailsScreen = () => {
   const C = useTheme();
   const styles = React.useMemo(() => makeStyles(C), [C]);
+  const scrollRef = useWebScrollFix();
 
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -135,6 +137,26 @@ const TankDetailsScreen = () => {
   const handleUseMyLocation = async () => {
     setLocating(true);
     try {
+      if (Platform.OS === 'web') {
+        if (!navigator.geolocation) {
+          Alert.alert('Not Supported', 'Geolocation is not supported by your browser.');
+          setLocating(false);
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            setCoords({ lat: latitude, lng: longitude });
+            setLocating(false);
+          },
+          () => {
+            Alert.alert('Location Error', 'Could not get your location. Please allow location access.');
+            setLocating(false);
+          },
+          { enableHighAccuracy: true, timeout: 10000 },
+        );
+        return;
+      }
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permission Denied', 'Allow location access to use this feature.');
@@ -196,9 +218,16 @@ const TankDetailsScreen = () => {
 
   const totalBasePrice = tanks.reduce((sum, t) => sum + (t.tank_type ? tankPrice(t) : 0), 0);
 
+  // On web, KeyboardAvoidingView has no effect — the inner ScrollView already
+  // handles scrolling, so just use a plain View as the root wrapper.
+  const RootWrapper = Platform.OS === 'web' ? View : KeyboardAvoidingView;
+  const rootWrapperProps = Platform.OS === 'web'
+    ? { style: styles.root }
+    : { style: styles.root, behavior: (Platform.OS === 'ios' ? 'padding' : undefined) as any };
+
   return (
-    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.container}>
+    <RootWrapper {...rootWrapperProps}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.container}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -515,7 +544,7 @@ const TankDetailsScreen = () => {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </RootWrapper>
   );
 };
 

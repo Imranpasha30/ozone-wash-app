@@ -163,6 +163,28 @@ const AddressPickerScreen = ({ navigation, route }: any) => {
     setShowSuggestions(false);
     setIsLocating(true);
     try {
+      if (Platform.OS === 'web') {
+        // Use browser Geolocation API on web
+        if (!navigator.geolocation) {
+          Alert.alert('Not Supported', 'Geolocation is not supported by your browser.');
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+            const newRegion = { latitude, longitude, latitudeDelta: 0.005, longitudeDelta: 0.005 };
+            setRegion(newRegion);
+            await reverseGeocode(latitude, longitude);
+            setIsLocating(false);
+          },
+          () => {
+            Alert.alert('Location Error', 'Could not get your location. Please allow location access.');
+            setIsLocating(false);
+          },
+          { enableHighAccuracy: true, timeout: 10000 },
+        );
+        return;
+      }
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permission Denied', 'Allow location access to use this feature.');
@@ -177,7 +199,7 @@ const AddressPickerScreen = ({ navigation, route }: any) => {
     } catch (err: any) {
       Alert.alert('Location Error', err.message ?? 'Could not get your location.');
     } finally {
-      setIsLocating(false);
+      if (Platform.OS !== 'web') setIsLocating(false);
     }
   }, [reverseGeocode]);
 

@@ -3,8 +3,16 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   ActivityIndicator, Alert, Platform,
 } from 'react-native';
-import { documentDirectory, downloadAsync } from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
+import { useWebScrollFix } from '../../utils/useWebScrollFix';
+let documentDirectory: string | null = null;
+let downloadAsync: any = null;
+let Sharing: any = null;
+if (Platform.OS !== 'web') {
+  const fs = require('expo-file-system/legacy');
+  documentDirectory = fs.documentDirectory;
+  downloadAsync = fs.downloadAsync;
+  Sharing = require('expo-sharing');
+}
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { certificateAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
@@ -109,6 +117,7 @@ const makeStyles = (C: any) => StyleSheet.create({
 const CertificateScreen = () => {
   const C = useTheme();
   const styles = React.useMemo(() => makeStyles(C), [C]);
+  const scrollRef = useWebScrollFix();
 
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -199,7 +208,7 @@ const CertificateScreen = () => {
         <Text style={styles.headerTitle}>Hygiene Certificate</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
         {/* Certificate Card */}
         <View style={[styles.certCard, { borderColor: BADGE_COLORS[badge] }]}>
           {/* Header */}
@@ -264,6 +273,16 @@ const CertificateScreen = () => {
             style={styles.downloadBtn}
             onPress={async () => {
               try {
+                if (Platform.OS === 'web') {
+                  const a = document.createElement('a');
+                  a.href = cert.certificate_url;
+                  a.download = `ozone_cert_${cert.id.slice(0, 8)}.pdf`;
+                  a.target = '_blank';
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  return;
+                }
                 const fileUri = documentDirectory + `ozone_cert_${cert.id.slice(0, 8)}.pdf`;
                 const download = await downloadAsync(cert.certificate_url, fileUri);
                 if (await Sharing.isAvailableAsync()) {

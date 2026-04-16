@@ -60,7 +60,7 @@ const OtpEntryScreen = () => {
         ]);
       }
     } catch (err: any) {
-      Vibration.vibrate(200);
+      if (Platform.OS !== 'web') Vibration.vibrate(200);
       setError(err.message || 'Invalid OTP');
       setOtp('');
     } finally {

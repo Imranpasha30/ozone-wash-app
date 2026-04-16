@@ -6,6 +6,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { bookingAPI, complianceAPI, certificateAPI, jobAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
+import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import {
   ArrowLeft, ArrowRight, Key, CheckCircle, Hourglass, Trophy,
   ThumbsUp, ThumbsDown, QrCode, ShieldCheck, Warning, Lightning,
@@ -167,6 +168,7 @@ const makeStyles = (C: any) => StyleSheet.create({
 const BookingDetailScreen = () => {
   const C = useTheme();
   const styles = React.useMemo(() => makeStyles(C), [C]);
+  const scrollRef = useWebScrollFix();
 
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -331,7 +333,7 @@ const BookingDetailScreen = () => {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
         {/* SLA Breach Alert */}
         {isSlaBreach && (
           <View style={styles.slaBreach}>

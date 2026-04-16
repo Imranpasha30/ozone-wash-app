@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl, ScrollView, Alert, Platform, StatusBar,
 } from 'react-native';
+import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { useFocusEffect } from '@react-navigation/native';
 import { adminAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
@@ -13,6 +14,7 @@ const FILTERS = ['All', 'Active', 'Pending', 'Expired', 'Cancelled'];
 const AdminAmcScreen = () => {
   const C = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
+  const scrollRef = useWebScrollFix();
   const [contracts, setContracts] = useState<any[]>([]);
   const [expiring, setExpiring] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

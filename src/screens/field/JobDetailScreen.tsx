@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   ActivityIndicator, Alert, Linking, Platform, StatusBar,
 } from 'react-native';
+import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { jobAPI, complianceAPI, ecoScoreAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
@@ -18,6 +19,7 @@ const JobDetailScreen = () => {
   const route = useRoute<any>();
   const C = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
+  const scrollRef = useWebScrollFix();
   const jobId = route.params?.job_id;
 
   const [job, setJob] = useState<Job | null>(null);
@@ -147,7 +149,7 @@ const JobDetailScreen = () => {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
         {/* Job Summary */}
         <View style={styles.summaryCard}>
           <Text style={styles.jobIdText}>Job #{job.id?.slice(0, 8).toUpperCase()}</Text>

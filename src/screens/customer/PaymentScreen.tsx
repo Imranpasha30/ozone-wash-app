@@ -1,14 +1,20 @@
 import React, { useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  ActivityIndicator, Alert, Modal,
+  ActivityIndicator, Alert, Modal, Platform,
 } from 'react-native';
-import { WebView } from 'react-native-webview';
 import { useNavigation } from '@react-navigation/native';
 import useBookingStore from '../../store/booking.store';
 import { bookingAPI, paymentAPI } from '../../services/api';
 import { API_URL } from '../../utils/constants';
 import { useTheme } from '../../hooks/useTheme';
+import { useWebScrollFix } from '../../utils/useWebScrollFix';
+
+// react-native-webview is native-only
+let WebView: any = null;
+if (Platform.OS !== 'web') {
+  WebView = require('react-native-webview').WebView;
+}
 import {
   ArrowLeft, CheckCircle, CreditCard, Wallet, CurrencyInr,
   Phone, X, House, Wrench, Drop, Receipt, ShieldCheck,
@@ -91,6 +97,7 @@ const makeStyles = (C: any) => StyleSheet.create({
 const PaymentScreen = () => {
   const C = useTheme();
   const styles = React.useMemo(() => makeStyles(C), [C]);
+  const scrollRef = useWebScrollFix();
 
   const navigation = useNavigation<any>();
   const { draft, reset } = useBookingStore();
@@ -275,7 +282,7 @@ const PaymentScreen = () => {
         <View style={[styles.progressFill, { width: '100%' }]} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
         {/* Booking Summary */}
         <Text style={styles.sectionTitle}>Booking Summary</Text>
         <View style={styles.summaryCard}>
@@ -361,23 +368,25 @@ const PaymentScreen = () => {
         </View>
       </ScrollView>
 
-      {/* Razorpay WebView Checkout Modal */}
-      <Modal visible={showRazorpay} animationType="slide" onRequestClose={() => setShowRazorpay(false)}>
-        <View style={styles.razorpayContainer}>
-          <TouchableOpacity style={styles.razorpayClose} onPress={() => setShowRazorpay(false)}>
-            <X size={20} weight="bold" color={C.danger} />
-            <Text style={styles.razorpayCloseText}>Close</Text>
-          </TouchableOpacity>
-          <WebView
-            originWhitelist={['*']}
-            source={{ html: razorpayHtml }}
-            onMessage={handleRazorpayMessage}
-            javaScriptEnabled
-            domStorageEnabled
-            style={{ flex: 1, backgroundColor: C.background }}
-          />
-        </View>
-      </Modal>
+      {/* Razorpay WebView Checkout Modal — native only */}
+      {Platform.OS !== 'web' && WebView && (
+        <Modal visible={showRazorpay} animationType="slide" onRequestClose={() => setShowRazorpay(false)}>
+          <View style={styles.razorpayContainer}>
+            <TouchableOpacity style={styles.razorpayClose} onPress={() => setShowRazorpay(false)}>
+              <X size={20} weight="bold" color={C.danger} />
+              <Text style={styles.razorpayCloseText}>Close</Text>
+            </TouchableOpacity>
+            <WebView
+              originWhitelist={['*']}
+              source={{ html: razorpayHtml }}
+              onMessage={handleRazorpayMessage}
+              javaScriptEnabled
+              domStorageEnabled
+              style={{ flex: 1, backgroundColor: C.background }}
+            />
+          </View>
+        </Modal>
+      )}
     </View>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, RefreshControl,
+  ActivityIndicator, RefreshControl, Platform,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { bookingAPI } from '../../services/api';
@@ -170,7 +170,9 @@ const CertificatesScreen = () => {
           renderItem={renderItem}
           contentContainerStyle={bookings.length === 0 ? styles.emptyContainer : styles.list}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} tintColor={C.primary} />
+            Platform.OS !== 'web'
+              ? <RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} tintColor={C.primary} />
+              : undefined
           }
           ListHeaderComponent={
             <View style={styles.infoBox}>
