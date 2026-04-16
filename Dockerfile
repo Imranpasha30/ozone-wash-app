@@ -1,5 +1,4 @@
-# ── Build stage ──────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:20-alpine
 
 WORKDIR /app
 
@@ -11,17 +10,6 @@ RUN npm install
 COPY . .
 RUN npm run web:build
 
-# ── Serve stage ───────────────────────────────────────────────────────
-FROM node:20-alpine AS runner
-
-WORKDIR /app
-
-# Install serve globally
-RUN npm install -g serve
-
-# Copy built output from builder
-COPY --from=builder /app/dist ./dist
-
 EXPOSE 3000
 
-CMD serve dist --single --listen 3000
+CMD ["npx", "serve", "dist", "--single", "--listen", "3000"]
