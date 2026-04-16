@@ -50,5 +50,8 @@
     "serve": "^14.2.6",
     "typescript": "~5.9.2"
   },
-  "private": true
+  "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  }
 }
