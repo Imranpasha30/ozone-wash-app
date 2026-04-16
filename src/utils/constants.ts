@@ -5,7 +5,7 @@
 // To switch local IP: update EXPO_PUBLIC_LOCAL_API_URL in .env
 export const API_URL = __DEV__
   ? (process.env.EXPO_PUBLIC_LOCAL_API_URL || 'http://192.168.31.22:5000/api/v1')
-  : (process.env.EXPO_PUBLIC_API_URL       || 'https://ozone-wash-backend-production.up.railway.app/api/v1');
+  : (process.env.EXPO_PUBLIC_API_URL       || 'https://service.ozonewash.in/api/v1');
 
 console.log(`[API] __DEV__=${__DEV__} → ${API_URL}`);
 

@@ -1,8 +1,11 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { BottomTabBar } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { COLORS } from '../utils/constants';
 import { ChartBar, ClipboardText, Wrench, UserCircle } from '../components/Icons';
+import WebSidebarBar from '../components/WebSidebarBar';
+import { useResponsive, SIDEBAR_WIDTH } from '../utils/responsive';
 
 import AdminDashboardScreen from '../screens/admin/AdminDashboardScreen';
 import AdminBookingsScreen from '../screens/admin/AdminBookingsScreen';
@@ -19,8 +22,14 @@ import CertVerifyResultScreen from '../screens/shared/CertVerifyResultScreen';
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-const AdminTabs = () => (
+const AdminTabs = () => {
+  const { isLarge } = useResponsive();
+  return (
   <Tab.Navigator
+    tabBar={(props) =>
+      isLarge ? <WebSidebarBar {...props} /> : <BottomTabBar {...props} />
+    }
+    sceneContainerStyle={isLarge ? { marginLeft: SIDEBAR_WIDTH } : undefined}
     screenOptions={{
       headerShown: false,
       tabBarActiveTintColor: COLORS.primary,
@@ -82,7 +91,8 @@ const AdminTabs = () => (
       }}
     />
   </Tab.Navigator>
-);
+  );
+};
 
 const AdminNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>

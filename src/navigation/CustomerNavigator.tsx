@@ -1,8 +1,11 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { BottomTabBar } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useTheme } from '../hooks/useTheme';
 import { Drop, ClipboardText, Trophy, UserCircle } from '../components/Icons';
+import WebSidebarBar from '../components/WebSidebarBar';
+import { useResponsive, SIDEBAR_WIDTH } from '../utils/responsive';
 
 // Tab screens
 import BookingHomeScreen from '../screens/customer/BookingHomeScreen';
@@ -33,9 +36,14 @@ const Stack = createStackNavigator();
 
 const CustomerTabs = () => {
   const C = useTheme();
+  const { isLarge } = useResponsive();
 
   return (
     <Tab.Navigator
+      tabBar={(props) =>
+        isLarge ? <WebSidebarBar {...props} /> : <BottomTabBar {...props} />
+      }
+      sceneContainerStyle={isLarge ? { marginLeft: SIDEBAR_WIDTH } : undefined}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: C.primary,

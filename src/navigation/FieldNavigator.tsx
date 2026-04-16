@@ -1,8 +1,11 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { BottomTabBar } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { COLORS } from '../utils/constants';
 import { Wrench, ChartBar, UserCircle, MagnifyingGlass } from '../components/Icons';
+import WebSidebarBar from '../components/WebSidebarBar';
+import { useResponsive, SIDEBAR_WIDTH } from '../utils/responsive';
 
 // Tab screens
 import JobListScreen from '../screens/field/JobListScreen';
@@ -24,8 +27,14 @@ import LiveStreamScreen from '../screens/field/LiveStreamScreen';
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-const FieldTabs = () => (
+const FieldTabs = () => {
+  const { isLarge } = useResponsive();
+  return (
   <Tab.Navigator
+    tabBar={(props) =>
+      isLarge ? <WebSidebarBar {...props} /> : <BottomTabBar {...props} />
+    }
+    sceneContainerStyle={isLarge ? { marginLeft: SIDEBAR_WIDTH } : undefined}
     screenOptions={{
       headerShown: false,
       tabBarActiveTintColor: COLORS.primary,
@@ -91,7 +100,8 @@ const FieldTabs = () => (
       }}
     />
   </Tab.Navigator>
-);
+  );
+};
 
 const FieldNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
