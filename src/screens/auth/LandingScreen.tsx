@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, StatusBar,
-  Platform, Image, ScrollView, Animated,
+  Platform, Image, ScrollView, Animated, Easing,
   NativeSyntheticEvent, NativeScrollEvent, useWindowDimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+// react-native-svg available if needed for native SVG rendering
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useResponsive } from '../../utils/responsive';
 import {
@@ -211,10 +212,35 @@ function FaqItem({ q, a, open, onToggle, compact = false }: { q: string; a: stri
 /* ══════════════════════════════════════════════════════════════════
    BUBBLES (web only, rising particles)
    ════════════════════════════════════════════════════════════════ */
+/* Native bubble component — single animated circle rising */
+function NativeBubble({ size, leftPct, delay, dur, opacity: baseOp }: {
+  size: number; leftPct: number; delay: number; dur: number; opacity: number;
+}) {
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      Animated.loop(
+        Animated.timing(anim, { toValue: 1, duration: dur * 1000, easing: Easing.linear, useNativeDriver: true }),
+      ).start();
+    }, Math.abs(delay) * 300);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [100, -600] });
+  const opacity = anim.interpolate({ inputRange: [0, 0.1, 0.85, 1], outputRange: [0, baseOp, baseOp * 0.6, 0] });
+
+  return (
+    <Animated.View style={{
+      position: 'absolute', left: `${leftPct}%` as any, bottom: -20,
+      width: size, height: size, borderRadius: size / 2,
+      backgroundColor: 'rgba(255,255,255,0.25)',
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)',
+      transform: [{ translateY }], opacity,
+    }} />
+  );
+}
+
 function BubblesEffect({ count = 14, seed = 1 }: { count?: number; seed?: number }) {
-  if (Platform.OS !== 'web') return null;
-  const Div = 'div' as any;
-  const Span = 'span' as any;
   const bubbles = useMemo(() => {
     const rng = (i: number) => {
       const x = Math.sin(i * 9301 + seed * 49297) * 233280;
@@ -229,25 +255,40 @@ function BubblesEffect({ count = 14, seed = 1 }: { count?: number; seed?: number
       op: 0.3 + rng(i + 500) * 0.5,
     }));
   }, [count, seed]);
+
+  // Web version uses CSS keyframes
+  if (Platform.OS === 'web') {
+    const Div = 'div' as any;
+    const Span = 'span' as any;
+    return (
+      <Div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+        overflow: 'hidden', pointerEvents: 'none', zIndex: 0,
+      }}>
+        {bubbles.map((b: any, i: number) => (
+          <Span key={i} style={{
+            position: 'absolute',
+            left: `${b.left}%`, bottom: -80,
+            width: b.size, height: b.size,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(255,255,255,0.15) 60%, transparent 70%)',
+            border: '1px solid rgba(255,255,255,0.35)',
+            opacity: b.op,
+            animation: `ozBubbleRise ${b.dur}s linear ${b.delay}s infinite`,
+            '--drift': `${b.drift}px`,
+          }} />
+        ))}
+      </Div>
+    );
+  }
+
+  // Native version uses Animated API
   return (
-    <Div style={{
-      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-      overflow: 'hidden', pointerEvents: 'none', zIndex: 0,
-    }}>
-      {bubbles.map((b: any, i: number) => (
-        <Span key={i} style={{
-          position: 'absolute',
-          left: `${b.left}%`, bottom: -80,
-          width: b.size, height: b.size,
-          borderRadius: '50%',
-          background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(255,255,255,0.15) 60%, transparent 70%)',
-          border: '1px solid rgba(255,255,255,0.35)',
-          opacity: b.op,
-          animation: `ozBubbleRise ${b.dur}s linear ${b.delay}s infinite`,
-          '--drift': `${b.drift}px`,
-        }} />
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {bubbles.map((b, i) => (
+        <NativeBubble key={i} size={b.size} leftPct={b.left} delay={b.delay} dur={b.dur} opacity={b.op} />
       ))}
-    </Div>
+    </View>
   );
 }
 
@@ -270,251 +311,460 @@ function SparkleDot({ style, size = 18 }: { style?: any; size?: number }) {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   HERO PHONE MOCKUP (desktop hero right side)
+   CENTER RIPPLE (web only - big drop + expanding rings)
    ════════════════════════════════════════════════════════════════ */
-function HeroPhoneMockup() {
+function CenterRipple({ color = '#38BDF8' }: { color?: string }) {
+  if (Platform.OS !== 'web') return null;
+  const Div = 'div' as any;
+  return (
+    <Div style={{
+      position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 1,
+    }}>
+      <Div style={{
+        position: 'absolute', left: '50%', top: 0, transform: 'translateX(-50%)',
+        width: 28, height: 42,
+        background: `radial-gradient(ellipse at 38% 28%, #ffffff 0%, #BAE6FD 35%, ${color} 70%, #0284C7 100%)`,
+        borderRadius: '50% 50% 50% 50% / 62% 62% 38% 38%',
+        boxShadow: `0 0 20px ${color}80, inset -4px -8px 14px rgba(2,132,199,0.5), inset 4px 6px 10px rgba(255,255,255,0.6)`,
+        animation: 'ozCrDrop 4.2s cubic-bezier(.55,0,.85,.55) infinite',
+        transformOrigin: 'center top',
+      }} />
+      <Div style={{
+        position: 'absolute', left: '50%', top: 0, transform: 'translateX(-50%)',
+        width: 3, height: 0,
+        background: `linear-gradient(180deg, transparent, ${color}aa, transparent)`,
+        filter: 'blur(1px)',
+        animation: 'ozCrStreak 4.2s cubic-bezier(.55,0,.85,.55) infinite',
+      }} />
+      <Div style={{
+        position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+        width: 60, height: 60, borderRadius: '50%',
+        background: `radial-gradient(circle, rgba(255,255,255,0.9), ${color}60 55%, transparent 75%)`,
+        opacity: 0, animation: 'ozCrFlash 4.2s cubic-bezier(.3,.7,.3,1) infinite',
+      }} />
+      {[0, 0.22, 0.42].map((delay, i) => (
+        <Div key={i} style={{
+          position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+          width: 20, height: 20, borderRadius: '50%',
+          border: `2px solid ${color}`, opacity: 0,
+          boxShadow: `0 0 16px ${color}40, inset 0 0 12px ${color}30`,
+          animation: `ozCrRing 4.2s cubic-bezier(.25,.7,.3,1) ${delay}s infinite`,
+        }} />
+      ))}
+      <Div style={{
+        position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+        width: 40, height: 12, borderRadius: '50%',
+        border: `1.5px solid ${color}`, opacity: 0,
+        animation: 'ozCrWave 4.2s cubic-bezier(.25,.7,.3,1) infinite',
+        boxShadow: `0 0 20px ${color}60`,
+      }} />
+      <Div style={{
+        position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+        width: 40, height: 12, borderRadius: '50%',
+        border: `1px solid ${color}`, opacity: 0,
+        animation: 'ozCrWave 4.2s cubic-bezier(.25,.7,.3,1) 0.35s infinite',
+      }} />
+      {[-28, -14, 0, 14, 28].map((dx, i) => (
+        <Div key={'s' + i} style={{
+          position: 'absolute', left: `calc(50% + ${dx}px)`, top: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 5, height: 5, borderRadius: '50%',
+          background: color, boxShadow: `0 0 8px ${color}`,
+          opacity: 0, animation: `ozCrCrown${i} 4.2s cubic-bezier(.2,.9,.3,1) infinite`,
+        }} />
+      ))}
+    </Div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   HERO VISUAL (desktop hero right side - blue tank + floating cards)
+   ════════════════════════════════════════════════════════════════ */
+function HeroVisual() {
   const [pct, setPct] = useState(0);
-  const [phase, setPhase] = useState<'fill' | 'hold' | 'pulse'>('fill');
-  const [waveOffset, setWaveOffset] = useState(0);
+  const wrapRef = useRef<any>(null);
+  const [par, setPar] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
-    let raf: number;
-    const t0 = performance.now();
-    const FILL = 3800, HOLD = 1200, PULSE = 2000;
-    const CYCLE = FILL + HOLD + PULSE;
-
+    let raf: number; const t0 = performance.now();
     const loop = (t: number) => {
-      const elapsed = (t - t0) % CYCLE;
-      // Wave animation runs continuously
-      setWaveOffset((t - t0) * 0.003);
-
-      if (elapsed < FILL) {
-        // Fill phase: 0 → 1
-        const p = elapsed / FILL;
-        const eased = 1 - Math.pow(1 - p, 2.5);
-        setPct(eased);
-        setPhase('fill');
-      } else if (elapsed < FILL + HOLD) {
-        // Hold at 100%
-        setPct(1);
-        setPhase('hold');
-      } else {
-        // Pulse/glow phase then restart
-        setPct(1);
-        setPhase('pulse');
-      }
+      setPct(((t - t0) % 6000) / 6000);
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  const Div = 'div' as any;
-  const steps = ['Drained', 'High-pressure rinse', 'Ozone injection', 'Certification'];
-  const fillH = 30 + pct * 70;
-  const displayPct = Math.round(fillH);
-  const stepsCompleted = pct * 4;
+  useEffect(() => {
+    const el = wrapRef.current; if (!el) return;
+    const onMove = (e: any) => {
+      const r = el.getBoundingClientRect();
+      setPar({ x: (e.clientX - r.left) / r.width - 0.5, y: (e.clientY - r.top) / r.height - 0.5 });
+    };
+    const onLeave = () => setPar({ x: 0, y: 0 });
+    el.addEventListener('mousemove', onMove);
+    el.addEventListener('mouseleave', onLeave);
+    return () => { el.removeEventListener('mousemove', onMove); el.removeEventListener('mouseleave', onLeave); };
+  }, []);
 
-  // SVG wave path that shifts over time
-  const w1 = `M0 12 Q ${25 + Math.sin(waveOffset) * 15} ${4 + Math.sin(waveOffset * 1.3) * 4} 50 10 Q ${75 + Math.cos(waveOffset * 0.9) * 12} ${16 + Math.cos(waveOffset) * 4} 100 12 Q ${125 + Math.sin(waveOffset * 1.1) * 10} ${6 + Math.sin(waveOffset * 0.7) * 3} 150 10 Q 175 ${14 + Math.cos(waveOffset * 1.2) * 3} 200 12 L200 24 L0 24Z`;
-  const w2 = `M0 14 Q ${30 + Math.cos(waveOffset * 0.8) * 12} ${8 + Math.cos(waveOffset * 1.1) * 3} 60 12 Q ${90 + Math.sin(waveOffset * 1.2) * 10} ${16 + Math.sin(waveOffset * 0.6) * 4} 130 14 Q 165 ${9 + Math.cos(waveOffset) * 3} 200 13 L200 24 L0 24Z`;
+  const Div = 'div' as any;
+  const water = 55 + Math.sin(pct * Math.PI * 2) * 18;
+  const ozonePpm = (2.1 + Math.sin(pct * Math.PI * 4) * 0.35).toFixed(2);
+  const purity = (94 + Math.abs(Math.sin(pct * Math.PI * 2)) * 5).toFixed(1);
+  const stepIdx = Math.floor(pct * 4) % 4;
+  const stepProg = (pct * 4) % 1;
+  const STEPS = ['Drain', 'Pressure rinse', 'Ozone injection', 'Certify'];
 
   return (
-    <View style={{ position: 'relative', width: '100%', height: 440 }}>
+    <Div ref={wrapRef} style={{ position: 'relative', width: '100%', height: 560, perspective: '1400px' }}>
+      {/* Aqua radial glow backdrop */}
       <Div style={{
-        position: 'absolute', right: 40, top: 20,
-        width: 240, height: 440, borderRadius: 38,
-        background: '#0B1F33', padding: 10,
-        boxShadow: '0 40px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.08)',
-        transform: 'rotate(4deg)',
+        position: 'absolute', inset: '-40px',
+        background: `radial-gradient(60% 55% at 50% 45%, rgba(125,211,252,0.55), transparent 65%),
+                     radial-gradient(40% 40% at 20% 80%, rgba(34,197,94,0.22), transparent 70%),
+                     radial-gradient(40% 40% at 85% 20%, rgba(186,230,253,0.55), transparent 70%)`,
+        filter: 'blur(10px)', pointerEvents: 'none',
+      }} />
+
+      {/* Soft grid floor */}
+      <svg viewBox="0 0 500 200" preserveAspectRatio="none" style={{
+        position: 'absolute', left: 0, right: 0, bottom: 10, width: '100%', height: 180,
+        opacity: 0.35, transform: 'translateY(20px)',
       }}>
+        <defs>
+          <linearGradient id="ozGridFade" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#0284C7" stopOpacity="0" />
+            <stop offset="100%" stopColor="#0284C7" stopOpacity="0.4" />
+          </linearGradient>
+        </defs>
+        {Array.from({ length: 10 }).map((_, i) => (
+          <path key={'h' + i} d={`M${-100 + i * 60} 0 L${-400 + i * 140} 200`} stroke="url(#ozGridFade)" strokeWidth="1" fill="none" />
+        ))}
+        {Array.from({ length: 5 }).map((_, i) => (
+          <path key={'v' + i} d={`M0 ${40 + i * 36} L500 ${40 + i * 36}`} stroke="url(#ozGridFade)" strokeWidth="1" fill="none" opacity={0.5 + i * 0.1} />
+        ))}
+      </svg>
+
+      <CenterRipple color="#38BDF8" />
+
+      {/* Center: 3D water tank */}
+      <Div style={{
+        position: 'absolute', left: '50%', top: '50%',
+        transform: `translate(-50%, -50%) translate3d(${par.x * -14}px, ${par.y * -14}px, 0) rotateY(${par.x * 6}deg) rotateX(${par.y * -4}deg)`,
+        transformStyle: 'preserve-3d',
+        transition: 'transform .25s cubic-bezier(.2,.7,.2,1)',
+        width: 250, height: 340,
+      }}>
+        {/* Ozone halo ring */}
         <Div style={{
-          width: '100%', height: '100%', borderRadius: 30, overflow: 'hidden',
-          background: B.surfaceAlt, display: 'flex', flexDirection: 'column',
+          position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+          width: 360, height: 360, borderRadius: '50%',
+          background: `conic-gradient(from ${pct * 360}deg,
+            rgba(14,165,233,0) 0%, rgba(14,165,233,0.35) 25%,
+            rgba(34,197,94,0.35) 50%, rgba(14,165,233,0.35) 75%, rgba(14,165,233,0) 100%)`,
+          filter: 'blur(22px)', opacity: 0.85,
+        }} />
+        {/* Orbit rings */}
+        <Div style={{
+          position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+          width: 300, height: 300, borderRadius: '50%',
+          border: '1px dashed rgba(2,132,199,0.35)',
+          animation: 'ozSpin 18s linear infinite',
+        }} />
+        <Div style={{
+          position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+          width: 380, height: 380, borderRadius: '50%',
+          border: '1px dashed rgba(2,132,199,0.18)',
+          animation: 'ozSpin 32s linear infinite reverse',
+        }} />
+
+        {/* Tank dome top */}
+        <Div style={{
+          position: 'absolute', left: '50%', top: 0, transform: 'translateX(-50%)',
+          width: 230, height: 44,
+          background: 'radial-gradient(ellipse at 35% 20%, #ffffff 0%, #E0F2FE 30%, #7DD3FC 70%, #0284C7 100%)',
+          borderRadius: '50% 50% 12% 12% / 100% 100% 20% 20%',
+          boxShadow: 'inset 0 -6px 18px rgba(2,132,199,0.4), 0 6px 14px rgba(2,132,199,0.25)',
+          zIndex: 3,
         }}>
-          {/* Status bar with proper icons */}
           <Div style={{
-            padding: '12px 18px 8px', display: 'flex', justifyContent: 'space-between',
-            alignItems: 'center', fontSize: 10, fontWeight: 700, color: B.ink,
+            position: 'absolute', left: '50%', top: -10, transform: 'translateX(-50%)',
+            width: 50, height: 16,
+            background: 'linear-gradient(180deg, #0EA5E9, #0369A1)',
+            borderRadius: '50% 50% 20% 20% / 100% 100% 20% 20%',
+            boxShadow: '0 2px 6px rgba(2,132,199,0.4)',
+          }} />
+          <Div style={{
+            position: 'absolute', left: '50%', top: 14, transform: 'translateX(-50%)',
+            width: 18, height: 6, borderRadius: 3, background: 'rgba(2,132,199,0.45)',
+          }} />
+        </Div>
+
+        {/* Tank cylinder body */}
+        <Div style={{
+          position: 'absolute', left: '50%', top: 36, transform: 'translateX(-50%)',
+          width: 230, height: 260, borderRadius: '18px 18px 40px 40% / 18px 18px 24px 24%',
+          background: `linear-gradient(90deg,
+            #0369A1 0%, #0284C7 12%, #38BDF8 35%, #7DD3FC 52%, #38BDF8 70%, #0284C7 88%, #0369A1 100%)`,
+          overflow: 'hidden',
+          boxShadow: '0 40px 70px rgba(2,132,199,0.45), inset 0 0 0 2px rgba(255,255,255,0.15)',
+          zIndex: 2,
+        }}>
+          {[50, 110, 180].map((top, i) => (
+            <Div key={i} style={{
+              position: 'absolute', left: 0, right: 0, top,
+              height: 14,
+              background: `linear-gradient(180deg,
+                rgba(2,132,199,0.35) 0%, rgba(255,255,255,0.15) 50%, rgba(2,132,199,0.35) 100%)`,
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.12)',
+            }} />
+          ))}
+          <Div style={{
+            position: 'absolute', left: 18, top: 0, bottom: 0, width: 14,
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.1))',
+            borderRadius: 7, filter: 'blur(2px)',
+          }} />
+          <Div style={{
+            position: 'absolute', right: 32, top: 10, bottom: 10, width: 6,
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0.05))',
+            borderRadius: 4, filter: 'blur(1px)',
+          }} />
+          {/* Water inside */}
+          <Div style={{
+            position: 'absolute', left: 10, right: 10, bottom: 14,
+            height: `calc(${water}% - 20px)`,
+            borderRadius: '8px 8px 30px 30% / 8px 8px 20px 20%',
+            background: 'linear-gradient(180deg, rgba(186,230,253,0.9) 0%, rgba(56,189,248,0.9) 40%, rgba(2,132,199,0.95) 100%)',
+            boxShadow: 'inset 0 0 40px rgba(255,255,255,0.3)',
+            transition: 'height 0.4s cubic-bezier(.4,0,.2,1)',
+            overflow: 'hidden',
           }}>
-            <span>9:41</span>
-            <Div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              {/* Signal bars */}
-              <svg width="14" height="10" viewBox="0 0 14 10">
-                <rect x="0" y="7" width="2.5" height="3" rx="0.5" fill={B.ink}/>
-                <rect x="3.5" y="5" width="2.5" height="5" rx="0.5" fill={B.ink}/>
-                <rect x="7" y="2.5" width="2.5" height="7.5" rx="0.5" fill={B.ink}/>
-                <rect x="10.5" y="0" width="2.5" height="10" rx="0.5" fill={B.ink}/>
-              </svg>
-              {/* WiFi */}
-              <svg width="12" height="10" viewBox="0 0 12 10">
-                <path d="M6 8.5a1 1 0 110 2 1 1 0 010-2z" fill={B.ink}/>
-                <path d="M3.5 7a3.5 3.5 0 015 0" stroke={B.ink} strokeWidth="1.2" fill="none" strokeLinecap="round"/>
-                <path d="M1.5 5a6 6 0 019 0" stroke={B.ink} strokeWidth="1.2" fill="none" strokeLinecap="round"/>
-              </svg>
-              {/* Battery */}
-              <svg width="20" height="10" viewBox="0 0 20 10">
-                <rect x="0" y="1" width="16" height="8" rx="2" stroke={B.ink} strokeWidth="1" fill="none"/>
-                <rect x="1.5" y="2.5" width="12" height="5" rx="1" fill={B.leaf}/>
-                <rect x="16.5" y="3" width="2" height="4" rx="1" fill={B.ink} opacity="0.4"/>
-              </svg>
-            </Div>
-          </Div>
-
-          <Div style={{ padding: '4px 16px 12px', flex: 1 }}>
-            <Div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Div style={{ fontSize: 10, fontWeight: 700, color: B.primaryDk, letterSpacing: 1 }}>LIVE CLEAN</Div>
-              {phase === 'hold' || phase === 'pulse' ? (
-                <Div style={{
-                  fontSize: 8, padding: '2px 8px', borderRadius: 999,
-                  background: B.leaf, color: '#fff', fontWeight: 800,
-                  animation: 'ozFloat 1s ease-in-out infinite',
-                }}>COMPLETE</Div>
-              ) : null}
-            </Div>
-            <Div style={{ fontSize: 15, fontWeight: 800, marginTop: 3, fontFamily: 'Manrope, sans-serif' }}>Overhead Tank</Div>
-
-            {/* Tank visualization */}
-            <Div style={{ position: 'relative', marginTop: 14, height: 150 }}>
-              <Div style={{
-                position: 'absolute', inset: 0, borderRadius: 14,
-                border: `2px solid ${phase === 'pulse' ? B.primary : B.line}`,
-                overflow: 'hidden', background: '#fff',
-                boxShadow: phase === 'pulse' ? `0 0 20px ${B.primary}40, inset 0 0 20px ${B.primary}15` : 'none',
-                transition: 'border-color .4s, box-shadow .4s',
-              }}>
-                {/* Water fill */}
-                <Div style={{
-                  position: 'absolute', left: 0, right: 0, bottom: 0,
-                  height: `${fillH}%`,
-                  background: `linear-gradient(180deg, ${B.primary}cc, ${B.primaryDk}ee)`,
-                  transition: phase === 'fill' ? 'none' : 'height .3s linear',
-                }}>
-                  {/* Animated wave surface */}
-                  <svg viewBox="0 0 200 24" preserveAspectRatio="none" style={{
-                    position: 'absolute', top: -12, left: 0, width: '100%', height: 24,
-                  }}>
-                    <path fill={`${B.primary}dd`} d={w1}/>
-                    <path fill={`${B.primary}88`} d={w2}/>
-                  </svg>
-                  <BubblesEffect count={10} seed={2} />
-                  {/* Shimmer highlight */}
-                  <Div style={{
-                    position: 'absolute', top: 0, left: '15%', width: '20%', height: '100%',
-                    background: 'linear-gradient(180deg, rgba(255,255,255,0.25), transparent 60%)',
-                    filter: 'blur(6px)',
-                  }}/>
-                </Div>
-              </Div>
-
-              {/* Progress badge */}
-              <Div style={{
-                position: 'absolute', top: 10, right: 10,
-                padding: '4px 10px', borderRadius: 999,
-                background: phase === 'pulse' ? B.leaf : 'rgba(255,255,255,0.92)',
-                color: phase === 'pulse' ? '#fff' : B.primaryDk,
-                fontSize: 11, fontWeight: 800,
-                backdropFilter: 'blur(4px)',
-                transition: 'background .3s, color .3s',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              }}>{displayPct}%</Div>
-
-              {/* Mini progress ring */}
-              <Div style={{ position: 'absolute', bottom: 10, left: 10 }}>
-                <svg width="28" height="28" viewBox="0 0 28 28">
-                  <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2.5"/>
-                  <circle cx="14" cy="14" r="11" fill="none" stroke="#fff" strokeWidth="2.5"
-                    strokeDasharray={`${pct * 69.1} 69.1`}
-                    strokeLinecap="round"
-                    style={{ transform: 'rotate(-90deg)', transformOrigin: '14px 14px', transition: 'stroke-dasharray .2s' }}/>
-                  <text x="14" y="14" textAnchor="middle" dominantBaseline="central"
-                    fill="#fff" fontSize="7" fontWeight="800">
-                    {Math.round(pct * 4)}/4
-                  </text>
-                </svg>
-              </Div>
-            </Div>
-
-            {/* Steps */}
-            <Div style={{ marginTop: 12 }}>
-              {steps.map((st, i) => {
-                const done = stepsCompleted > i + 0.9;
-                const active = stepsCompleted > i && stepsCompleted <= i + 1;
-                const upcoming = stepsCompleted <= i;
-                return (
-                  <Div key={i} style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '5px 0', fontSize: 10, fontWeight: 600,
-                    color: done ? B.ink : active ? B.primaryDk : B.muted,
-                    transition: 'color .3s',
-                  }}>
-                    <Div style={{
-                      width: 14, height: 14, borderRadius: '50%',
-                      background: done ? B.leaf : active ? B.primary : B.line,
-                      color: '#fff',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 9, fontWeight: 800,
-                      transition: 'background .3s',
-                      boxShadow: active ? `0 0 8px ${B.primary}60` : 'none',
-                    }}>{done ? '\u2713' : upcoming ? (i + 1) : '\u2022'}</Div>
-                    <Div style={{ flex: 1 }}>{st}</Div>
-                    {active && <Div style={{
-                      fontSize: 8, padding: '2px 6px', borderRadius: 999,
-                      background: B.aqua, color: B.primaryDk, fontWeight: 800,
-                      animation: 'ozFloat 1.5s ease-in-out infinite',
-                    }}>LIVE</Div>}
-                    {done && <Div style={{ fontSize: 8, color: B.leaf, fontWeight: 800 }}>{'\u2713'}</Div>}
-                  </Div>
-                );
-              })}
-            </Div>
+            <svg viewBox="0 0 200 16" preserveAspectRatio="none" style={{
+              position: 'absolute', top: -8, left: 0, width: '100%', height: 16,
+            }}>
+              <path fill="rgba(186,230,253,0.95)"
+                d={`M0 8 Q 25 ${4 + Math.sin(pct * Math.PI * 4) * 3} 50 8 T 100 8 T 150 8 T 200 8 L 200 16 L 0 16 Z`} />
+              <path fill="rgba(125,211,252,0.7)"
+                d={`M0 10 Q 30 ${6 + Math.cos(pct * Math.PI * 4) * 2} 60 10 T 120 10 T 200 10 L 200 16 L 0 16 Z`} />
+            </svg>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Div key={i} style={{
+                position: 'absolute', left: `${10 + (i * 13) % 80}%`, bottom: '-10%',
+                width: 4 + (i % 3) * 3, height: 4 + (i % 3) * 3, borderRadius: '50%',
+                background: 'radial-gradient(circle at 30% 30%, #fff, rgba(255,255,255,0.5))',
+                animation: `ozBubbleUp 4s ease-in ${(i * 0.8) % 4}s infinite`,
+                opacity: 0.8,
+              }} />
+            ))}
           </Div>
         </Div>
+
+        {/* Bottom cap with tap */}
+        <Div style={{
+          position: 'absolute', left: '50%', bottom: 0, transform: 'translateX(-50%)',
+          width: 240, height: 20,
+          background: 'linear-gradient(180deg, #0369A1, #082F49)',
+          borderRadius: '10px 10px 14px 14px',
+          boxShadow: '0 8px 14px rgba(0,0,0,0.25)', zIndex: 4,
+        }}>
+          <Div style={{
+            position: 'absolute', left: '50%', bottom: -14, transform: 'translateX(-50%)',
+            width: 18, height: 14,
+            background: 'linear-gradient(180deg, #64748B, #334155)',
+            borderRadius: '0 0 3px 3px',
+          }}>
+            <Div style={{
+              position: 'absolute', left: '50%', top: '100%', transform: 'translateX(-50%)',
+              width: 4, height: 6,
+              borderRadius: '50% 50% 50% 50% / 60% 60% 40% 40%',
+              background: '#38BDF8',
+              opacity: Math.sin(pct * Math.PI * 8) > 0.9 ? 1 : 0,
+              transition: 'opacity .15s',
+            }} />
+          </Div>
+        </Div>
+
+        {/* Ground shadow */}
+        <Div style={{
+          position: 'absolute', left: '50%', bottom: -32, transform: 'translateX(-50%)',
+          width: 260, height: 24, borderRadius: '50%',
+          background: 'radial-gradient(ellipse at 50% 50%, rgba(2,132,199,0.5), transparent 70%)',
+          filter: 'blur(6px)',
+        }} />
       </Div>
 
-      {/* Floating QR badge */}
+      {/* Floating card: Water Purity meter (top-left) */}
       <Div style={{
-        position: 'absolute', left: 10, top: 80,
-        background: '#fff', color: B.ink,
-        borderRadius: 16, padding: '12px 16px',
-        display: 'flex', alignItems: 'center', gap: 10,
-        boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
-        animation: 'ozFloat 4s ease-in-out infinite',
+        position: 'absolute', left: 10, top: 40,
+        transform: `translate3d(${par.x * 18}px, ${par.y * 18}px, 0)`,
+        transition: 'transform .25s cubic-bezier(.2,.7,.2,1)',
+        background: 'rgba(255,255,255,0.92)',
+        backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+        borderRadius: 18, padding: '14px 16px',
+        border: '1px solid rgba(2,132,199,0.12)',
+        boxShadow: '0 24px 50px rgba(2,132,199,0.22), 0 2px 6px rgba(2,132,199,0.1)',
+        display: 'flex', alignItems: 'center', gap: 12,
+        animation: 'ozFloat 5s ease-in-out infinite',
       }}>
-        <Div style={{
-          width: 36, height: 36, borderRadius: 10, background: B.leaf,
-          color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <ShieldCheck size={20} weight="fill" color="#fff" />
+        <Div style={{ position: 'relative', width: 52, height: 52 }}>
+          <svg viewBox="0 0 52 52" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
+            <circle cx="26" cy="26" r="22" stroke="#E0F2FE" strokeWidth="4" fill="none" />
+            <circle cx="26" cy="26" r="22" stroke="url(#ozMeterGrad)" strokeWidth="4" fill="none"
+              strokeDasharray={`${2 * Math.PI * 22}`}
+              strokeDashoffset={`${2 * Math.PI * 22 * (1 - parseFloat(purity) / 100)}`}
+              strokeLinecap="round"
+              style={{ transition: 'stroke-dashoffset .4s' }} />
+            <defs>
+              <linearGradient id="ozMeterGrad" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0%" stopColor="#0EA5E9" />
+                <stop offset="100%" stopColor="#22C55E" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <Div style={{
+            position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 12, color: B.ink,
+          }}>{purity}%</Div>
         </Div>
         <Div>
-          <Div style={{ fontSize: 11, color: B.muted, fontWeight: 600 }}>Last visit</Div>
-          <Div style={{ fontSize: 13, fontWeight: 800, fontFamily: 'Manrope, sans-serif' }}>QR certified {'\u2713'}</Div>
+          <Div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.2, color: B.muted }}>WATER PURITY</Div>
+          <Div style={{ fontFamily: 'Manrope, sans-serif', fontSize: 15, fontWeight: 800, color: B.ink, marginTop: 2 }}>Excellent</Div>
+          <Div style={{ fontSize: 10, color: B.leaf, fontWeight: 700, marginTop: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Div style={{ width: 6, height: 6, borderRadius: '50%', background: B.leaf, boxShadow: `0 0 8px ${B.leaf}` }} />
+            LIVE {'\u00b7'} {ozonePpm} ppm O{'\u2083'}
+          </Div>
         </Div>
       </Div>
 
-      {/* Floating EcoScore badge */}
+      {/* Floating card: Crew status (bottom-left) */}
       <Div style={{
-        position: 'absolute', left: 40, bottom: 20,
-        background: '#fff', color: B.ink,
-        borderRadius: 16, padding: '12px 16px',
+        position: 'absolute', left: 20, bottom: 30,
+        transform: `translate3d(${par.x * 22}px, ${par.y * 22}px, 0)`,
+        transition: 'transform .25s cubic-bezier(.2,.7,.2,1)',
+        background: '#fff', borderRadius: 18, padding: '14px 16px', width: 220,
+        border: '1px solid rgba(2,132,199,0.12)',
+        boxShadow: '0 24px 50px rgba(2,132,199,0.22)',
+        animation: 'ozFloat 6s ease-in-out infinite 1.2s',
+      }}>
+        <Div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <Div style={{
+            width: 28, height: 28, borderRadius: 8,
+            background: `linear-gradient(135deg, ${B.primary}, ${B.primaryDk})`,
+            color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Users size={14} color="#fff" weight="bold" />
+          </Div>
+          <Div>
+            <Div style={{ fontSize: 10, fontWeight: 700, color: B.muted, letterSpacing: 0.8 }}>CREW #214</Div>
+            <Div style={{ fontFamily: 'Manrope, sans-serif', fontSize: 12, fontWeight: 800, color: B.ink }}>{STEPS[stepIdx]}</Div>
+          </Div>
+          <Div style={{
+            marginLeft: 'auto', fontSize: 9, fontWeight: 800, padding: '3px 7px',
+            borderRadius: 999, background: B.aqua, color: B.primaryDk, letterSpacing: 0.5,
+          }}>STEP {stepIdx + 1}/4</Div>
+        </Div>
+        <Div style={{ display: 'flex', gap: 4 }}>
+          {STEPS.map((_, i) => (
+            <Div key={i} style={{
+              flex: 1, height: 5, borderRadius: 99, background: '#E0F2FE', overflow: 'hidden', position: 'relative',
+            }}>
+              <Div style={{
+                position: 'absolute', inset: 0,
+                width: i < stepIdx ? '100%' : (i === stepIdx ? `${stepProg * 100}%` : '0%'),
+                background: `linear-gradient(90deg, ${B.primary}, ${B.leaf})`,
+                transition: 'width .2s linear',
+              }} />
+            </Div>
+          ))}
+        </Div>
+      </Div>
+
+      {/* Floating card: Certificate stamp (top-right) */}
+      <Div style={{
+        position: 'absolute', right: 0, top: 20,
+        transform: `translate3d(${par.x * 24}px, ${par.y * 24}px, 0) rotate(4deg)`,
+        transition: 'transform .25s cubic-bezier(.2,.7,.2,1)',
+        background: '#fff', borderRadius: 16, padding: '14px 16px', width: 190,
+        border: '1px solid rgba(2,132,199,0.12)',
+        boxShadow: '0 28px 60px rgba(2,132,199,0.28)',
+        animation: 'ozFloat 5.5s ease-in-out infinite .5s',
+      }}>
+        <Div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Div style={{
+            width: 34, height: 34, borderRadius: 10,
+            background: `linear-gradient(135deg, ${B.leaf}, #16A34A)`,
+            color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <ShieldCheck size={18} weight="fill" color="#fff" />
+          </Div>
+          <Div>
+            <Div style={{ fontSize: 9, fontWeight: 800, letterSpacing: 1.4, color: B.muted }}>CERTIFICATE</Div>
+            <Div style={{ fontFamily: 'Manrope, sans-serif', fontSize: 13, fontWeight: 800, color: B.ink, lineHeight: 1.1 }}>#OW-2904</Div>
+          </Div>
+        </Div>
+        {/* QR code */}
+        <Div style={{
+          marginTop: 10, aspectRatio: '1', width: '100%',
+          borderRadius: 8, padding: 6, background: '#fff',
+          border: `1px solid ${B.line}`,
+        }}>
+          <svg viewBox="0 0 21 21" width="100%" height="100%" shapeRendering="crispEdges" style={{ display: 'block' }}>
+            {Array.from({ length: 21 * 21 }).map((_, idx) => {
+              const x = idx % 21, y = Math.floor(idx / 21);
+              const inFinder = (x < 8 && y < 8) || (x > 12 && y < 8) || (x < 8 && y > 12);
+              if (inFinder) return null;
+              const v = Math.sin((x + 1) * 12.9898 + (y + 1) * 78.233 + 7) * 43758.5453;
+              if ((v - Math.floor(v)) <= 0.52) return null;
+              return <rect key={idx} x={x} y={y} width="1" height="1" fill={B.ink} />;
+            })}
+            {Array.from({ length: 5 }).map((_, i) => (
+              <React.Fragment key={'t' + i}>
+                <rect x={8 + i * 2} y={6} width="1" height="1" fill={B.ink} />
+                <rect x={6} y={8 + i * 2} width="1" height="1" fill={B.ink} />
+              </React.Fragment>
+            ))}
+            {[[0, 0], [14, 0], [0, 14]].map(([fx, fy], k) => (
+              <g key={'f' + k}>
+                <rect x={fx} y={fy} width="7" height="7" fill={B.ink} />
+                <rect x={fx + 1} y={fy + 1} width="5" height="5" fill="#fff" />
+                <rect x={fx + 2} y={fy + 2} width="3" height="3" fill={B.ink} />
+              </g>
+            ))}
+            <g><rect x={14} y={14} width="5" height="5" fill={B.ink} /><rect x={15} y={15} width="3" height="3" fill="#fff" /><rect x={16} y={16} width="1" height="1" fill={B.ink} /></g>
+          </svg>
+        </Div>
+        <Div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 9, color: B.muted, fontWeight: 700 }}>
+          <Div>Scan to verify</Div>
+          <Div style={{ color: B.leaf, display: 'flex', alignItems: 'center', gap: 3 }}>
+            <Div style={{ width: 4, height: 4, borderRadius: '50%', background: B.leaf }} />VALID
+          </Div>
+        </Div>
+      </Div>
+
+      {/* Floating pill: EcoScore (bottom-right) */}
+      <Div style={{
+        position: 'absolute', right: 10, bottom: 60,
+        transform: `translate3d(${par.x * 16}px, ${par.y * 16}px, 0)`,
+        transition: 'transform .25s cubic-bezier(.2,.7,.2,1)',
+        background: `linear-gradient(135deg, ${B.primaryDk}, ${B.primaryDkr})`,
+        color: '#fff', borderRadius: 14, padding: '10px 14px',
         display: 'flex', alignItems: 'center', gap: 10,
-        boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
-        animation: 'ozFloat 4s ease-in-out infinite 1.5s',
+        boxShadow: '0 20px 40px rgba(3,105,161,0.4)',
+        animation: 'ozFloat 4.5s ease-in-out infinite 2s',
       }}>
         <Div style={{
-          width: 36, height: 36, borderRadius: 10,
-          background: B.aqua, color: B.primaryDk,
+          width: 32, height: 32, borderRadius: 8,
+          background: 'rgba(255,255,255,0.18)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <Sparkle size={20} weight="fill" color={B.primaryDk} />
+          <Leaf size={16} color="#BAE6FD" weight="fill" />
         </Div>
         <Div>
-          <Div style={{ fontSize: 11, color: B.muted, fontWeight: 600 }}>EcoScore</Div>
-          <Div style={{ fontSize: 13, fontWeight: 800, fontFamily: 'Manrope, sans-serif' }}>A+ {'\u00b7'} 98/100</Div>
+          <Div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1.2, color: 'rgba(255,255,255,0.7)' }}>ECOSCORE</Div>
+          <Div style={{ fontFamily: 'Manrope, sans-serif', fontSize: 14, fontWeight: 800 }}>A+ {'\u00b7'} zero chemicals</Div>
         </Div>
       </Div>
-    </View>
+    </Div>
   );
 }
 
@@ -562,74 +812,83 @@ function Tank3D({ tilt, active }: { tilt: { x: number; y: number }; active: bool
       </svg>
 
       <Div style={{ position: 'relative', width: TANK_W, height: TANK_H, transformStyle: 'preserve-3d' }}>
-        {/* Top cap */}
+        {/* Dome top cap */}
         <Div style={{
           position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)',
-          width: TANK_W * 0.96, height: 38, borderRadius: '50%',
-          background: 'radial-gradient(ellipse at 50% 30%, #9DB0A4, #6A7A70 60%, #4C5A53)',
-          boxShadow: 'inset 0 -4px 8px rgba(0,0,0,0.25), inset 0 4px 8px rgba(255,255,255,0.3)',
+          width: TANK_W * 0.96, height: 44,
+          borderRadius: '50% 50% 12% 12% / 100% 100% 20% 20%',
+          background: 'radial-gradient(ellipse at 35% 20%, #ffffff 0%, #E0F2FE 30%, #7DD3FC 70%, #0284C7 100%)',
+          boxShadow: 'inset 0 -6px 18px rgba(2,132,199,0.4), 0 6px 14px rgba(2,132,199,0.25)',
           zIndex: 3,
-        }}/>
-        <Div style={{
-          position: 'absolute', top: -6, left: '50%', transform: 'translateX(-50%)',
-          width: TANK_W * 0.92, height: 22, borderRadius: '50%',
-          background: 'radial-gradient(ellipse at 50% 40%, #2B3A33, #0F1816)',
-          zIndex: 4,
-        }}/>
-        {/* Lid handle */}
-        <Div style={{
-          position: 'absolute', top: -28, left: '50%', transform: 'translateX(-50%)',
-          width: 56, height: 16, borderRadius: 8,
-          background: 'linear-gradient(180deg, #B8C5BC, #7D8C83)',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 5,
-        }}/>
+        }}>
+          {/* Handle */}
+          <Div style={{
+            position: 'absolute', left: '50%', top: -10, transform: 'translateX(-50%)',
+            width: 50, height: 16,
+            background: 'linear-gradient(180deg, #0EA5E9, #0369A1)',
+            borderRadius: '50% 50% 20% 20% / 100% 100% 20% 20%',
+            boxShadow: '0 2px 6px rgba(2,132,199,0.4)',
+          }}/>
+          {/* Vent cap */}
+          <Div style={{
+            position: 'absolute', left: '50%', top: 14, transform: 'translateX(-50%)',
+            width: 18, height: 6, borderRadius: 3,
+            background: 'rgba(2,132,199,0.45)',
+          }}/>
+        </Div>
         {/* Cylinder body */}
         <Div style={{
-          position: 'absolute', top: 8, left: 0, width: TANK_W, height: TANK_H - 8,
-          borderRadius: `${TANK_W / 2}px / 22px`,
+          position: 'absolute', top: 20, left: 0, width: TANK_W, height: TANK_H - 20,
+          borderRadius: '18px 18px 40px 40% / 18px 18px 24px 24%',
           background: `linear-gradient(90deg,
-            #3F4E46 0%, #6B7D72 18%, #8FA397 40%,
-            #7B8E83 60%, #58695F 82%, #384640 100%)`,
-          boxShadow: `
-            inset 8px 0 20px rgba(0,0,0,0.25),
-            inset -8px 0 20px rgba(0,0,0,0.25),
-            inset 0 -12px 24px rgba(0,0,0,0.25),
-            0 30px 40px rgba(15,23,42,0.25)`,
+            #0369A1 0%, #0284C7 12%, #38BDF8 35%,
+            #7DD3FC 52%, #38BDF8 70%, #0284C7 88%, #0369A1 100%)`,
+          boxShadow: '0 40px 70px rgba(2,132,199,0.45), inset 0 0 0 2px rgba(255,255,255,0.15)',
           overflow: 'hidden',
         }}>
-          {Array.from({ length: 14 }).map((_, i) => (
+          {/* Horizontal ribs */}
+          {[50, 110, 180, 240].map((top, i) => (
             <Div key={i} style={{
-              position: 'absolute', left: 0, right: 0,
-              top: 14 + i * ((TANK_H - 40) / 14),
-              height: 3,
-              background: i % 2 === 0
-                ? 'linear-gradient(90deg, transparent, rgba(0,0,0,0.18) 20%, rgba(0,0,0,0.25) 80%, transparent)'
-                : 'linear-gradient(90deg, transparent, rgba(255,255,255,0.12) 20%, rgba(255,255,255,0.18) 80%, transparent)',
+              position: 'absolute', left: 0, right: 0, top,
+              height: 14,
+              background: `linear-gradient(180deg,
+                rgba(2,132,199,0.35) 0%, rgba(255,255,255,0.15) 50%, rgba(2,132,199,0.35) 100%)`,
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.12)',
             }}/>
           ))}
+          {/* Shine streaks */}
           <Div style={{
-            position: 'absolute', top: 8, bottom: 8, left: '22%', width: 18,
-            background: 'linear-gradient(90deg, rgba(255,255,255,0.25), transparent)',
-            filter: 'blur(6px)',
+            position: 'absolute', left: 18, top: 0, bottom: 0, width: 14,
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.1))',
+            borderRadius: 7, filter: 'blur(2px)',
           }}/>
+          <Div style={{
+            position: 'absolute', right: 32, top: 10, bottom: 10, width: 6,
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0.05))',
+            borderRadius: 4, filter: 'blur(1px)',
+          }}/>
+        </Div>
+        {/* Bottom cap */}
+        <Div style={{
+          position: 'absolute', left: '50%', bottom: 0, transform: 'translateX(-50%)',
+          width: TANK_W + 10, height: 20,
+          background: 'linear-gradient(180deg, #0369A1, #082F49)',
+          borderRadius: '10px 10px 14px 14px',
+          boxShadow: '0 8px 14px rgba(0,0,0,0.25)', zIndex: 4,
+        }}>
           {/* Tap */}
           <Div style={{
-            position: 'absolute', bottom: 46, left: -6,
-            width: 22, height: 22, borderRadius: 4,
-            background: 'linear-gradient(180deg, #B8C5BC, #58695F)',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
-          }}/>
-          <Div style={{
-            position: 'absolute', bottom: 52, left: -16,
-            width: 14, height: 10, borderRadius: 3,
-            background: '#58695F',
+            position: 'absolute', left: '50%', bottom: -14, transform: 'translateX(-50%)',
+            width: 18, height: 14,
+            background: 'linear-gradient(180deg, #64748B, #334155)',
+            borderRadius: '0 0 3px 3px',
           }}/>
         </Div>
         {/* Ground shadow */}
         <Div style={{
           position: 'absolute', width: 320, height: 30, bottom: -10, left: '50%',
           transform: 'translateX(-50%)', borderRadius: '50%',
-          background: 'radial-gradient(ellipse, rgba(0,0,0,0.3), transparent 70%)',
+          background: 'radial-gradient(ellipse, rgba(2,132,199,0.4), transparent 70%)',
           filter: 'blur(4px)', zIndex: -1,
         }}/>
       </Div>
@@ -851,6 +1110,75 @@ const LandingScreen = () => {
         0%, 100% { transform: scale(1); }
         50%      { transform: scale(1.05); }
       }
+      @keyframes ozBubbleUp {
+        0%   { transform: translateY(0) scale(.6); opacity: 0; }
+        20%  { opacity: .9; }
+        100% { transform: translateY(-180px) scale(1.1); opacity: 0; }
+      }
+      @keyframes ozSpin {
+        from { transform: translate(-50%, -50%) rotate(0deg); }
+        to   { transform: translate(-50%, -50%) rotate(360deg); }
+      }
+      @keyframes ozCrDrop {
+        0%   { transform: translate(-50%, -40px) scaleY(1.05); opacity: 0; }
+        10%  { opacity: 1; }
+        48%  { transform: translate(-50%, 48vh) scaleY(1.25); opacity: 1; }
+        50%  { transform: translate(-50%, calc(50% - 10px)) scaleY(0.6); opacity: 0.9; }
+        52%  { transform: translate(-50%, calc(50% - 10px)) scaleY(0.2); opacity: 0; }
+        100% { opacity: 0; }
+      }
+      @keyframes ozCrStreak {
+        0%, 10% { height: 0; opacity: 0; top: 0; }
+        30%     { height: 60px; opacity: 0.8; top: 0; }
+        48%     { height: 30px; opacity: 0.5; top: 45vh; }
+        52%, 100% { height: 0; opacity: 0; }
+      }
+      @keyframes ozCrFlash {
+        0%, 49% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+        52%     { opacity: 1; transform: translate(-50%, -50%) scale(1.6); }
+        62%     { opacity: 0; transform: translate(-50%, -50%) scale(2.2); }
+        100%    { opacity: 0; }
+      }
+      @keyframes ozCrRing {
+        0%, 50%  { width: 20px; height: 20px; opacity: 0; border-width: 3px; }
+        53%      { opacity: 0.9; border-width: 2.5px; }
+        100%     { width: 520px; height: 520px; opacity: 0; border-width: 0.5px; }
+      }
+      @keyframes ozCrWave {
+        0%, 50%  { width: 40px; height: 12px; opacity: 0; border-width: 2px; }
+        55%      { opacity: 0.85; }
+        100%     { width: 620px; height: 180px; opacity: 0; border-width: 0.5px; }
+      }
+      @keyframes ozCrCrown0 {
+        0%, 51% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+        54%     { opacity: 1; transform: translate(calc(-50% + -16.8px), calc(-50% - 28px)) scale(1); }
+        64%     { opacity: 0.6; transform: translate(calc(-50% + -30.8px), calc(-50% + 2px)) scale(0.8); }
+        70%, 100% { opacity: 0; }
+      }
+      @keyframes ozCrCrown1 {
+        0%, 51% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+        54%     { opacity: 1; transform: translate(calc(-50% + -8.4px), calc(-50% - 28px)) scale(1); }
+        64%     { opacity: 0.6; transform: translate(calc(-50% + -15.4px), calc(-50% + 2px)) scale(0.8); }
+        70%, 100% { opacity: 0; }
+      }
+      @keyframes ozCrCrown2 {
+        0%, 51% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+        54%     { opacity: 1; transform: translate(calc(-50% + 0px), calc(-50% - 28px)) scale(1); }
+        64%     { opacity: 0.6; transform: translate(calc(-50% + 0px), calc(-50% + 2px)) scale(0.8); }
+        70%, 100% { opacity: 0; }
+      }
+      @keyframes ozCrCrown3 {
+        0%, 51% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+        54%     { opacity: 1; transform: translate(calc(-50% + 8.4px), calc(-50% - 28px)) scale(1); }
+        64%     { opacity: 0.6; transform: translate(calc(-50% + 15.4px), calc(-50% + 2px)) scale(0.8); }
+        70%, 100% { opacity: 0; }
+      }
+      @keyframes ozCrCrown4 {
+        0%, 51% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+        54%     { opacity: 1; transform: translate(calc(-50% + 16.8px), calc(-50% - 28px)) scale(1); }
+        64%     { opacity: 0.6; transform: translate(calc(-50% + 30.8px), calc(-50% + 2px)) scale(0.8); }
+        70%, 100% { opacity: 0; }
+      }
       [data-oz-svc="true"] {
         transition: transform 0.35s cubic-bezier(.2,.7,.2,1), box-shadow 0.35s ease;
         cursor: pointer;
@@ -865,6 +1193,13 @@ const LandingScreen = () => {
       [data-oz-test="true"]:hover {
         transform: translateY(-4px) !important;
         box-shadow: 0 20px 40px rgba(2,132,199,0.15) !important;
+      }
+      [data-oz-nav="true"] {
+        cursor: pointer;
+        transition: opacity 0.2s ease;
+      }
+      [data-oz-nav="true"]:hover {
+        opacity: 0.7 !important;
       }
     `;
     document.head.appendChild(el);
@@ -901,7 +1236,7 @@ const LandingScreen = () => {
             {isLarge && (
               <View style={s.navLinks}>
                 {['Services', 'How it works', 'Certification', 'Customers'].map(l => (
-                  <Text key={l} style={[s.navLink, { color: B.inkSoft }]}>{l}</Text>
+                  <Text key={l} {...(Platform.OS === 'web' ? { dataSet: { ozNav: 'true' } } as any : {})} style={[s.navLink, { color: B.inkSoft }]}>{l}</Text>
                 ))}
               </View>
             )}
@@ -941,7 +1276,7 @@ const LandingScreen = () => {
             {isLarge && (
               <View style={s.navLinks}>
                 {['Services', 'How it works', 'Certification', 'Customers'].map(l => (
-                  <Text key={l} style={[s.navLink, { color: 'rgba(255,255,255,0.9)' }]}>{l}</Text>
+                  <Text key={l} {...(Platform.OS === 'web' ? { dataSet: { ozNav: 'true' } } as any : {})} style={[s.navLink, { color: 'rgba(255,255,255,0.9)' }]}>{l}</Text>
                 ))}
               </View>
             )}
@@ -988,15 +1323,31 @@ const LandingScreen = () => {
               </Reveal>
 
               <Reveal delay={80}>
-                <Text style={[s.heroH1, isLarge && { fontSize: 64, lineHeight: 74, letterSpacing: -2, textAlign: 'left' }]}>
-                  Cleaner water.{'\n'}
-                  <Text style={s.heroH1Grad}>Certified, every visit.</Text>
-                </Text>
+                {Platform.OS === 'web' && isLarge ? (
+                  // @ts-ignore
+                  <h1 style={{
+                    fontFamily: 'Manrope, sans-serif', fontWeight: 800,
+                    fontSize: 72, lineHeight: 1, letterSpacing: -2.5,
+                    color: '#fff', margin: '0 0 20px', textWrap: 'balance',
+                  }}>
+                    Hygiene you can see.<br />
+                    <span style={{
+                      background: 'linear-gradient(90deg, #BAE6FD, #FFFFFF 60%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                    }}>Health you can feel.</span>
+                  </h1>
+                ) : (
+                  <Text style={[s.heroH1, isLarge && { fontSize: 72, lineHeight: 72, letterSpacing: -2.5, textAlign: 'left' }]}>
+                    Hygiene you can see.{'\n'}
+                    <Text style={s.heroH1Grad}>Health you can feel.</Text>
+                  </Text>
+                )}
               </Reveal>
 
               <Reveal delay={160}>
                 <Text style={[s.heroPara, isLarge && { fontSize: 18, lineHeight: 30, textAlign: 'left', maxWidth: 500 }]}>
-                  Chemical-free ozone tank cleaning, booked in 60 seconds. Certified technician at your door. QR-verified hygiene report in your hand.
+                  Proof in every drop. Chemical-free ozone tank cleaning, booked in 60 seconds. Certified technician at your door. QR-verified hygiene report in your hand.
                 </Text>
               </Reveal>
 
@@ -1039,7 +1390,7 @@ const LandingScreen = () => {
             {/* Right column — desktop phone mockup */}
             {isLarge && (
               <Reveal delay={300} style={{ flex: 1 }}>
-                <HeroPhoneMockup />
+                <HeroVisual />
               </Reveal>
             )}
           </View>
@@ -1149,7 +1500,7 @@ const LandingScreen = () => {
                 return (
                   <Reveal key={i} delay={80 + i * 80} style={isLarge ? { flex: 1 } : undefined}>
                     <TouchableOpacity
-                      onPress={() => isLarge ? goToLogin() : setActiveTank(i)}
+                      onPress={() => { setActiveTank(i); goToLogin(); }}
                       activeOpacity={isLarge ? 1 : 0.85}
                       {...(Platform.OS === 'web' && isLarge ? { onMouseEnter: () => setActiveTank(i) } as any : {})}
                       {...(Platform.OS === 'web' && isLarge ? { dataSet: { ozSvc: 'true' } } : {})}
@@ -1187,7 +1538,7 @@ const LandingScreen = () => {
           <View style={[s.section, { paddingHorizontal: pad, backgroundColor: B.surfaceAlt }]}>
             <View style={isLarge ? { alignItems: 'center', marginBottom: 24 } : undefined}>
               <Reveal>
-                <Text style={[s.sectionLabel, { color: B.primaryDk }]}>THE OZONE DIFFERENCE</Text>
+                <Text style={[s.sectionLabel, { color: B.primaryDk }]}>PROOF-BASED HYGIENE</Text>
               </Reveal>
               <Reveal delay={60}>
                 <Text style={[s.sectionTitle, { color: B.ink }, isLarge && s.sectionTitleLg, isLarge && { textAlign: 'center' }]}>
@@ -1331,7 +1682,7 @@ const LandingScreen = () => {
                   </Reveal>
                   <Reveal delay={60}>
                     <Text style={[s.sectionTitle, s.sectionTitleLg, { color: B.ink, textAlign: 'center' }]}>
-                      Built different, end to end.
+                      Visible purity, felt safety.
                     </Text>
                   </Reveal>
                 </View>
@@ -1344,7 +1695,7 @@ const LandingScreen = () => {
                 <Text style={[s.sectionLabel, { color: B.primaryDk }]}>WHY OZONE WASH</Text>
               </Reveal>
               <Reveal delay={60}>
-                <Text style={[s.sectionTitle, { color: B.ink }]}>Built different, end to end.</Text>
+                <Text style={[s.sectionTitle, { color: B.ink }]}>Visible purity, felt safety.</Text>
               </Reveal>
               <View style={s.featGridMobile}>
                 {FEATURES.map((f, i) => (
@@ -1392,11 +1743,11 @@ const LandingScreen = () => {
                   <Text style={[s.sectionLabel, { color: B.leaf }]}>DIGITAL CERTIFICATE</Text>
                 </Reveal>
                 <Reveal delay={60}>
-                  <Text style={s.certTitle}>A clean you can prove.</Text>
+                  <Text style={s.certTitle}>Proof in every drop.</Text>
                 </Reveal>
                 <Reveal delay={120}>
                   <Text style={s.certBody}>
-                    Every visit ends with a QR-signed PDF certificate {'\u2014'} ozone readings, before/after tank photos, crew ID, and a tamper-evident signature. Share it with tenants, buyers, or anyone who needs to know the water is safe.
+                    Hygiene certificates you can trust. Every visit ends with a QR-signed PDF certificate {'\u2014'} ozone readings, before/after tank photos, crew ID, and a tamper-evident signature. Share it with tenants, buyers, or inspectors.
                   </Text>
                 </Reveal>
                 <Reveal delay={180}>
@@ -1546,11 +1897,11 @@ const LandingScreen = () => {
             <BubblesEffect count={isLarge ? 18 : 10} seed={isLarge ? 11 : 7} />
             <Reveal>
               <Text style={[s.finalCtaTitle, isLarge && { fontSize: 56, letterSpacing: -1.8 }]}>
-                Ready for brilliant water?
+                Hygiene you can see.{'\n'}Health you can feel.
               </Text>
             </Reveal>
             <Reveal delay={60}>
-              <Text style={s.finalCtaBody}>Your first clean. 60-second booking. Zero pressure.</Text>
+              <Text style={s.finalCtaBody}>Your first clean. 60-second booking. Proof in every drop.</Text>
             </Reveal>
             <Reveal delay={120}>
               <View style={s.finalCtaBtns}>
@@ -1579,7 +1930,7 @@ const LandingScreen = () => {
                   <Text style={[s.footerBrand, { color: B.ink }]}>OZONEWASH</Text>
                 </View>
                 <Text style={[s.footerTagline, { color: B.muted }]}>
-                  Hyderabad's first app-enabled tank hygiene service. Powered by VijRam Health Sense Pvt. Ltd.
+                  Hygiene you can see. Health you can feel. Hyderabad's first app-enabled tank hygiene service. Powered by VijRam Health Sense Pvt. Ltd.
                 </Text>
                 <View style={s.footerLocRow}>
                   <MapPin size={13} weight="fill" color={B.muted} />
@@ -1921,7 +2272,7 @@ const s = StyleSheet.create({
 
   /* Features mobile */
   featGridMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 8 },
-  featCardMobile: { backgroundColor: '#fff', borderRadius: 16, padding: 14, borderWidth: 1, height: '100%' },
+  featCardMobile: { backgroundColor: '#fff', borderRadius: 16, padding: 14, borderWidth: 1 },
   featIconMobile: { width: 40, height: 40, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
   featTitleMobile: { fontSize: 13, fontWeight: '700', marginBottom: 4 },
   featDescMobile: { fontSize: 11.5, lineHeight: 16 },
