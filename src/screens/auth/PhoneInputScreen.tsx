@@ -9,7 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import useAuthStore from '../../store/auth.store';
 import { COLORS } from '../../utils/constants';
 import { useResponsive } from '../../utils/responsive';
-import { ArrowRight } from '../../components/Icons';
+import { ArrowRight, ArrowLeft } from '../../components/Icons';
 
 const PhoneInputScreen = () => {
   const [phone, setPhone] = useState('');
@@ -34,6 +34,10 @@ const PhoneInputScreen = () => {
 
   const formContent = (
     <View style={[styles.inner, isLarge && styles.innerWeb]}>
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <ArrowLeft size={24} weight="regular" color={COLORS.foreground} />
+      </TouchableOpacity>
+
       {/* Hero Section */}
       <View style={[styles.hero, isLarge && styles.heroWeb]}>
         <View style={styles.logoWrap}>
@@ -182,8 +186,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
+  // ── Back button ─────────────────────────────────────────────────
+  backBtn: {
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: COLORS.surfaceElevated,
+    alignItems: 'center', justifyContent: 'center',
+    marginTop: 56,
+  },
+
   // ── Hero ────────────────────────────────────────────────────────
-  hero: { alignItems: 'center', marginTop: 80 },
+  hero: { alignItems: 'center', marginTop: 24 },
   heroWeb: { marginTop: 0, marginBottom: 8 },
   logoWrap: { marginBottom: 16 },
   logoImage: { width: 110, height: 110 },

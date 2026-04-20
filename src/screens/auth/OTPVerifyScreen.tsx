@@ -191,6 +191,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     borderRadius: 28,
     width: '100%', maxWidth: 480,
+    overflow: 'hidden',
     ...Platform.select({
       ios:     { shadowColor: 'rgba(0,0,0,0.25)', shadowOffset: { width: 0, height: 20 }, shadowOpacity: 1, shadowRadius: 40 },
       android: { elevation: 24 },
@@ -225,7 +226,7 @@ const styles = StyleSheet.create({
     marginBottom: 24, gap: 8,
   },
   otpBox: {
-    flex: 1, height: 60, borderRadius: 14,
+    flex: 1, minWidth: 0, height: 60, borderRadius: 14,
     borderWidth: 1.5, borderColor: COLORS.border,
     backgroundColor: COLORS.surfaceElevated,
     textAlign: 'center', fontSize: 24, fontWeight: '700',

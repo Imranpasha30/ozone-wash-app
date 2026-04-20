@@ -109,4 +109,6 @@ export {
   ThumbsDown,
   Buildings,
   LightbulbFilament,
+  Sparkle,
+  Play,
 } from 'phosphor-react-native';
