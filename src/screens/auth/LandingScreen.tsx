@@ -234,6 +234,38 @@ function Eyebrow({ children, color = B.primaryDk, center = false }: { children: 
 }
 
 /* ══════════════════════════════════════════════════════════════════
+   TM (proper superscript trademark — raised + smaller than parent text)
+   ════════════════════════════════════════════════════════════════ */
+function TM({ size = 10, color }: { size?: number; color?: string }) {
+  if (Platform.OS === 'web') {
+    // Use the native <sup> HTML element for true superscript behaviour
+    // (the browser handles raise + line-height inside the parent span).
+    const Sup = 'sup' as any;
+    return (
+      <Sup style={{
+        fontSize: size,
+        fontWeight: 700,
+        marginLeft: 1,
+        ...(color ? { color } : {}),
+        // Tighter raise — sup defaults to ~0.5em above baseline which is good.
+        verticalAlign: 'super',
+        lineHeight: 0,
+      }}>™</Sup>
+    );
+  }
+  // Native: lift the smaller character with translateY so it sits above baseline
+  return (
+    <Text style={{
+      fontSize: size,
+      fontWeight: '700',
+      marginLeft: 1,
+      ...(color ? { color } : {}),
+      transform: [{ translateY: -size * 0.7 }] as any,
+    }}>™</Text>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
    PATENT BADGE (professional verified-style chip next to "1st" stat)
    ════════════════════════════════════════════════════════════════ */
 function PatentMedal({ size = 30, onDark = true }: { size?: number; onDark?: boolean }) {
@@ -1619,7 +1651,7 @@ function TankFeatureRing({ onCta }: { onCta: () => void }) {
             default: { boxShadow: '0 14px 28px rgba(11,31,51,0.25)', display: 'inline-flex' } as any,
           }),
         }}>
-          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>Book Your Ozone Wash™</Text>
+          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>Book Your Ozone Wash<TM size={9} color="#fff" /></Text>
           <ArrowRight size={16} weight="bold" color="#fff" />
         </TouchableOpacity>
       </Div>
@@ -1923,7 +1955,7 @@ const LandingScreen = () => {
               <View style={s.navLogo}>
                 <Image source={require('../../../assets/logo.png')} style={s.navLogoImg} resizeMode="contain" />
               </View>
-              <Text style={[s.navBrand, { color: B.ink }]}>Ozone Wash<Text style={{ fontSize: 9, fontWeight: '700' }}>™</Text></Text>
+              <Text style={[s.navBrand, { color: B.ink }]}>Ozone Wash<TM size={9} /></Text>
             </View>
             {isLarge && (
               <View style={s.navLinks}>
@@ -1963,7 +1995,7 @@ const LandingScreen = () => {
               <View style={s.navLogo}>
                 <Image source={require('../../../assets/logo.png')} style={s.navLogoImg} resizeMode="contain" />
               </View>
-              <Text style={[s.navBrand, { color: '#fff' }]}>Ozone Wash<Text style={{ fontSize: 9, fontWeight: '700' }}>™</Text></Text>
+              <Text style={[s.navBrand, { color: '#fff' }]}>Ozone Wash<TM size={9} /></Text>
             </View>
             {isLarge && (
               <View style={s.navLinks}>
@@ -2303,7 +2335,7 @@ const LandingScreen = () => {
                   <View style={[s.compareBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
                     <Text style={[s.compareBadgeText, { color: '#fff' }]}>{'\u2713'} RECOMMENDED</Text>
                   </View>
-                  <Text style={[s.compareTitle, { color: '#fff' }]}>Ozone Wash<Text style={{ fontSize: 16, fontWeight: '700' }}>™</Text></Text>
+                  <Text style={[s.compareTitle, { color: '#fff' }]}>Ozone Wash<TM size={16} /></Text>
                   <Text style={[s.compareSubtitle, { color: 'rgba(255,255,255,0.85)' }]}>Lab-grade hygiene. App-verified. Patent-applied.</Text>
                   {(isLarge ? COMPARE_GOOD : COMPARE_GOOD.slice(0, 3)).map((t, i) => (
                     <View key={i} style={s.compareItem}>
@@ -2536,7 +2568,7 @@ const LandingScreen = () => {
                     <View style={s.certCardLogo}>
                       <Image source={require('../../../assets/logo.png')} style={{ width: 28, height: 28 }} resizeMode="contain" />
                     </View>
-                    <Text style={s.certCardBrand}>Ozone Wash™</Text>
+                    <Text style={s.certCardBrand}>Ozone Wash<TM size={9} /></Text>
                   </View>
                   <Text style={s.certCardType}>CERTIFICATE OF HYGIENE</Text>
                   <Text style={s.certCardTank}>Overhead Tank {'\u00b7'} 2,000L</Text>
@@ -2708,7 +2740,7 @@ const LandingScreen = () => {
                   <View style={s.footerLogoCircle}>
                     <Image source={require('../../../assets/logo.png')} style={{ width: 24, height: 24 }} resizeMode="contain" />
                   </View>
-                  <Text style={[s.footerBrand, { color: B.ink }]}>Ozone Wash<Text style={{ fontSize: 10, fontWeight: '700' }}>™</Text></Text>
+                  <Text style={[s.footerBrand, { color: B.ink }]}>Ozone Wash<TM size={10} /></Text>
                 </View>
                 <Text style={[s.footerTagline, { color: B.muted }]}>
                   Hygiene you can see. Health you can feel. India’s 1st patent-applied, app-enabled tank hygiene service. Powered by VijRam Health Sense Pvt. Ltd.
