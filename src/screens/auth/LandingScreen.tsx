@@ -13,7 +13,7 @@ import {
   ArrowRight, Phone, Users, Flask, Certificate,
   Leaf, ShieldCheck, Lightning, Star, Lock,
   MapPin, CheckCircle, Drop, Buildings, Wrench, QrCode,
-  Sparkle, Play, Shield,
+  Sparkle, Play, Shield, Trophy, Eye, CaretDown,
 } from '../../components/Icons';
 
 /* ══════════════════════════════════════════════════════════════════
@@ -41,26 +41,38 @@ const B = {
    DATA
    ════════════════════════════════════════════════════════════════ */
 const HOW = [
-  { num: '01', Icon: Phone,       t: 'Book in 60 seconds',    d: 'Pick tank type, size, and a slot that works for you.' },
-  { num: '02', Icon: Users,       t: 'Certified team arrives', d: 'Uniformed, background-checked technicians at your door.' },
-  { num: '03', Icon: Flask,       t: '8-step ozone clean',     d: 'Chemical-free deep hygiene powered by activated ozone.' },
-  { num: '04', Icon: Certificate, t: 'Digital certificate',    d: 'Verified hygiene report with a scannable QR code.' },
+  { num: '01', Icon: Phone,       t: 'Book in 60 Seconds',     d: 'Pick tank type, size, and a slot that works for you.' },
+  { num: '02', Icon: Users,       t: 'Certified Team Arrives', d: 'Uniformed, trained & verified technicians at your door.' },
+  { num: '03', Icon: Flask,       t: '8-Step Ozone Clean',     d: 'Chemical-free deep hygiene powered by activated Ozone.' },
+  { num: '04', Icon: Certificate, t: 'Digital Certificate',    d: 'Verified hygiene report with a scannable QR code.' },
+];
+type EightStep = { num: string; Icon: any; t: string; d: string; tag: string; tagKind: 'photo' | 'live' | 'uv' };
+const EIGHT_STEPS: EightStep[] = [
+  { num: '01', Icon: Lock,        t: 'Pre-Check & Setup',             d: 'Checklist, inspection, Ozone equipment staged, live streaming enabled. Before-wash water test sent via app.', tag: 'PRE PHOTO',  tagKind: 'photo' },
+  { num: '02', Icon: Drop,        t: 'Drain',                         d: 'Tank emptied safely. Condition assessed, sludge volume measured, water diverted per protocol.',           tag: 'IN-TANK',    tagKind: 'photo' },
+  { num: '03', Icon: Sparkle,     t: 'Mechanical Scrub & Rotary Jet', d: 'Dirt, algae, and biofilm deposits physically removed. Rotary jet reaches every wall contour.',          tag: 'SCRUB',      tagKind: 'photo' },
+  { num: '04', Icon: Lightning,   t: 'High-Pressure Rinse',           d: 'Walls and base flushed clean. Every loosened particle evacuated before disinfection begins.',           tag: 'RINSE',      tagKind: 'photo' },
+  { num: '05', Icon: Wrench,      t: 'Sludge Removal',                d: 'Settled debris extracted completely. Hazardous waste disposed per compliance.',                          tag: 'CLEAR',      tagKind: 'photo' },
+  { num: '06', Icon: Flask,       t: 'Ozone Disinfection',            d: 'Germs, pathogens, and toxins oxidised into oxygen. 99.99% kill — residue-free.',                         tag: 'O₃ · LIVE',  tagKind: 'live'  },
+  { num: '07', Icon: Eye,         t: 'UV Double Lock · optional',     d: 'Reinforces Ozone kill, adds a visible second sterilisation layer for extra assurance.',                  tag: 'UV ADD-ON',  tagKind: 'uv'    },
+  { num: '08', Icon: Certificate, t: 'After-Wash Testing & Proof',    d: 'Water test reports delivered via app. QR-signed hygiene certificate + after-photos. Saves 33% water.',  tag: '✓ QR CERT',  tagKind: 'photo' },
 ];
 const FEATURES = [
-  { Icon: Leaf,        t: 'Eco-friendly',    d: 'Zero chemicals. Ozone breaks down into oxygen after cleaning.' },
-  { Icon: ShieldCheck, t: 'Certified hygiene', d: 'Lab-grade sanitation with verifiable QR certificates.' },
-  { Icon: Lightning,   t: 'Under 2 hours',   d: 'In-and-out service window. No second visit, no mess.' },
-  { Icon: Star,        t: 'EcoScore\u2122', d: 'Track your tank health month over month in-app.' },
+  { Icon: Leaf,        t: 'Eco-Friendly',      d: 'Zero chemicals. Ozone decomposes into oxygen. Smart process saves water vs chemical cleaning.' },
+  { Icon: ShieldCheck, t: 'Certified Hygiene', d: '99.99% germ kill ratio. Lab-grade sanitation with QR-verified certificate after every clean.' },
+  { Icon: Lightning,   t: 'Swift & Seamless',  d: 'Efficient process tailored to tank size. No second visit, no mess.' },
+  { Icon: Star,        t: 'EcoScore\u2122',  d: 'Track your tank\u2019s hygiene month over month in-app. Earn redeemable points & badges.' },
 ];
-const STATS: { v: number; suffix: string; l: string; decimal?: boolean }[] = [
-  { v: 500,  suffix: '+',     l: 'Tanks cleaned' },
-  { v: 4.9,  suffix: '',      l: 'Customer rating', decimal: true },
-  { v: 100,  suffix: '+',     l: 'Happy families' },
-  { v: 8,    suffix: '-Step', l: 'Hygiene process' },
+const STATS: { v: number; suffix: string; l: string; lShort?: string; decimal?: boolean }[] = [
+  { v: 500,  suffix: '+',     l: 'Tanks Cleaned',         lShort: 'Tanks' },
+  { v: 4.9,  suffix: '★',     l: 'Rated by Customers',    lShort: 'Rating', decimal: true },
+  { v: 100,  suffix: '+',     l: 'Households Protected',  lShort: 'Households' },
+  { v: 8,    suffix: '-Step', l: 'Hygiene Process',       lShort: 'Process' },
+  { v: 1,    suffix: 'st',    l: 'Patent Applied',        lShort: 'Patent' },
 ];
 const SERVICES = [
   { Icon: Buildings, name: 'Overhead Tank',    price: '\u20B9799', cap: 'up to 2,000L' },
-  { Icon: Drop,      name: 'Underground Sump', price: '\u20B9999', cap: 'up to 5,000L' },
+  { Icon: Drop,      name: 'Underground Tank', price: '\u20B9999', cap: 'up to 5,000L' },
   { Icon: Wrench,    name: 'Syntex / Plastic', price: '\u20B9799', cap: 'any shape' },
 ];
 const TESTIMONIALS = [
@@ -68,25 +80,72 @@ const TESTIMONIALS = [
   { name: 'Kiran M.',  area: 'Gachibowli', text: 'Crew was on time, polite, left zero mess. The QR certificate is a nice touch for tenants.', r: 5 },
   { name: 'Priya S.',  area: 'Kondapur',   text: 'Switched from the guy our neighbours use. OzoneWash is a different league.', r: 5 },
 ];
-const FAQ_DATA = [
-  { q: 'Is ozone safe for drinking water tanks?', a: 'Yes. Ozone is a stronger oxidiser than chlorine and leaves no residue \u2014 it decomposes back into oxygen within minutes, making it safer for potable water than chemical cleaners.' },
-  { q: 'How long does a service take?',           a: "Most overhead tanks up to 2,000L are cleaned in under 90 minutes. Larger sumps take up to 2 hours. You'll see a live ETA in the app." },
-  { q: "What's included in the 8-step process?",  a: 'Drain, scrub, high-pressure rinse, vacuum, ozone injection, dwell, verification sample, and certification \u2014 all in one visit.' },
-  { q: 'Do you service my area?',                 a: 'We currently cover all of Hyderabad. Enter your pincode at booking to see exact availability and pricing.' },
+type FaqEntry = { cat: string; q: string; a: string };
+const FAQ_DATA: FaqEntry[] = [
+  // Before You Book
+  { cat: 'Before You Book', q: 'Is Ozone safe for drinking water tanks?', a: 'Yes. Ozone is a stronger oxidiser than chlorine yet leaves no chemical residue. It decomposes back into oxygen within minutes, making it safer for potable water than chemical cleaners. In fact, most bottled mineral water brands use Ozone for purification — the same science we apply to your tanks.' },
+  { cat: 'Before You Book', q: 'How long does a service take?', a: 'Domestic tanks are typically completed within 2 hours. Larger tanks may take longer depending on size and condition, but every service is completed in a single visit — no second trip, no mess.' },
+  { cat: 'Before You Book', q: "What's included in the 8-step process?", a: 'Our patent-applied 8-step hygiene covers pre-check & setup, drain, mechanical scrub & rotary jet, high-pressure rinse, sludge removal, Ozone disinfection, optional UV double-lock, and after-wash testing with QR-signed proof delivery.' },
+  { cat: 'Before You Book', q: 'Do you service my area?', a: 'Yes. We are currently operating across multiple areas in Hyderabad and rapidly expanding. Enter your pincode at booking to see exact availability and pricing.' },
+
+  // Safety & Science
+  { cat: 'Safety & Science', q: 'How does Ozone clean my tank?', a: 'Ozone ruptures bacterial and viral cells, neutralises toxins, and oxidises metals. Unlike chlorine, Ozone leaves no chemical residue — it decomposes back into oxygen within minutes.' },
+  { cat: 'Safety & Science', q: 'How is Ozone better than chemicals?', a: 'Ozone is a stronger oxidiser than chlorine, killing pathogens up to 3,000 times faster. It neutralises chlorine-resistant organisms, penetrates biofilm, and leaves no chemical residue — just pure, residue-free water.' },
+
+  // Compliance & Proof
+  { cat: 'Compliance & Proof', q: 'How do QR certificates work?', a: 'Each service generates a QR-signed hygiene certificate with Ozone readings, ATP hygiene checks, and before/after photos — audit-ready for RWAs, hospitals, and regulators. Share it instantly with tenants, buyers, or inspectors.' },
+  { cat: 'Compliance & Proof', q: 'What does GHMC law say about tank cleaning?', a: 'Under the GHMC Act, 1955 — Public Health & Sanitation Bye-laws, drinking water tanks must be cleaned every 3–6 months. For commercial establishments and institutions, quarterly cleaning (every 3 months) is required to stay compliant.' },
+  { cat: 'Compliance & Proof', q: 'How often should tanks be cleaned?', a: 'Domestic tanks: every 3–6 months. Commercial establishments: every 3 months. RWAs / hospitals: quarterly. AMC packages ensure recurring compliance and cost savings.' },
+  { cat: 'Compliance & Proof', q: 'Why is certified tank hygiene important today?', a: 'Recent outbreaks across India caused thousands of illnesses due to contaminated tanks. Ozone Wash™ ensures proof-based hygiene with QR certificates and EcoScore™ tracking.' },
+
+  // AMC
+  { cat: 'AMC — Annual Maintenance', q: 'What is an AMC plan?', a: 'A subscription plan with fixed cleaning intervals (monthly, quarterly, half-yearly, or yearly) and built-in discounts.' },
+  { cat: 'AMC — Annual Maintenance', q: 'How do AMC discounts work?', a: 'Monthly: 30% · Quarterly: 15% · Half-Yearly: 10% · Yearly: 5%. Multi-tank: 2 tanks 15%, 2+ tanks 30%. All AMC prices are GST-inclusive.' },
+  { cat: 'AMC — Annual Maintenance', q: 'Why choose AMC over one-time cleaning?', a: 'Ensures compliance, cost savings, EcoScore™ tracking, priority scheduling — forgetting is now history.' },
+  { cat: 'AMC — Annual Maintenance', q: 'What if I miss a scheduled AMC service?', a: 'You can reschedule within the same cycle. EcoScore™ tracks delays so you stay on top of compliance.' },
+
+  // Hygiene Upgrades & Add-Ons
+  { cat: 'Upgrades & Add-Ons', q: 'What hygiene upgrades can I add?', a: 'UV Sterilisation, Anti-Algae Spray, Anti-Lime Treatment, Pathogen Testing, Structural Audit, and IoT Sensors.' },
+  { cat: 'Upgrades & Add-Ons', q: 'Are add-ons optional?', a: 'Yes. The base Ozone service already delivers certified hygiene. Add-ons provide extra assurance, compliance proof, and preventive protection — and bundle at discounted rates with AMC.' },
+
+  // Testing & Proof
+  { cat: 'Testing & Proof', q: 'Do you provide testing after cleaning?', a: 'Yes. Every service includes pre and post hygiene checks showing measurable improvement in tank quality.' },
+  { cat: 'Testing & Proof', q: 'What is the lab-based upgrade?', a: 'A 21-parameter certified laboratory report covering pathogens, chemical residues, and water quality — ideal for RWAs, hospitals, and regulators.' },
+  { cat: 'Testing & Proof', q: 'Tank hygiene vs source contamination?', a: 'Testing validates tank hygiene post-service, but the water supply itself may still be contaminated. Both GHMC municipal water, tankers, and borewell sources have reported contamination incidents — source filtration is recommended alongside tank hygiene.' },
+
+  // EcoScore
+  { cat: 'EcoScore™', q: 'What is EcoScore™?', a: 'A gamified hygiene rating (0–100) that converts compliance data into a score, badge, rationale, and improvement tips.' },
+  { cat: 'EcoScore™', q: 'What do the badges mean?', a: 'Platinum (90+), Gold (75–89), Silver (60–74), Bronze (40–59), Unrated (<40). Each badge shows a rationale (e.g., “Timely service, Ozone + UV cycles logged, water test passed, AMC compliant”).' },
+  { cat: 'EcoScore™', q: 'What are EcoPoints and how do I redeem them?', a: 'Your EcoScore % = EcoPoints. Bonus points for badges and streaks. Points accumulate in your wallet (valid 24 months, capped at 1,000) and redeem against AMC renewal discounts, hygiene upgrades, partner benefits, and streak rewards.' },
+
+  // Preparation Guide
+  { cat: 'Preparation', q: 'What preparations are needed before cleaning?', a: 'Ensure clear access to the tank, switch off pumps, inform residents, keep alternate water ready, remove nearby clutter, and provide a 16A power socket for equipment. Send the “Ozone at Work” caution message so residents know the hygiene process is in progress.' },
+  { cat: 'Preparation', q: 'What should I avoid during cleaning?', a: 'Don’t use tank water until the certificate is issued, don’t leave lids open, don’t delay cleaning beyond 6 months, and don’t add chemicals yourself. Keep humans and pets away from the Ozone work zone until the service is certified safe.' },
+
+  // Segment-Specific
+  { cat: 'Segment-Specific', q: 'RWAs — How do we share proof with residents?', a: 'Each service generates a QR-signed certificate and EcoScore™ dashboard, shareable with residents and regulators in one tap.' },
+  { cat: 'Segment-Specific', q: 'Hospitals — Is Ozone safe for patient tanks?', a: 'Yes. Ozone sterilises without residues — natural and safer than chemicals for sensitive environments like hospitals and clinics.' },
+  { cat: 'Segment-Specific', q: 'Restaurants — How do you ensure kitchen hygiene?', a: 'Our Hygiene Wall Wash service disinfects walls and surfaces monthly, leaving them odour-less and sterilised.' },
 ];
 const COMPARE_BAD = [
   'Chemicals linger in water for days',
-  'No certification, no proof',
-  'Manual scrub & rinse only',
-  'Cleaner leaves, you wonder if it worked',
+  'Fail against resistant germs (Cryptosporidium, Giardia, biofilm & fungi)',
+  'No certification, no proof of hygiene',
+  'No before/after water testing',
+  'Manual scrub & rinse — incomplete process',
+  'Cleaner leaves, uncertainty remains',
 ];
 const COMPARE_GOOD = [
   'Ozone decomposes to pure oxygen \u2014 zero residue',
-  'QR-signed certificate after every clean',
-  '8-step process incl. ATP verification',
-  'Live app tracking + before/after photos',
+  'UV double-locks hygiene, reinforcing Ozone\u2019s germ kill',
+  '99.99% germ neutralisation \u2014 even resistant pathogens',
+  'QR-verified hygiene certificate after every clean',
+  'Before/after water testing reports delivered via app',
+  'Patent-applied 8-step process with ATP verification',
+  'Live app tracking with before/after proof photos',
+  'Smart process saves 33% water vs chemical cleaning',
 ];
-const CERT_TAGS = ['Sanitation levels', 'ATP readings', 'Before/after photos', 'Crew verification'];
+const CERT_TAGS = ['Ozone readings', 'ATP verification', 'Before/after photos', 'Crew ID & signature', 'Shareable proof'];
 
 /* ══════════════════════════════════════════════════════════════════
    REVEAL HOOK + WRAPPER
@@ -137,6 +196,76 @@ function Reveal({ delay = 0, style, children }: { delay?: number; style?: any; c
 }
 
 /* ══════════════════════════════════════════════════════════════════
+   SERIF ACCENT (italic editorial accent in headings)
+   ════════════════════════════════════════════════════════════════ */
+function SerifAccent({ children, color, size }: { children: React.ReactNode; color?: string; size?: number }) {
+  return (
+    <Text style={{
+      // Playfair Display has a true 800 italic — pairs with Manrope and matches
+      // the bold weight of the surrounding heading without faux-bolding.
+      fontFamily: Platform.OS === 'web'
+        ? '"Playfair Display", "Instrument Serif", Georgia, serif'
+        : Platform.select({ ios: 'Georgia-BoldItalic', android: 'serif' }) as any,
+      fontStyle: 'italic',
+      fontWeight: '800' as any,
+      color: color ?? B.primaryDk,
+      ...(size ? { fontSize: size } : {}),
+    }}>{children}</Text>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   EYEBROW LABEL (small heading with leading dash)
+   ════════════════════════════════════════════════════════════════ */
+function Eyebrow({ children, color = B.primaryDk, center = false }: { children: React.ReactNode; color?: string; center?: boolean }) {
+  return (
+    <View style={{
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      ...(center ? { justifyContent: 'center' } as const : {}),
+    }}>
+      <View style={{ width: 26, height: 2, backgroundColor: color }} />
+      <Text style={{
+        fontSize: 11.5, fontWeight: '800', letterSpacing: 2,
+        color, textTransform: 'uppercase',
+        fontFamily: 'Manrope, sans-serif',
+      }}>{children}</Text>
+    </View>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   PATENT BADGE (professional verified-style chip next to "1st" stat)
+   ════════════════════════════════════════════════════════════════ */
+function PatentMedal({ size = 30, onDark = true }: { size?: number; onDark?: boolean }) {
+  // A small "PAT. APPL." chip with a verification tick — reads like a legal/IP
+  // notation (think ™, ®, "Pat. Pend.") rather than a competition trophy.
+  const fg = onDark ? '#fff' : B.primaryDk;
+  const bg = onDark ? 'rgba(255,255,255,0.15)' : B.aqua;
+  const border = onDark ? 'rgba(255,255,255,0.45)' : 'rgba(2,132,199,0.25)';
+  return (
+    <View style={{
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      paddingHorizontal: 7, paddingVertical: 3, marginLeft: 8,
+      borderRadius: 6,
+      backgroundColor: bg,
+      borderWidth: 1, borderColor: border,
+      ...Platform.select({
+        default: { backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' } as any,
+      }),
+    }}>
+      <ShieldCheck size={Math.round(size * 0.42)} weight="fill" color={fg} />
+      <Text style={{
+        fontSize: Math.max(8, Math.round(size * 0.34)),
+        fontWeight: '800',
+        letterSpacing: 1.2,
+        color: fg,
+        fontFamily: 'Manrope, Inter, sans-serif',
+      }}>PAT. APPL.</Text>
+    </View>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
    COUNTER
    ════════════════════════════════════════════════════════════════ */
 function Counter({ value, suffix = '', decimal = false, duration = 1400 }: { value: number; suffix?: string; decimal?: boolean; duration?: number }) {
@@ -175,20 +304,24 @@ function Counter({ value, suffix = '', decimal = false, duration = 1400 }: { val
 /* ══════════════════════════════════════════════════════════════════
    FAQ ITEM
    ════════════════════════════════════════════════════════════════ */
-function FaqItem({ q, a, open, onToggle, compact = false }: { q: string; a: string; open: boolean; onToggle: () => void; compact?: boolean }) {
+function FaqItem({ q, a, open, onToggle, onHover, compact = false, hoverMode = false }: { q: string; a: string; open: boolean; onToggle: () => void; onHover?: () => void; compact?: boolean; hoverMode?: boolean }) {
   const rot = useRef(new Animated.Value(0)).current;
   const height = useRef(new Animated.Value(0)).current;
+  const lift = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(rot,    { toValue: open ? 1 : 0, duration: 250, useNativeDriver: true }),
-      Animated.timing(height, { toValue: open ? 1 : 0, duration: 280, useNativeDriver: false }),
+      Animated.timing(rot,    { toValue: open ? 1 : 0, duration: 260, useNativeDriver: true }),
+      Animated.timing(height, { toValue: open ? 1 : 0, duration: 340, useNativeDriver: false }),
+      Animated.spring(lift,   { toValue: open ? 1 : 0, friction: 7, tension: 90, useNativeDriver: true }),
     ]).start();
   }, [open]);
-  const rotate = rot.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] });
-  const maxH   = height.interpolate({ inputRange: [0, 1], outputRange: [0, compact ? 200 : 400] });
-  return (
-    <View style={[s.faqCard, { borderColor: B.line }]}>
-      <TouchableOpacity onPress={onToggle} style={[s.faqHeader, compact && { padding: 13 }]} activeOpacity={0.7}>
+  const rotate = rot.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '135deg'] });
+  const maxH   = height.interpolate({ inputRange: [0, 1], outputRange: [0, compact ? 220 : 460] });
+  const translateY = lift.interpolate({ inputRange: [0, 1], outputRange: [0, -3] });
+
+  const inner = (
+    <>
+      <View style={[s.faqHeader, compact && { padding: 13 }]}>
         <Text style={[s.faqQ, { color: B.ink, flex: 1 }, compact && { fontSize: 13 }]}>{q}</Text>
         <Animated.View style={[
           s.faqToggle,
@@ -201,11 +334,30 @@ function FaqItem({ q, a, open, onToggle, compact = false }: { q: string; a: stri
             fontWeight: '300', lineHeight: compact ? 16 : 22, marginTop: -1,
           }}>+</Text>
         </Animated.View>
-      </TouchableOpacity>
+      </View>
       <Animated.View style={{ maxHeight: maxH, overflow: 'hidden' }}>
         <Text style={[s.faqA, { color: B.muted }, compact && { fontSize: 12.5, padding: 14, paddingTop: 0 }]}>{a}</Text>
       </Animated.View>
-    </View>
+    </>
+  );
+
+  if (hoverMode && Platform.OS === 'web') {
+    return (
+      <Animated.View
+        {...({ onMouseEnter: onHover, dataSet: { ozFaq: 'true' } } as any)}
+        style={[s.faqCard, { borderColor: open ? B.primary : B.line, transform: [{ translateY }] }, open && s.faqCardOpen]}
+      >
+        {inner}
+      </Animated.View>
+    );
+  }
+
+  return (
+    <Animated.View style={[s.faqCard, { borderColor: open ? B.primary : B.line, transform: [{ translateY }] }, open && s.faqCardOpen]}>
+      <TouchableOpacity onPress={onToggle} activeOpacity={0.7}>
+        {inner}
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 
@@ -375,6 +527,253 @@ function CenterRipple({ color = '#38BDF8' }: { color?: string }) {
       ))}
     </Div>
   );
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   OZONE-DROP CURSOR (web only — drop follows pointer + disperse trail)
+   ════════════════════════════════════════════════════════════════ */
+function useOzoneDropCursor() {
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    if (typeof window === 'undefined') return;
+    // Only on devices with a fine pointer (mouse/trackpad). Skips touch.
+    const mq = window.matchMedia && window.matchMedia('(pointer: fine)');
+    if (mq && !mq.matches) return;
+
+    // Ozone (O₃) molecule cursor — three glowing blue oxygen atoms in a bent
+    // triangular arrangement, with flame-shaped gas plumes evaporating UPWARD from
+    // the molecule (like vapour rising off a hot surface, not a circular halo).
+    const DROP_SVG = `
+      <div class="oz-glow"></div>
+      <div class="oz-plume oz-plume-1"></div>
+      <div class="oz-plume oz-plume-2"></div>
+      <div class="oz-plume oz-plume-3"></div>
+      <div class="oz-plume oz-plume-4"></div>
+      <div class="oz-plume oz-plume-5"></div>
+      <div class="oz-plume oz-plume-6"></div>
+      <svg class="oz-mol" viewBox="0 0 36 36" width="34" height="34" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="ozcAtom" cx="38%" cy="32%" r="70%">
+            <stop offset="0%"  stop-color="#FFFFFF" stop-opacity="0.98"/>
+            <stop offset="35%" stop-color="#BAE6FD" stop-opacity="0.95"/>
+            <stop offset="75%" stop-color="#0EA5E9" stop-opacity="0.95"/>
+            <stop offset="100%" stop-color="#0369A1" stop-opacity="1"/>
+          </radialGradient>
+        </defs>
+        <!-- molecular bonds -->
+        <line x1="18" y1="22" x2="9"  y2="14" stroke="rgba(186,230,253,0.85)" stroke-width="1.4" stroke-linecap="round"/>
+        <line x1="18" y1="22" x2="27" y2="14" stroke="rgba(186,230,253,0.85)" stroke-width="1.4" stroke-linecap="round"/>
+        <!-- left O atom -->
+        <circle cx="9"  cy="14" r="4.4" fill="url(#ozcAtom)" stroke="rgba(2,132,199,0.55)" stroke-width="0.6"/>
+        <ellipse cx="7.4" cy="12.4" rx="1.4" ry="1.9" fill="rgba(255,255,255,0.7)"/>
+        <!-- right O atom -->
+        <circle cx="27" cy="14" r="4.4" fill="url(#ozcAtom)" stroke="rgba(2,132,199,0.55)" stroke-width="0.6"/>
+        <ellipse cx="25.4" cy="12.4" rx="1.4" ry="1.9" fill="rgba(255,255,255,0.7)"/>
+        <!-- center O atom (slightly larger) -->
+        <circle cx="18" cy="22" r="5.6" fill="url(#ozcAtom)" stroke="rgba(2,132,199,0.6)" stroke-width="0.7"/>
+        <ellipse cx="16" cy="20" rx="1.8" ry="2.4" fill="rgba(255,255,255,0.75)"/>
+      </svg>`;
+    // Trail: a tight cluster of tiny bubbles representing dispersing ozone gas.
+    const TRAIL_SVG = `
+      <svg viewBox="0 0 24 24" width="22" height="22" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="ozctb" cx="35%" cy="30%" r="70%">
+            <stop offset="0%" stop-color="rgba(255,255,255,0.9)"/>
+            <stop offset="60%" stop-color="rgba(125,211,252,0.7)"/>
+            <stop offset="100%" stop-color="rgba(14,165,233,0.55)"/>
+          </radialGradient>
+        </defs>
+        <circle cx="12" cy="14" r="4.2" fill="url(#ozctb)" stroke="rgba(2,132,199,0.4)" stroke-width="0.5"/>
+        <circle cx="6"  cy="9"  r="2.6" fill="url(#ozctb)" stroke="rgba(2,132,199,0.35)" stroke-width="0.4"/>
+        <circle cx="18" cy="9"  r="2.4" fill="url(#ozctb)" stroke="rgba(2,132,199,0.35)" stroke-width="0.4"/>
+      </svg>`;
+
+    // CSS injection: hide native cursor, define trail keyframes
+    const styleId = 'ozonewash-cursor-style';
+    let style = document.getElementById(styleId) as HTMLStyleElement | null;
+    if (!style) {
+      style = document.createElement('style');
+      style.id = styleId;
+      // Smooth gas-disperse trail: invisible → quick fade-in → continuous linear fade-out
+      // while drifting upward. No "stuck" plateau — opacity decays monotonically.
+      style.textContent = `
+        html, body, *, *::before, *::after { cursor: none !important; }
+        @keyframes ozCursorRise {
+          0%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.45); }
+          12%  { opacity: 0.75; transform: translate(-50%, calc(-50% - 4px)) scale(1); }
+          100% { opacity: 0;    transform: translate(calc(-50% + var(--drift,0px)), calc(-50% - 42px)) scale(1.7); }
+        }
+        @keyframes ozCursorSpin {
+          0%, 100% { filter: drop-shadow(0 0 6px rgba(14,165,233,0.55)) drop-shadow(0 0 14px rgba(56,189,248,0.35)); }
+          50%      { filter: drop-shadow(0 0 10px rgba(14,165,233,0.8)) drop-shadow(0 0 22px rgba(56,189,248,0.55)); }
+        }
+        .oz-cursor { animation: ozCursorSpin 2.4s ease-in-out infinite; position: relative; }
+        .oz-cursor .oz-mol {
+          position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+          z-index: 2;
+        }
+        /* ── Static base glow behind the molecule (subtle) ── */
+        .oz-cursor .oz-glow {
+          position: absolute; top: 50%; left: 50%;
+          width: 32px; height: 32px;
+          transform: translate(-50%, -50%);
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(186,230,253,0.55), rgba(14,165,233,0.18) 55%, transparent 80%);
+          filter: blur(4px);
+          pointer-events: none;
+          z-index: 0;
+        }
+        /* ── Flame-shaped evaporating gas plumes — rise upward off the molecule
+              with a slight S-curve sway, expand & fade like real vapour wisps.
+              6 plumes staggered for continuous flow. ── */
+        .oz-cursor .oz-plume {
+          position: absolute; left: 50%; top: 50%;
+          width: 14px; height: 22px;
+          /* Tear-drop / flame shape: narrow at base (top), wider at the trailing tip */
+          border-radius: 50% 50% 50% 50% / 70% 70% 35% 35%;
+          background: radial-gradient(ellipse at 50% 75%,
+            rgba(255,255,255,0.85) 0%,
+            rgba(186,230,253,0.7) 35%,
+            rgba(56,189,248,0.4) 65%,
+            transparent 90%);
+          filter: blur(2.5px);
+          pointer-events: none;
+          will-change: transform, opacity;
+          transform-origin: 50% 100%;
+          z-index: 1;
+        }
+        .oz-cursor .oz-plume-1 { animation: ozPlume1 2.6s ease-out infinite;                    }
+        .oz-cursor .oz-plume-2 { animation: ozPlume2 2.6s ease-out infinite; animation-delay: 0.43s; }
+        .oz-cursor .oz-plume-3 { animation: ozPlume3 2.6s ease-out infinite; animation-delay: 0.86s; }
+        .oz-cursor .oz-plume-4 { animation: ozPlume4 2.6s ease-out infinite; animation-delay: 1.30s; }
+        .oz-cursor .oz-plume-5 { animation: ozPlume5 2.6s ease-out infinite; animation-delay: 1.73s; }
+        .oz-cursor .oz-plume-6 { animation: ozPlume6 2.6s ease-out infinite; animation-delay: 2.16s; }
+        /* Each plume: starts compressed at the molecule, drifts UPWARD with sway,
+           stretches vertically, and fades. Sway pattern alternates left/right. */
+        @keyframes ozPlume1 {
+          0%   { transform: translate(-50%, -10%) scale(0.35, 0.4); opacity: 0; }
+          15%  { opacity: 0.85; }
+          55%  { transform: translate(calc(-50% - 4px), -50%) scale(0.95, 1.6); opacity: 0.55; }
+          100% { transform: translate(calc(-50% + 3px), -130%) scale(1.5, 2.7); opacity: 0; }
+        }
+        @keyframes ozPlume2 {
+          0%   { transform: translate(-50%, -10%) scale(0.35, 0.4); opacity: 0; }
+          15%  { opacity: 0.8; }
+          55%  { transform: translate(calc(-50% + 5px), -55%) scale(1.05, 1.7); opacity: 0.5; }
+          100% { transform: translate(calc(-50% - 5px), -140%) scale(1.6, 2.8); opacity: 0; }
+        }
+        @keyframes ozPlume3 {
+          0%   { transform: translate(-50%, -10%) scale(0.3, 0.35); opacity: 0; }
+          15%  { opacity: 0.75; }
+          55%  { transform: translate(calc(-50% - 6px), -45%) scale(0.9, 1.5); opacity: 0.5; }
+          100% { transform: translate(calc(-50% + 6px), -120%) scale(1.4, 2.5); opacity: 0; }
+        }
+        @keyframes ozPlume4 {
+          0%   { transform: translate(-50%, -10%) scale(0.35, 0.4); opacity: 0; }
+          15%  { opacity: 0.85; }
+          55%  { transform: translate(calc(-50% + 7px), -60%) scale(1.0, 1.65); opacity: 0.55; }
+          100% { transform: translate(calc(-50% - 4px), -150%) scale(1.55, 2.9); opacity: 0; }
+        }
+        @keyframes ozPlume5 {
+          0%   { transform: translate(-50%, -10%) scale(0.3, 0.35); opacity: 0; }
+          15%  { opacity: 0.8; }
+          55%  { transform: translate(calc(-50% - 3px), -50%) scale(0.85, 1.5); opacity: 0.5; }
+          100% { transform: translate(calc(-50% + 5px), -125%) scale(1.45, 2.6); opacity: 0; }
+        }
+        @keyframes ozPlume6 {
+          0%   { transform: translate(-50%, -10%) scale(0.35, 0.4); opacity: 0; }
+          15%  { opacity: 0.75; }
+          55%  { transform: translate(calc(-50% + 4px), -55%) scale(1.0, 1.6); opacity: 0.5; }
+          100% { transform: translate(calc(-50% - 6px), -135%) scale(1.5, 2.7); opacity: 0; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // Cursor element (O₃ molecule + gas aura, 64x64). The molecule centres at the
+    // pointer; the surrounding gas halos and wisps extend beyond it.
+    const cursor = document.createElement('div');
+    cursor.className = 'oz-cursor';
+    cursor.innerHTML = DROP_SVG;
+    Object.assign(cursor.style, {
+      position: 'fixed', top: '0', left: '0', pointerEvents: 'none',
+      zIndex: '2147483647', width: '64px', height: '64px',
+      transform: 'translate3d(-1000px, -1000px, 0)',
+      willChange: 'transform',
+      // No CSS transition — cursor follows pointer 1:1 via rAF for true smoothness
+    } as Partial<CSSStyleDeclaration>);
+    document.body.appendChild(cursor);
+
+    // rAF-driven cursor positioning — eliminates per-event layout thrash and the
+    // "rubber-band" feel that came from the prior CSS transition.
+    let targetX = -1000, targetY = -1000;
+    let curX = -1000, curY = -1000;
+    let rafId = 0;
+    const tick = () => {
+      // Light easing toward target for buttery glide (~0.35 lerp per frame)
+      curX += (targetX - curX) * 0.35;
+      curY += (targetY - curY) * 0.35;
+      cursor.style.transform = `translate3d(${curX - 32}px, ${curY - 32}px, 0)`;
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+
+    let lastX = -1000, lastY = -1000, accum = 0;
+    const onMove = (e: MouseEvent) => {
+      const x = e.clientX, y = e.clientY;
+      targetX = x; targetY = y;
+      const dx = x - lastX, dy = y - lastY;
+      const step = Math.sqrt(dx * dx + dy * dy);
+      accum += step;
+      // Denser spawn threshold for continuous gas feel (was 18 → now 11)
+      if (accum > 11) {
+        accum = 0;
+        const trail = document.createElement('div');
+        trail.innerHTML = TRAIL_SVG;
+        const jitterX = (Math.random() - 0.5) * 12;
+        const jitterY = (Math.random() - 0.5) * 6;
+        const drift = (Math.random() - 0.5) * 28;
+        const scale = 0.5 + Math.random() * 0.45;
+        const dur = 520 + Math.random() * 220; // tighter window → smoother flow
+        Object.assign(trail.style, {
+          position: 'fixed',
+          top: `${y + jitterY}px`,
+          left: `${x + jitterX}px`,
+          width: `${22 * scale}px`,
+          height: `${22 * scale}px`,
+          pointerEvents: 'none',
+          zIndex: '2147483646',
+          willChange: 'transform, opacity',
+          // Linear ease-out → no plateau, no abrupt vanish
+          animation: `ozCursorRise ${dur}ms cubic-bezier(.15,.55,.35,1) forwards`,
+        } as Partial<CSSStyleDeclaration>);
+        (trail.style as any).setProperty('--drift', `${drift}px`);
+        document.body.appendChild(trail);
+        window.setTimeout(() => trail.remove(), dur + 50);
+      }
+      lastX = x; lastY = y;
+    };
+
+    const onLeave = () => {
+      targetX = -1000; targetY = -1000;
+      curX = -1000; curY = -1000;
+      cursor.style.transform = 'translate3d(-1000px, -1000px, 0)';
+    };
+    const onEnter = () => { /* cursor will reposition on next move */ };
+
+    window.addEventListener('mousemove', onMove, { passive: true });
+    document.addEventListener('mouseleave', onLeave);
+    document.addEventListener('mouseenter', onEnter);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseleave', onLeave);
+      document.removeEventListener('mouseenter', onEnter);
+      cursor.remove();
+      style?.remove();
+    };
+  }, []);
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -769,6 +1168,173 @@ function HeroVisual() {
 }
 
 /* ══════════════════════════════════════════════════════════════════
+   SPINNING DASHED RING (orbits around the expandable Step 03 circle)
+   ════════════════════════════════════════════════════════════════ */
+function SpinningDashedRing({ size = 76, color }: { size?: number; color: string }) {
+  if (Platform.OS === 'web') {
+    const Div = 'div' as any;
+    return (
+      <Div style={{
+        position: 'absolute',
+        width: size + 12, height: size + 12,
+        top: -6, left: -6,
+        borderRadius: '50%',
+        border: `2px dashed ${color}99`,
+        animation: 'ozRingSpin 10s linear infinite',
+        pointerEvents: 'none',
+        boxSizing: 'border-box',
+      }} />
+    );
+  }
+  // Native: rotating dashed border via Animated rotation. Native doesn't render dashed
+  // borders perfectly across platforms — fall back to a solid faint ring with a single
+  // dash gap simulated by a notched overlay.
+  const rot = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.timing(rot, { toValue: 1, duration: 10000, easing: Easing.linear, useNativeDriver: true })
+    );
+    loop.start();
+    return () => loop.stop();
+  }, []);
+  const spin = rot.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  return (
+    <Animated.View style={{
+      position: 'absolute',
+      width: size + 12, height: size + 12,
+      top: -6, left: -6,
+      borderRadius: (size + 12) / 2,
+      borderWidth: 2,
+      borderColor: `${color}55`,
+      borderStyle: 'dashed',
+      transform: [{ rotate: spin }],
+    }} />
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   EXPANDABLE 8-STEP PANEL (under Step 03 in How It Works)
+   ════════════════════════════════════════════════════════════════ */
+function EightStepsPanel({ open, onClose, isLarge }: { open: boolean; onClose: () => void; isLarge: boolean }) {
+  // Native: simple toggle with Animated.View height
+  const heightAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(heightAnim, {
+      toValue: open ? 1 : 0,
+      duration: 700,
+      easing: Easing.bezier(0.2, 0.7, 0.2, 1),
+      useNativeDriver: false,
+    }).start();
+  }, [open]);
+
+  const numCols = isLarge ? 4 : 1;
+  const tagBg = (kind: EightStep['tagKind']) =>
+    kind === 'uv' ? '#EDE9FE' : kind === 'live' ? '#DCFCE7' : B.aqua;
+  const tagFg = (kind: EightStep['tagKind']) =>
+    kind === 'uv' ? '#6D28D9' : kind === 'live' ? B.leafDk : B.primaryDk;
+
+  const inner = (
+    <View style={{ paddingTop: isLarge ? 60 : 32, paddingBottom: 20 }}>
+      <View style={{
+        flexDirection: isLarge ? 'row' : 'column',
+        justifyContent: 'space-between',
+        alignItems: isLarge ? 'flex-end' : 'flex-start',
+        gap: 20, marginBottom: 28,
+      }}>
+        <View style={{ flex: isLarge ? 1 : undefined }}>
+          <Eyebrow>Inside Step 03 · The Patent-Applied Protocol</Eyebrow>
+          <Text style={{
+            fontSize: isLarge ? 32 : 22, fontWeight: '800', letterSpacing: -1,
+            color: B.ink, marginTop: 14,
+            fontFamily: 'Manrope, sans-serif',
+          }}>The 8-Step Ozone & UV Hygiene Process</Text>
+          <Text style={{ fontSize: 14, color: B.muted, marginTop: 8, maxWidth: 480, lineHeight: 21 }}>
+            Each step is logged, photo-verified, and reflected in your EcoScore™. Every card includes live photo upload, timestamp, and operator signature.
+          </Text>
+        </View>
+        <TouchableOpacity onPress={onClose} activeOpacity={0.85} style={{
+          flexDirection: 'row', alignItems: 'center', gap: 8,
+          backgroundColor: B.ink, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12,
+          alignSelf: isLarge ? 'flex-end' : 'flex-start',
+        }}>
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Collapse ↑</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 18 }}>
+        {EIGHT_STEPS.map((step, i) => {
+          const cardStyle = {
+            width: isLarge ? `${(100 / numCols)}%` as any : '100%' as any,
+            paddingRight: isLarge && (i + 1) % numCols !== 0 ? 18 : 0,
+          };
+          // Account for gap by subtracting from width
+          const innerCard = (
+            <View
+              {...(Platform.OS === 'web' ? { className: 'oz-eight-card' } as any : {})}
+              style={{
+                backgroundColor: '#fff', borderWidth: 1, borderColor: B.line,
+                borderRadius: 20, padding: 22, position: 'relative', overflow: 'hidden',
+              }}
+            >
+              <View style={{
+                position: 'absolute', top: 18, right: 18,
+                width: 36, height: 36, borderRadius: 10,
+                backgroundColor: B.surfaceAlt,
+                alignItems: 'center', justifyContent: 'center',
+              }}>
+                <step.Icon size={18} color={B.primaryDk} weight="regular" />
+              </View>
+              <Text style={{
+                fontSize: 44, fontWeight: '400' as any, lineHeight: 44,
+                fontStyle: 'italic',
+                color: B.primary,
+                fontFamily: Platform.OS === 'web' ? 'Instrument Serif, Georgia, serif' : Platform.select({ ios: 'Georgia-Italic', android: 'serif' }) as any,
+                marginBottom: 10,
+              }}>{step.num}</Text>
+              <Text style={{ fontSize: 15, fontWeight: '800', color: B.ink, marginBottom: 6, letterSpacing: -0.2 }}>{step.t}</Text>
+              <Text style={{ fontSize: 12.5, color: B.muted, lineHeight: 18, marginBottom: 12 }}>{step.d}</Text>
+              <View style={{
+                alignSelf: 'flex-start',
+                paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
+                backgroundColor: tagBg(step.tagKind),
+              }}>
+                <Text style={{
+                  fontSize: 10, fontWeight: '800', letterSpacing: 0.5,
+                  color: tagFg(step.tagKind),
+                }}>{step.tag}</Text>
+              </View>
+            </View>
+          );
+          return (
+            <View key={i} style={cardStyle}>
+              {innerCard}
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+
+  // Web: pure CSS open/close transition with class for stagger animation
+  if (Platform.OS === 'web') {
+    const Div = 'div' as any;
+    return (
+      <Div className={`oz-eight-wrap${open ? ' open' : ''}`}>
+        {inner}
+      </Div>
+    );
+  }
+
+  // Native: animated max-height proxy via opacity + scale + scrollHeight estimate
+  const maxH = heightAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 2400] });
+  return (
+    <Animated.View style={{ maxHeight: maxH, overflow: 'hidden', opacity: heightAnim }}>
+      {inner}
+    </Animated.View>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
    3D TANK + FEATURE RING (desktop features section)
    ════════════════════════════════════════════════════════════════ */
 function Tank3D({ tilt, active }: { tilt: { x: number; y: number }; active: boolean }) {
@@ -1043,17 +1609,17 @@ function TankFeatureRing({ onCta }: { onCta: () => void }) {
       </Div>
 
       {/* CTA */}
-      <Div style={{ gridColumn: '1 / -1', textAlign: 'center', marginTop: 28 }}>
+      <Div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center', marginTop: 28 }}>
         <TouchableOpacity onPress={onCta} activeOpacity={0.85} style={{
-          height: 52, paddingHorizontal: 26, borderRadius: 14,
+          height: 56, paddingHorizontal: 30, borderRadius: 14,
           backgroundColor: B.ink,
-          flexDirection: 'row', alignItems: 'center', gap: 10,
-          alignSelf: 'center',
+          flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+          alignSelf: 'flex-start',
           ...Platform.select({
-            default: { boxShadow: '0 14px 28px rgba(11,31,51,0.25)' } as any,
+            default: { boxShadow: '0 14px 28px rgba(11,31,51,0.25)', display: 'inline-flex' } as any,
           }),
         }}>
-          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>Book your ozone clean</Text>
+          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>Book Your Ozone Wash™</Text>
           <ArrowRight size={16} weight="bold" color="#fff" />
         </TouchableOpacity>
       </Div>
@@ -1074,6 +1640,10 @@ const LandingScreen = () => {
   const [scrolled, setScrolled]     = useState(false);
   const [activeTank, setActiveTank] = useState(0);
   const [faqOpen, setFaqOpen]       = useState<number | null>(0);
+  const [eightOpen, setEightOpen]   = useState(false);
+
+  // Custom ozone-drop cursor with disperse trail (web + fine pointer only)
+  useOzoneDropCursor();
 
   // Fix web scroll
   useEffect(() => {
@@ -1201,8 +1771,129 @@ const LandingScreen = () => {
       [data-oz-nav="true"]:hover {
         opacity: 0.7 !important;
       }
+      [data-oz-faq="true"] {
+        transition: border-color 0.25s ease, transform 0.25s cubic-bezier(.2,.7,.2,1), box-shadow 0.3s ease;
+      }
+      [data-oz-faq="true"]:hover {
+        border-color: ${B.primary} !important;
+        box-shadow: 0 14px 28px rgba(2,132,199,0.12) !important;
+      }
+      @keyframes ozPatentSpin { to { transform: rotate(360deg); } }
+      @keyframes ozRingSpin { to { transform: rotate(360deg); } }
+
+      /* ───── Branded scrollbar (WebKit / Chromium / Edge / Safari) ───── */
+      *::-webkit-scrollbar { width: 12px; height: 12px; }
+      *::-webkit-scrollbar-track {
+        background: ${B.surfaceAlt};
+        border-left: 1px solid rgba(2,132,199,0.06);
+      }
+      *::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, ${B.primary} 0%, ${B.primaryDk} 100%);
+        border-radius: 999px;
+        border: 3px solid ${B.surfaceAlt};
+        background-clip: padding-box;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
+        transition: background .25s ease;
+      }
+      *::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, #38BDF8 0%, ${B.primary} 100%);
+        background-clip: padding-box;
+      }
+      *::-webkit-scrollbar-thumb:active {
+        background: linear-gradient(180deg, ${B.primaryDk} 0%, ${B.primaryDkr} 100%);
+        background-clip: padding-box;
+      }
+      *::-webkit-scrollbar-corner { background: transparent; }
+      /* Firefox */
+      html { scrollbar-width: thin; scrollbar-color: ${B.primaryDk} ${B.surfaceAlt}; }
+      @keyframes ozCardFloat {
+        0%, 100% { transform: translateY(0); }
+        50%      { transform: translateY(-8px); }
+      }
+      @keyframes ozSvcPulse {
+        0%, 100% { transform: scale(1);    opacity: 0.8; }
+        50%      { transform: scale(1.18); opacity: 0; }
+      }
+      @keyframes ozEightIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to   { opacity: 1; transform: none; }
+      }
+      [data-oz-floatcard="true"] {
+        animation: ozCardFloat 6s ease-in-out infinite;
+        transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s, border-color .35s;
+        will-change: transform;
+      }
+      [data-oz-floatcard="true"]:nth-child(2) { animation-delay: -2s; }
+      [data-oz-floatcard="true"]:nth-child(3) { animation-delay: -4s; }
+      [data-oz-floatcard="true"]:hover {
+        animation-play-state: paused;
+        transform: translateY(-14px) !important;
+        box-shadow: 0 34px 70px rgba(2,132,199,0.28) !important;
+        border-color: transparent !important;
+      }
+      [data-oz-svcicon="true"] {
+        position: relative;
+        transition: background .35s, transform .35s, color .35s;
+      }
+      [data-oz-svcicon="true"]::after {
+        content: '';
+        position: absolute;
+        inset: -6px;
+        border-radius: 22px;
+        border: 2px solid rgba(14,165,233,0.25);
+        animation: ozSvcPulse 2.8s ease-in-out infinite;
+        pointer-events: none;
+      }
+      [data-oz-svccard="true"]:hover [data-oz-svcicon="true"] {
+        background: linear-gradient(135deg, ${B.primaryDk}, ${B.primary}) !important;
+        transform: rotate(-6deg) scale(1.08);
+      }
+      [data-oz-svccard="true"]:hover [data-oz-svcicon="true"] svg { color: #fff !important; }
+      .oz-eight-wrap {
+        max-height: 0; overflow: hidden;
+        transition: max-height .7s cubic-bezier(.2,.7,.2,1);
+      }
+      .oz-eight-wrap.open { max-height: 2400px; }
+      .oz-eight-card {
+        opacity: 0; transform: translateY(20px);
+      }
+      .oz-eight-wrap.open .oz-eight-card {
+        animation: ozEightIn .55s cubic-bezier(.2,.7,.2,1) forwards;
+      }
+      .oz-eight-wrap.open .oz-eight-card:nth-child(1) { animation-delay: .05s; }
+      .oz-eight-wrap.open .oz-eight-card:nth-child(2) { animation-delay: .13s; }
+      .oz-eight-wrap.open .oz-eight-card:nth-child(3) { animation-delay: .21s; }
+      .oz-eight-wrap.open .oz-eight-card:nth-child(4) { animation-delay: .29s; }
+      .oz-eight-wrap.open .oz-eight-card:nth-child(5) { animation-delay: .37s; }
+      .oz-eight-wrap.open .oz-eight-card:nth-child(6) { animation-delay: .45s; }
+      .oz-eight-wrap.open .oz-eight-card:nth-child(7) { animation-delay: .53s; }
+      .oz-eight-wrap.open .oz-eight-card:nth-child(8) { animation-delay: .61s; }
+      .oz-eight-card { transition: transform .3s, box-shadow .3s, border-color .3s; }
+      .oz-eight-card:hover {
+        transform: translateY(-6px);
+        border-color: ${B.primary} !important;
+        box-shadow: 0 22px 40px rgba(2,132,199,0.15) !important;
+      }
     `;
     document.head.appendChild(el);
+
+    // Load Playfair Display (true 800 italic) for editorial accents in headings.
+    // Instrument Serif is kept as a fallback in the font stack but Playfair carries
+    // a real bold weight that pairs with Manrope 800 instead of looking spindly.
+    const fontId = 'oz-serif-accent-font';
+    if (!document.getElementById(fontId)) {
+      const lpre = document.createElement('link');
+      lpre.id = fontId + '-pre';
+      lpre.rel = 'preconnect';
+      lpre.href = 'https://fonts.gstatic.com';
+      (lpre as any).crossOrigin = 'anonymous';
+      const lcss = document.createElement('link');
+      lcss.id = fontId;
+      lcss.rel = 'stylesheet';
+      lcss.href = 'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,700;1,800;1,900&family=Instrument+Serif:ital@0;1&display=swap';
+      document.head.appendChild(lpre);
+      document.head.appendChild(lcss);
+    }
     return () => { el.remove(); };
   }, []);
 
@@ -1211,8 +1902,9 @@ const LandingScreen = () => {
   }, []);
 
   const goToLogin = () => navigation.navigate('PhoneInput');
-  const pad  = isLarge ? 48 : 20;
-  const maxW = 1200;
+  const pad   = isLarge ? 40 : 20;
+  const maxW  = 1400;
+  const maxWS = 1600; // services row uses a wider track to match the HTML design
 
   return (
     <View style={s.root}>
@@ -1231,7 +1923,7 @@ const LandingScreen = () => {
               <View style={s.navLogo}>
                 <Image source={require('../../../assets/logo.png')} style={s.navLogoImg} resizeMode="contain" />
               </View>
-              <Text style={[s.navBrand, { color: B.ink }]}>OZONEWASH</Text>
+              <Text style={[s.navBrand, { color: B.ink }]}>Ozone Wash<Text style={{ fontSize: 9, fontWeight: '700' }}>™</Text></Text>
             </View>
             {isLarge && (
               <View style={s.navLinks}>
@@ -1245,7 +1937,7 @@ const LandingScreen = () => {
               style={[s.navBtn, { backgroundColor: B.ink }]}
               activeOpacity={0.85}
             >
-              <Text style={s.navBtnText}>{isLarge ? 'Book a clean' : 'Book'}</Text>
+              <Text style={s.navBtnText}>{isLarge ? 'Book Our Clean' : 'Book'}</Text>
               <ArrowRight size={14} weight="bold" color="#fff" />
             </TouchableOpacity>
           </View>
@@ -1271,7 +1963,7 @@ const LandingScreen = () => {
               <View style={s.navLogo}>
                 <Image source={require('../../../assets/logo.png')} style={s.navLogoImg} resizeMode="contain" />
               </View>
-              <Text style={[s.navBrand, { color: '#fff' }]}>OZONEWASH</Text>
+              <Text style={[s.navBrand, { color: '#fff' }]}>Ozone Wash<Text style={{ fontSize: 9, fontWeight: '700' }}>™</Text></Text>
             </View>
             {isLarge && (
               <View style={s.navLinks}>
@@ -1291,7 +1983,7 @@ const LandingScreen = () => {
               <Text style={[
                 s.navBtnText,
                 isLarge && { color: B.primaryDk },
-              ]}>{isLarge ? 'Book a clean' : 'Book'}</Text>
+              ]}>{isLarge ? 'Book Our Clean' : 'Book'}</Text>
               <ArrowRight size={14} weight="bold" color={isLarge ? B.primaryDk : '#fff'} />
             </TouchableOpacity>
           </View>
@@ -1318,7 +2010,7 @@ const LandingScreen = () => {
               <Reveal>
                 <View style={s.heroBadge}>
                   <View style={s.heroBadgeDot} />
-                  <Text style={s.heroBadgeText}>NOW IN HYDERABAD {'\u00b7'} 500+ TANKS CLEANED</Text>
+                  <Text style={s.heroBadgeText}>{isLarge ? 'TRUSTED ACROSS HYDERABAD \u00b7 INDIA\u2019S 1ST PATENT-APPLIED' : 'TRUSTED IN HYDERABAD \u00b7 PATENT-APPLIED'}</Text>
                 </View>
               </Reveal>
 
@@ -1347,14 +2039,14 @@ const LandingScreen = () => {
 
               <Reveal delay={160}>
                 <Text style={[s.heroPara, isLarge && { fontSize: 18, lineHeight: 30, textAlign: 'left', maxWidth: 500 }]}>
-                  Proof in every drop. Chemical-free ozone tank cleaning, booked in 60 seconds. Certified technician at your door. QR-verified hygiene report in your hand.
+                  India’s 1st patent-applied Ozone cleaning — certified, chemical-free, and trusted by families across Hyderabad. Book in 60 seconds. Certified crew at your doorstep. QR-verified hygiene report, proof in every drop.
                 </Text>
               </Reveal>
 
               <Reveal delay={240}>
                 <View style={[s.heroCtas, isLarge && { justifyContent: 'flex-start' }]}>
                   <TouchableOpacity style={s.heroCtaPrimary} onPress={goToLogin} activeOpacity={0.85}>
-                    <Text style={s.heroCtaPrimaryText}>Book a clean</Text>
+                    <Text style={s.heroCtaPrimaryText}>Book Our Clean</Text>
                     <ArrowRight size={18} weight="bold" color={B.primaryDk} />
                   </TouchableOpacity>
                   {isLarge ? (
@@ -1362,7 +2054,7 @@ const LandingScreen = () => {
                       <View style={s.heroPlayCircle}>
                         <Play size={12} weight="fill" color="#fff" />
                       </View>
-                      <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>Watch 60-sec demo</Text>
+                      <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>Watch 60-Second Demo</Text>
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity style={s.heroPlayBtn} activeOpacity={0.8}>
@@ -1375,8 +2067,8 @@ const LandingScreen = () => {
               <Reveal delay={340}>
                 <View style={s.heroTrustRow}>
                   {(isLarge
-                    ? ['No chemicals. Ever.', 'Insured crews', 'Under 2-hour service', '4.9 / 5 \u2605']
-                    : ['No chemicals', 'Insured crew', '\u20B9799 onwards']
+                    ? ['No Chemicals — Ever', 'Insured & Certified Crews', 'Ozone Power, Zero Chemicals', 'Rated \u2605 4.9 by Customers']
+                    : ['No Chemicals', 'Insured & Certified', 'Patent-Applied Process']
                   ).map((t, i) => (
                     <View key={i} style={s.heroTrustItem}>
                       <CheckCircle size={13} weight="fill" color={B.leaf} />
@@ -1401,9 +2093,12 @@ const LandingScreen = () => {
               <View style={s.statsGlass}>
                 {STATS.map((st, i) => (
                   <View key={i} style={[s.statsGlassItem, i < STATS.length - 1 && s.statsGlassDivider]}>
-                    <Text style={s.statsGlassVal}>
-                      <Counter value={st.v} suffix={st.suffix} decimal={st.decimal} />
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                      <Text style={s.statsGlassVal}>
+                        <Counter value={st.v} suffix={st.suffix} decimal={st.decimal} />
+                      </Text>
+                      {st.l === 'Patent Applied' && <PatentMedal size={28} />}
+                    </View>
                     <Text style={s.statsGlassLbl}>{st.l}</Text>
                   </View>
                 ))}
@@ -1420,7 +2115,7 @@ const LandingScreen = () => {
                     <Text style={s.statsCardVal}>
                       <Counter value={st.v} suffix={st.suffix} decimal={st.decimal} />
                     </Text>
-                    <Text style={s.statsCardLbl}>{st.l}</Text>
+                    <Text style={s.statsCardLbl} numberOfLines={2}>{st.lShort ?? st.l}</Text>
                   </View>
                 ))}
               </View>
@@ -1441,26 +2136,53 @@ const LandingScreen = () => {
           )}
         </LinearGradient>
 
-        <View style={isLarge ? [s.centerWrap, { maxWidth: maxW }] : undefined}>
+        <View style={isLarge ? { width: '100%' } : undefined}>
 
           {/* ════════════════════ SERVICES ════════════════════ */}
-          <View style={[s.section, { paddingHorizontal: pad }]}>
-            <View style={isLarge ? { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 36 } : undefined}>
-              <View>
+          <View style={[s.section, { paddingHorizontal: pad }, isLarge && { paddingTop: 28, alignSelf: 'center', width: '100%', maxWidth: maxWS }]}>
+            {isLarge && (
+              <Reveal>
+                <View style={s.trustStrip}>
+                  {[
+                    { Icon: ShieldCheck, t: 'Patent-Applied 8-Step' },
+                    { Icon: Sparkle,     t: '99.99% Germ Kill' },
+                    { Icon: QrCode,      t: 'QR-Verified Proof' },
+                    { Icon: Users,       t: 'Insured & Certified Crews' },
+                    { Icon: Leaf,        t: 'Zero Chemicals · Eco-Safe' },
+                    { Icon: Lightning,   t: 'Same-Day Slots' },
+                  ].map((c, i) => (
+                    <View key={i} style={s.trustChip}>
+                      <c.Icon size={14} color={B.primaryDk} weight="fill" />
+                      <Text style={s.trustChipText}>{c.t}</Text>
+                    </View>
+                  ))}
+                </View>
+              </Reveal>
+            )}
+            <View style={isLarge ? { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 36, marginTop: 28 } : undefined}>
+              <View style={isLarge ? { flex: 1, maxWidth: 700 } : undefined}>
                 <Reveal>
-                  <Text style={[s.sectionLabel, { color: B.primaryDk }]}>ANY TANK, ANY SIZE</Text>
+                  <Text style={[s.sectionLabel, { color: B.primaryDk }]}>ANY TANK · ANY SIZE · CERTIFIED HYGIENE</Text>
                 </Reveal>
                 <Reveal delay={60}>
                   <Text style={[s.sectionTitle, { color: B.ink }, isLarge && s.sectionTitleLg]}>
-                    {isLarge ? 'We clean everything that holds water.' : 'We clean them all.'}
+                    {isLarge
+                      ? <>From homes to institutions — we clean anything which holds water with <SerifAccent>Ozone Power.</SerifAccent></>
+                      : <>Anything that holds water — cleaned with <SerifAccent>Ozone power.</SerifAccent></>}
                   </Text>
                 </Reveal>
               </View>
               {isLarge && (
-                <Reveal delay={120}>
-                  <Text style={{ fontSize: 14, color: B.muted, maxWidth: 360, textAlign: 'right' }}>
-                    One app-enabled service. Pick your tank, pick a slot {'\u2014'} a certified crew handles the rest.
+                <Reveal delay={120} style={{ maxWidth: 380 }}>
+                  <Text style={{ fontSize: 14, color: B.muted, textAlign: 'right', lineHeight: 22 }}>
+                    Pick your tank, pick a slot — our insured & certified crew delivers proof-based hygiene with QR-signed certificates after every clean.
                   </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
+                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: B.leaf }} />
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: B.primaryDk, letterSpacing: 0.4 }}>
+                      LIVE ACROSS HYDERABAD · BOOK IN 60s
+                    </Text>
+                  </View>
                 </Reveal>
               )}
             </View>
@@ -1471,11 +2193,13 @@ const LandingScreen = () => {
 
                 const cardInner = (
                   <View style={{ position: 'relative', zIndex: 1, flex: 1 }}>
-                    <View style={[
-                      s.serviceIcon,
-                      { backgroundColor: active ? 'rgba(255,255,255,0.18)' : B.aqua },
-                      active && { transform: [{ rotate: '-6deg' }, { scale: 1.08 }] },
-                    ]}>
+                    <View
+                      {...(Platform.OS === 'web' && isLarge ? { dataSet: { ozSvcicon: 'true' } } as any : {})}
+                      style={[
+                        s.serviceIcon,
+                        { backgroundColor: active ? 'rgba(255,255,255,0.18)' : B.aqua },
+                        active && { transform: [{ rotate: '-6deg' }, { scale: 1.08 }] },
+                      ]}>
                       <svc.Icon size={isLarge ? 30 : 26} color={active ? '#fff' : B.primaryDk} weight="duotone" />
                     </View>
                     <Text style={[
@@ -1486,7 +2210,8 @@ const LandingScreen = () => {
                     <Text style={[s.serviceCap, { color: active ? 'rgba(255,255,255,0.8)' : B.muted }]}>{svc.cap}</Text>
                     {isLarge ? (
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 22 }}>
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: active ? '#fff' : B.primaryDk }}>Book this tank</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '800', color: active ? '#fff' : B.ink }}>From {svc.price}</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: active ? 'rgba(255,255,255,0.85)' : B.primaryDk }}> · Book this tank</Text>
                         <ArrowRight size={14} weight="bold" color={active ? '#fff' : B.primaryDk} />
                       </View>
                     ) : (
@@ -1503,7 +2228,7 @@ const LandingScreen = () => {
                       onPress={() => { setActiveTank(i); goToLogin(); }}
                       activeOpacity={isLarge ? 1 : 0.85}
                       {...(Platform.OS === 'web' && isLarge ? { onMouseEnter: () => setActiveTank(i) } as any : {})}
-                      {...(Platform.OS === 'web' && isLarge ? { dataSet: { ozSvc: 'true' } } : {})}
+                      {...(Platform.OS === 'web' && isLarge ? { dataSet: { ozSvc: 'true', ozSvccard: 'true', ozFloatcard: 'true' } } : {})}
                       style={[
                         s.serviceCard,
                         isLarge ? (active ? s.serviceCardLargeActive : s.serviceCardLarge) : (active ? s.serviceCardActive : s.serviceCardInactive),
@@ -1535,14 +2260,15 @@ const LandingScreen = () => {
           </View>
 
           {/* ════════════════════ COMPARISON ════════════════════ */}
-          <View style={[s.section, { paddingHorizontal: pad, backgroundColor: B.surfaceAlt }]}>
+          <View style={[s.section, { paddingHorizontal: pad, backgroundColor: B.surfaceAlt, alignItems: 'center' }]}>
+           <View style={{ width: '100%', maxWidth: maxW }}>
             <View style={isLarge ? { alignItems: 'center', marginBottom: 24 } : undefined}>
               <Reveal>
                 <Text style={[s.sectionLabel, { color: B.primaryDk }]}>PROOF-BASED HYGIENE</Text>
               </Reveal>
               <Reveal delay={60}>
                 <Text style={[s.sectionTitle, { color: B.ink }, isLarge && s.sectionTitleLg, isLarge && { textAlign: 'center' }]}>
-                  {isLarge ? "Why ordinary cleaning doesn't cut it." : 'Why ordinary cleaning fails.'}
+                  {isLarge ? <>Proof-Based Hygiene: The <SerifAccent>Ozone & UV</SerifAccent> Advantage.</> : <>The <SerifAccent>Ozone & UV</SerifAccent> Advantage.</>}
                 </Text>
               </Reveal>
             </View>
@@ -1554,8 +2280,8 @@ const LandingScreen = () => {
                   <View style={s.compareBadge}>
                     <Text style={[s.compareBadgeText, { color: B.danger }]}>{'\u2717'} AVOID</Text>
                   </View>
-                  <Text style={[s.compareTitle, { color: B.ink }]}>The old way</Text>
-                  <Text style={[s.compareSubtitle, { color: B.muted }]}>Chlorine, bleach, guesswork.</Text>
+                  <Text style={[s.compareTitle, { color: B.ink }]}>The Old Way</Text>
+                  <Text style={[s.compareSubtitle, { color: B.muted }]}>Chlorine, bleach, chemicals & guesswork.</Text>
                   {(isLarge ? COMPARE_BAD : COMPARE_BAD.slice(0, 3)).map((t, i) => (
                     <View key={i} style={s.compareItem}>
                       <View style={[s.compareItemDot, { backgroundColor: B.dangerBg }]}>
@@ -1577,8 +2303,8 @@ const LandingScreen = () => {
                   <View style={[s.compareBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
                     <Text style={[s.compareBadgeText, { color: '#fff' }]}>{'\u2713'} RECOMMENDED</Text>
                   </View>
-                  <Text style={[s.compareTitle, { color: '#fff' }]}>OzoneWash</Text>
-                  <Text style={[s.compareSubtitle, { color: 'rgba(255,255,255,0.85)' }]}>Lab-grade hygiene, app-verified.</Text>
+                  <Text style={[s.compareTitle, { color: '#fff' }]}>Ozone Wash<Text style={{ fontSize: 16, fontWeight: '700' }}>™</Text></Text>
+                  <Text style={[s.compareSubtitle, { color: 'rgba(255,255,255,0.85)' }]}>Lab-grade hygiene. App-verified. Patent-applied.</Text>
                   {(isLarge ? COMPARE_GOOD : COMPARE_GOOD.slice(0, 3)).map((t, i) => (
                     <View key={i} style={s.compareItem}>
                       <View style={[s.compareItemDot, { backgroundColor: B.leaf }]}>
@@ -1590,17 +2316,19 @@ const LandingScreen = () => {
                 </LinearGradient>
               </Reveal>
             </View>
+           </View>
           </View>
 
           {/* ════════════════════ HOW IT WORKS ════════════════════ */}
-          <View style={[s.section, { paddingHorizontal: pad, backgroundColor: isLarge ? B.surfaceAlt : B.surface }]}>
+          <View style={[s.section, { paddingHorizontal: pad, backgroundColor: isLarge ? B.surfaceAlt : B.surface, alignItems: 'center' }]}>
+           <View style={{ width: '100%', maxWidth: maxW }}>
             <View style={isLarge ? { alignItems: 'center', marginBottom: 48 } : undefined}>
               <Reveal>
-                <Text style={[s.sectionLabel, { color: B.primaryDk }, isLarge && { textAlign: 'center' }]}>THE 8-STEP PROCESS</Text>
+                <Text style={[s.sectionLabel, { color: B.primaryDk }, isLarge && { textAlign: 'center' }]}>PATENT-APPLIED 8-STEP OZONE & UV PROCESS</Text>
               </Reveal>
               <Reveal delay={60}>
                 <Text style={[s.sectionTitle, { color: B.ink }, isLarge && s.sectionTitleLg, isLarge && { textAlign: 'center' }]}>
-                  How we get water brilliant.
+                  How We Make Tanks <SerifAccent>Brilliantly Clean.</SerifAccent>
                 </Text>
               </Reveal>
             </View>
@@ -1621,48 +2349,87 @@ const LandingScreen = () => {
                     style={{ position: 'absolute', top: 32, left: 60, right: 60, height: 2, opacity: 0.25, zIndex: 0 }}
                   />
                 )}
-                {HOW.map((h, i) => (
-                  <Reveal key={i} delay={i * 100} style={{ flex: 1, alignItems: 'center' }}>
+                {HOW.map((h, i) => {
+                  const isExpand = i === 2;
+                  const inner = (
                     <View style={{ alignItems: 'center', position: 'relative' }}>
-                      <LinearGradient
-                        colors={[B.primary, B.primaryDk]}
-                        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                        style={s.howCircle}
-                      >
-                        <h.Icon size={26} color="#fff" weight="regular" />
-                        <View style={s.howNum}>
-                          <Text style={s.howNumText}>{h.num}</Text>
-                        </View>
-                      </LinearGradient>
+                      <View style={{ position: 'relative', width: 76, height: 76, alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
+                        {isExpand && <SpinningDashedRing size={76} color={B.primary} />}
+                        <LinearGradient
+                          colors={[B.primary, B.primaryDk]}
+                          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                          style={[s.howCircle, { marginBottom: 0 }]}
+                        >
+                          <h.Icon size={26} color="#fff" weight="regular" />
+                          <View style={s.howNum}>
+                            <Text style={s.howNumText}>{h.num}</Text>
+                          </View>
+                        </LinearGradient>
+                      </View>
                       <Text style={[s.howTitle, { color: B.ink, textAlign: 'center' }]}>{h.t}</Text>
                       <Text style={[s.howDesc, { color: B.muted, textAlign: 'center', maxWidth: 220 }]}>{h.d}</Text>
+                      {isExpand && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 10 }}>
+                          <Text style={{ fontSize: 11, fontWeight: '800', letterSpacing: 1, color: B.primaryDk }}>
+                            {eightOpen ? 'SHOWING ALL 8 STEPS ↑' : 'TAP TO SEE ALL 8 STEPS ↓'}
+                          </Text>
+                        </View>
+                      )}
                     </View>
-                  </Reveal>
-                ))}
+                  );
+                  return (
+                    <Reveal key={i} delay={i * 100} style={{ flex: 1, alignItems: 'center' }}>
+                      {isExpand ? (
+                        <TouchableOpacity onPress={() => setEightOpen(o => !o)} activeOpacity={0.85}>
+                          {inner}
+                        </TouchableOpacity>
+                      ) : inner}
+                    </Reveal>
+                  );
+                })}
               </View>
             ) : (
               <View style={s.timeline}>
                 <View style={[s.timelineLine, { backgroundColor: B.line }]} />
-                {HOW.map((h, i) => (
-                  <Reveal key={i} delay={i * 80}>
+                {HOW.map((h, i) => {
+                  const isExpand = i === 2;
+                  const row = (
                     <View style={s.timelineRow}>
                       <LinearGradient colors={[B.primary, B.primaryDk]} style={s.timelineCircle}>
                         <Text style={[s.timelineNum]}>{h.num}</Text>
                       </LinearGradient>
-                      <View style={[s.timelineCard, { borderColor: B.line }]}>
+                      <View style={[s.timelineCard, { borderColor: isExpand && eightOpen ? B.primary : B.line }]}>
                         <View style={[s.timelineIcon, { backgroundColor: B.aqua }]}>
                           <h.Icon size={20} color={B.primaryDk} weight="regular" />
                         </View>
                         <View style={{ flex: 1 }}>
                           <Text style={[s.howTitle, { color: B.ink, marginBottom: 2 }]}>{h.t}</Text>
                           <Text style={[s.howDesc, { color: B.muted }]}>{h.d}</Text>
+                          {isExpand && (
+                            <Text style={{ fontSize: 11, fontWeight: '800', letterSpacing: 1, color: B.primaryDk, marginTop: 6 }}>
+                              {eightOpen ? 'SHOWING ALL 8 STEPS ↑' : 'TAP TO SEE ALL 8 STEPS ↓'}
+                            </Text>
+                          )}
                         </View>
                       </View>
                     </View>
-                  </Reveal>
-                ))}
+                  );
+                  return (
+                    <Reveal key={i} delay={i * 80}>
+                      {isExpand ? (
+                        <TouchableOpacity onPress={() => setEightOpen(o => !o)} activeOpacity={0.85}>
+                          {row}
+                        </TouchableOpacity>
+                      ) : row}
+                    </Reveal>
+                  );
+                })}
               </View>
             )}
+
+            {/* Expandable 8-step panel */}
+            <EightStepsPanel open={eightOpen} onClose={() => setEightOpen(false)} isLarge={isLarge} />
+           </View>
           </View>
 
           {/* ════════════════════ FEATURES (3D TANK on desktop) ════════════════════ */}
@@ -1675,14 +2442,14 @@ const LandingScreen = () => {
                   background: `radial-gradient(70% 60% at 50% 45%, ${B.aqua} 0%, #fff 70%)`,
                 }} />
               )}
-              <View style={{ position: 'relative', paddingHorizontal: pad }}>
+              <View style={{ position: 'relative', paddingHorizontal: pad, alignSelf: 'center', width: '100%', maxWidth: maxW }}>
                 <View style={{ alignItems: 'center', marginBottom: 40 }}>
                   <Reveal>
-                    <Text style={[s.sectionLabel, { color: B.primaryDk, textAlign: 'center' }]}>WHY OZONE WASH</Text>
+                    <Text style={[s.sectionLabel, { color: B.primaryDk, textAlign: 'center' }]}>WHY OZONE WASH™</Text>
                   </Reveal>
                   <Reveal delay={60}>
                     <Text style={[s.sectionTitle, s.sectionTitleLg, { color: B.ink, textAlign: 'center' }]}>
-                      Visible purity, felt safety.
+                      Visible Purity. <SerifAccent>Proven Safety.</SerifAccent>
                     </Text>
                   </Reveal>
                 </View>
@@ -1692,10 +2459,10 @@ const LandingScreen = () => {
           ) : (
             <View style={[s.section, { paddingHorizontal: pad, backgroundColor: B.surfaceAlt }]}>
               <Reveal>
-                <Text style={[s.sectionLabel, { color: B.primaryDk }]}>WHY OZONE WASH</Text>
+                <Text style={[s.sectionLabel, { color: B.primaryDk }]}>WHY OZONE WASH™</Text>
               </Reveal>
               <Reveal delay={60}>
-                <Text style={[s.sectionTitle, { color: B.ink }]}>Visible purity, felt safety.</Text>
+                <Text style={[s.sectionTitle, { color: B.ink }]}>Visible Purity. <SerifAccent>Proven Safety.</SerifAccent></Text>
               </Reveal>
               <View style={s.featGridMobile}>
                 {FEATURES.map((f, i) => (
@@ -1740,14 +2507,14 @@ const LandingScreen = () => {
             } : undefined}>
               <View style={{ flex: 1 }}>
                 <Reveal>
-                  <Text style={[s.sectionLabel, { color: B.leaf }]}>DIGITAL CERTIFICATE</Text>
+                  <Text style={[s.sectionLabel, { color: B.leaf }]}>DIGITAL CERTIFICATE · SHAREABLE PROOF</Text>
                 </Reveal>
                 <Reveal delay={60}>
-                  <Text style={s.certTitle}>Proof in every drop.</Text>
+                  <Text style={s.certTitle}>Hygiene you can see. <SerifAccent color="#BAE6FD">Health you can feel.</SerifAccent></Text>
                 </Reveal>
                 <Reveal delay={120}>
                   <Text style={s.certBody}>
-                    Hygiene certificates you can trust. Every visit ends with a QR-signed PDF certificate {'\u2014'} ozone readings, before/after tank photos, crew ID, and a tamper-evident signature. Share it with tenants, buyers, or inspectors.
+                    Every visit ends with a QR-signed hygiene certificate — Ozone readings, ATP verification, before/after tank photos, and a tamper-evident crew signature. Instantly shareable with tenants, RWAs, buyers, or inspectors.
                   </Text>
                 </Reveal>
                 <Reveal delay={180}>
@@ -1769,7 +2536,7 @@ const LandingScreen = () => {
                     <View style={s.certCardLogo}>
                       <Image source={require('../../../assets/logo.png')} style={{ width: 28, height: 28 }} resizeMode="contain" />
                     </View>
-                    <Text style={s.certCardBrand}>OZONEWASH</Text>
+                    <Text style={s.certCardBrand}>Ozone Wash™</Text>
                   </View>
                   <Text style={s.certCardType}>CERTIFICATE OF HYGIENE</Text>
                   <Text style={s.certCardTank}>Overhead Tank {'\u00b7'} 2,000L</Text>
@@ -1797,14 +2564,15 @@ const LandingScreen = () => {
           </LinearGradient>
 
           {/* ════════════════════ TESTIMONIALS ════════════════════ */}
-          <View style={[s.section, { paddingHorizontal: isLarge ? pad : 0 }]}>
+          <View style={[s.section, { paddingHorizontal: isLarge ? pad : 0, alignItems: 'center' }]}>
+           <View style={{ width: '100%', maxWidth: maxW }}>
             <View style={[{ paddingHorizontal: isLarge ? 0 : pad }, isLarge && { alignItems: 'center', marginBottom: 48 }]}>
               <Reveal>
                 <Text style={[s.sectionLabel, { color: B.primaryDk }, isLarge && { textAlign: 'center' }]}>CUSTOMERS</Text>
               </Reveal>
               <Reveal delay={60}>
                 <Text style={[s.sectionTitle, { color: B.ink }, isLarge && s.sectionTitleLg, isLarge && { textAlign: 'center' }]}>
-                  Hyderabad approves.
+                  Hyderabad <SerifAccent>Approves.</SerifAccent>
                 </Text>
               </Reveal>
             </View>
@@ -1860,33 +2628,46 @@ const LandingScreen = () => {
                 <View style={{ width: pad }} />
               </ScrollView>
             )}
+           </View>
           </View>
 
           {/* ════════════════════ FAQ ════════════════════ */}
-          <View style={[s.section, { paddingHorizontal: pad, backgroundColor: B.surfaceAlt }]}>
+          <View style={[s.section, { paddingHorizontal: pad, backgroundColor: B.surfaceAlt, alignItems: 'center' }]}>
+           <View style={{ width: '100%', maxWidth: maxW }}>
             <View style={isLarge ? { alignItems: 'center', marginBottom: 40 } : undefined}>
               <Reveal>
                 <Text style={[s.sectionLabel, { color: B.primaryDk }, isLarge && { textAlign: 'center' }]}>QUESTIONS</Text>
               </Reveal>
               <Reveal delay={60}>
                 <Text style={[s.sectionTitle, { color: B.ink }, isLarge && s.sectionTitleLg, isLarge && { textAlign: 'center' }]}>
-                  Before you book.
+                  Before You <SerifAccent>Book.</SerifAccent>
                 </Text>
               </Reveal>
             </View>
             <View style={isLarge ? { maxWidth: 860, alignSelf: 'center', width: '100%' } : undefined}>
-              {FAQ_DATA.map((f, i) => (
-                <Reveal key={i} delay={i * 80}>
-                  <FaqItem
-                    q={f.q}
-                    a={f.a}
-                    open={faqOpen === i}
-                    onToggle={() => setFaqOpen(faqOpen === i ? null : i)}
-                    compact={!isLarge}
-                  />
-                </Reveal>
-              ))}
+              {FAQ_DATA.map((f, i) => {
+                const prevCat = i > 0 ? FAQ_DATA[i - 1].cat : null;
+                const showHeader = f.cat !== prevCat;
+                return (
+                  <Reveal key={i} delay={Math.min(i, 8) * 50}>
+                    {showHeader && (
+                      <Text style={[s.faqCatHeader, { color: B.primaryDk }, i === 0 && { marginTop: 0 }]}>{f.cat}</Text>
+                    )}
+                    <FaqItem
+                      q={f.q}
+                      a={f.a}
+                      open={faqOpen === i}
+                      onToggle={() => setFaqOpen(faqOpen === i ? null : i)}
+                      onHover={() => setFaqOpen(i)}
+                      hoverMode={isLarge}
+                      compact={!isLarge}
+                    />
+                  </Reveal>
+                );
+              })}
+              <Text style={[s.faqFooterLine, { color: B.muted }]}>Don’t see your question here? Reach out directly — our team is ready with certified answers.</Text>
             </View>
+           </View>
           </View>
 
           {/* ════════════════════ FINAL CTA ════════════════════ */}
@@ -1896,12 +2677,12 @@ const LandingScreen = () => {
           >
             <BubblesEffect count={isLarge ? 18 : 10} seed={isLarge ? 11 : 7} />
             <Reveal>
-              <Text style={[s.finalCtaTitle, isLarge && { fontSize: 56, letterSpacing: -1.8 }]}>
-                Hygiene you can see.{'\n'}Health you can feel.
+              <Text style={[s.finalCtaTitle, isLarge && { fontSize: 64, letterSpacing: -2.2, lineHeight: 68 }]}>
+                Hygiene you can see.{'\n'}<SerifAccent color="#BAE6FD">Health you can feel.</SerifAccent>
               </Text>
             </Reveal>
             <Reveal delay={60}>
-              <Text style={s.finalCtaBody}>Your first clean. 60-second booking. Proof in every drop.</Text>
+              <Text style={s.finalCtaBody}>Pure tanks. Proven hygiene. Your first clean is 60 seconds away.</Text>
             </Reveal>
             <Reveal delay={120}>
               <View style={s.finalCtaBtns}>
@@ -1927,10 +2708,10 @@ const LandingScreen = () => {
                   <View style={s.footerLogoCircle}>
                     <Image source={require('../../../assets/logo.png')} style={{ width: 24, height: 24 }} resizeMode="contain" />
                   </View>
-                  <Text style={[s.footerBrand, { color: B.ink }]}>OZONEWASH</Text>
+                  <Text style={[s.footerBrand, { color: B.ink }]}>Ozone Wash<Text style={{ fontSize: 10, fontWeight: '700' }}>™</Text></Text>
                 </View>
                 <Text style={[s.footerTagline, { color: B.muted }]}>
-                  Hygiene you can see. Health you can feel. Hyderabad's first app-enabled tank hygiene service. Powered by VijRam Health Sense Pvt. Ltd.
+                  Hygiene you can see. Health you can feel. India’s 1st patent-applied, app-enabled tank hygiene service. Powered by VijRam Health Sense Pvt. Ltd.
                 </Text>
                 <View style={s.footerLocRow}>
                   <MapPin size={13} weight="fill" color={B.muted} />
@@ -1993,7 +2774,7 @@ const LandingScreen = () => {
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
               style={[StyleSheet.absoluteFillObject, { borderRadius: 14 }]}
             />
-            <Text style={s.stickyBtnText}>Book a clean now</Text>
+            <Text style={s.stickyBtnText}>Book Our Clean Now</Text>
             <ArrowRight size={18} weight="bold" color="#fff" />
           </TouchableOpacity>
         </View>
@@ -2041,7 +2822,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
   },
   navLogoImg: { width: 26, height: 26 },
-  navBrand: { fontWeight: '800', fontSize: 15, letterSpacing: 2, fontFamily: 'Manrope, Inter, sans-serif' },
+  navBrand: { fontWeight: '800', fontSize: 16, letterSpacing: -0.3, fontFamily: 'Manrope, Inter, sans-serif' },
   navLinks: { flexDirection: 'row', gap: 28 },
   navLink: { fontSize: 13, fontWeight: '600', cursor: 'pointer' } as any,
   navBtn: {
@@ -2126,7 +2907,7 @@ const s = StyleSheet.create({
 
   /* Stats card (mobile) */
   statsCard: {
-    backgroundColor: '#fff', borderRadius: 20, padding: 14,
+    backgroundColor: '#fff', borderRadius: 20, padding: 10,
     flexDirection: 'row', marginBottom: 8,
     ...Platform.select({
       ios:     { shadowColor: 'rgba(2,132,199,0.25)', shadowOffset: { width: 0, height: 16 }, shadowOpacity: 1, shadowRadius: 30 },
@@ -2134,10 +2915,10 @@ const s = StyleSheet.create({
       default: { boxShadow: '0 20px 40px rgba(2,132,199,0.25), 0 0 0 1px rgba(2,132,199,0.06)' } as any,
     }),
   },
-  statsCardItem: { flex: 1, alignItems: 'center' },
+  statsCardItem: { flex: 1, alignItems: 'center', paddingHorizontal: 2 },
   statsCardDivider: { borderLeftWidth: 1, borderLeftColor: B.line },
-  statsCardVal: { fontSize: 18, fontWeight: '800', color: B.ink, letterSpacing: -0.5 },
-  statsCardLbl: { fontSize: 10, color: B.muted, marginTop: 2, textAlign: 'center' },
+  statsCardVal: { fontSize: 15, fontWeight: '800', color: B.ink, letterSpacing: -0.5, textAlign: 'center' },
+  statsCardLbl: { fontSize: 9, color: B.muted, marginTop: 3, textAlign: 'center', lineHeight: 11 },
 
   waveCurve: {
     height: 28, backgroundColor: B.surface,
@@ -2152,6 +2933,27 @@ const s = StyleSheet.create({
     lineHeight: 30, fontFamily: 'Manrope, sans-serif',
   },
   sectionTitleLg: { fontSize: 42, lineHeight: 48, letterSpacing: -1.4, marginBottom: 0, marginTop: 8 },
+
+  /* Trust strip (services section) */
+  trustStrip: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center',
+    paddingVertical: 16, paddingHorizontal: 20,
+    backgroundColor: B.aqua, borderRadius: 18,
+    borderWidth: 1, borderColor: 'rgba(2,132,199,0.12)',
+    ...Platform.select({
+      default: { boxShadow: '0 8px 24px rgba(2,132,199,0.06)' } as any,
+    }),
+  },
+  trustChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 7,
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
+    backgroundColor: '#fff',
+    borderWidth: 1, borderColor: 'rgba(2,132,199,0.16)',
+  },
+  trustChipText: {
+    fontSize: 12, fontWeight: '700', color: B.primaryDk,
+    letterSpacing: 0.3, fontFamily: 'Manrope, sans-serif',
+  },
 
   /* Services */
   servicesList: { gap: 10 },
@@ -2313,7 +3115,7 @@ const s = StyleSheet.create({
     width: 36, height: 36, borderRadius: 18, backgroundColor: B.aqua,
     alignItems: 'center', justifyContent: 'center',
   },
-  certCardBrand: { fontSize: 14, fontWeight: '800', letterSpacing: 2, color: B.ink, fontFamily: 'Manrope, sans-serif' },
+  certCardBrand: { fontSize: 15, fontWeight: '800', letterSpacing: -0.2, color: B.ink, fontFamily: 'Manrope, sans-serif' },
   certCardType: { fontSize: 10, fontWeight: '800', letterSpacing: 1.5, color: B.primaryDk, marginBottom: 4 },
   certCardTank: { fontSize: 22, fontWeight: '800', color: B.ink, marginBottom: 20, fontFamily: 'Manrope, sans-serif' },
   certCardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 20 },
@@ -2356,6 +3158,13 @@ const s = StyleSheet.create({
     backgroundColor: '#fff', borderRadius: 16, borderWidth: 1,
     marginBottom: 12, overflow: 'hidden',
   },
+  faqCardOpen: {
+    ...Platform.select({
+      ios:     { shadowColor: 'rgba(2,132,199,0.25)', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 1, shadowRadius: 26 },
+      android: { elevation: 6 },
+      default: { boxShadow: '0 18px 36px rgba(2,132,199,0.16)' } as any,
+    }),
+  },
   faqHeader: { flexDirection: 'row', alignItems: 'center', padding: 18, gap: 16 },
   faqQ: { fontSize: 16, fontWeight: '700', lineHeight: 22, fontFamily: 'Manrope, sans-serif' },
   faqToggle: {
@@ -2363,6 +3172,15 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
   faqA: { fontSize: 15, lineHeight: 24, paddingHorizontal: 18, paddingBottom: 18 },
+  faqCatHeader: {
+    fontSize: 11, fontWeight: '800', letterSpacing: 2, textTransform: 'uppercase',
+    marginTop: 26, marginBottom: 10, paddingLeft: 2,
+    fontFamily: 'Manrope, sans-serif',
+  },
+  faqFooterLine: {
+    fontSize: 13, lineHeight: 20, textAlign: 'center',
+    marginTop: 24, paddingHorizontal: 16, fontStyle: 'italic',
+  },
 
   /* Final CTA */
   finalCta: { paddingVertical: 80, alignItems: 'center', overflow: 'hidden' },
@@ -2401,7 +3219,7 @@ const s = StyleSheet.create({
     width: 36, height: 36, borderRadius: 18, backgroundColor: B.aqua,
     alignItems: 'center', justifyContent: 'center',
   },
-  footerBrand: { fontWeight: '800', fontSize: 16, letterSpacing: 2.5, fontFamily: 'Manrope, sans-serif' },
+  footerBrand: { fontWeight: '800', fontSize: 17, letterSpacing: -0.3, fontFamily: 'Manrope, sans-serif' },
   footerTagline: { fontSize: 13, lineHeight: 20, maxWidth: 320, marginBottom: 14 },
   footerLocRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   footerLoc: { fontSize: 13 },
