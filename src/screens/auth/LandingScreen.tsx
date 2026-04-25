@@ -266,34 +266,15 @@ function TM({ size = 10, color }: { size?: number; color?: string }) {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   PATENT BADGE (professional verified-style chip next to "1st" stat)
+   PATENT BADGE (white "PATENT APPLIED" seal — professional, brand-aligned)
    ════════════════════════════════════════════════════════════════ */
-function PatentMedal({ size = 30, onDark = true }: { size?: number; onDark?: boolean }) {
-  // A small "PAT. APPL." chip with a verification tick — reads like a legal/IP
-  // notation (think ™, ®, "Pat. Pend.") rather than a competition trophy.
-  const fg = onDark ? '#fff' : B.primaryDk;
-  const bg = onDark ? 'rgba(255,255,255,0.15)' : B.aqua;
-  const border = onDark ? 'rgba(255,255,255,0.45)' : 'rgba(2,132,199,0.25)';
+function PatentMedal({ size = 36 }: { size?: number; onDark?: boolean }) {
   return (
-    <View style={{
-      flexDirection: 'row', alignItems: 'center', gap: 4,
-      paddingHorizontal: 7, paddingVertical: 3, marginLeft: 8,
-      borderRadius: 6,
-      backgroundColor: bg,
-      borderWidth: 1, borderColor: border,
-      ...Platform.select({
-        default: { backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' } as any,
-      }),
-    }}>
-      <ShieldCheck size={Math.round(size * 0.42)} weight="fill" color={fg} />
-      <Text style={{
-        fontSize: Math.max(8, Math.round(size * 0.34)),
-        fontWeight: '800',
-        letterSpacing: 1.2,
-        color: fg,
-        fontFamily: 'Manrope, Inter, sans-serif',
-      }}>PAT. APPL.</Text>
-    </View>
+    <Image
+      source={require('../../../assets/patent-badge.png')}
+      style={{ width: size, height: size }}
+      resizeMode="contain"
+    />
   );
 }
 
@@ -2123,17 +2104,24 @@ const LandingScreen = () => {
           {isLarge && (
             <Reveal delay={400} style={{ maxWidth: maxW, alignSelf: 'center', width: '100%', paddingHorizontal: pad }}>
               <View style={s.statsGlass}>
-                {STATS.map((st, i) => (
-                  <View key={i} style={[s.statsGlassItem, i < STATS.length - 1 && s.statsGlassDivider]}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-                      <Text style={s.statsGlassVal}>
-                        <Counter value={st.v} suffix={st.suffix} decimal={st.decimal} />
-                      </Text>
-                      {st.l === 'Patent Applied' && <PatentMedal size={28} />}
+                {STATS.map((st, i) => {
+                  const isPatent = st.l === 'Patent Applied';
+                  return (
+                    <View key={i} style={[s.statsGlassItem, i < STATS.length - 1 && s.statsGlassDivider]}>
+                      {isPatent ? (
+                        // Patent column: show ONLY the seal — no number, no label.
+                        <PatentMedal size={64} />
+                      ) : (
+                        <>
+                          <Text style={s.statsGlassVal}>
+                            <Counter value={st.v} suffix={st.suffix} decimal={st.decimal} />
+                          </Text>
+                          <Text style={s.statsGlassLbl}>{st.l}</Text>
+                        </>
+                      )}
                     </View>
-                    <Text style={s.statsGlassLbl}>{st.l}</Text>
-                  </View>
-                ))}
+                  );
+                })}
               </View>
             </Reveal>
           )}
