@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { BottomTabBar } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { COLORS } from '../utils/constants';
-import { Wrench, ChartBar, UserCircle, MagnifyingGlass } from '../components/Icons';
+import { Wrench, ChartBar, UserCircle, MagnifyingGlass, CurrencyInr } from '../components/Icons';
 import WebSidebarBar from '../components/WebSidebarBar';
 import { useResponsive, SIDEBAR_WIDTH } from '../utils/responsive';
 
@@ -23,6 +23,7 @@ import PerformanceScreen from '../screens/field/PerformanceScreen';
 import QrScannerScreen from '../screens/shared/QrScannerScreen';
 import CertVerifyResultScreen from '../screens/shared/CertVerifyResultScreen';
 import LiveStreamScreen from '../screens/field/LiveStreamScreen';
+import IncentiveScreen from '../screens/field/IncentiveScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -86,6 +87,16 @@ const FieldTabs = () => {
         tabBarLabel: 'Stats',
         tabBarIcon: ({ focused }) => (
           <ChartBar size={24} weight={focused ? 'fill' : 'regular'} color={focused ? COLORS.primary : COLORS.muted} />
+        ),
+      }}
+    />
+    <Tab.Screen
+      name="Incentives"
+      component={IncentiveScreen}
+      options={{
+        tabBarLabel: 'Earnings',
+        tabBarIcon: ({ focused }) => (
+          <CurrencyInr size={24} weight={focused ? 'fill' : 'regular'} color={focused ? COLORS.primary : COLORS.muted} />
         ),
       }}
     />

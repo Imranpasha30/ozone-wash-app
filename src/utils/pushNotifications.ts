@@ -2,15 +2,22 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 
-// Configure how notifications appear when app is in foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// Configure how notifications appear when app is in foreground.
+// Wrapped in try/catch — must never crash if expo-notifications module
+// is missing/misconfigured (e.g. on Expo Go web, or unsupported envs).
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+} catch (e) {
+  // eslint-disable-next-line no-console
+  console.warn('[notifications] setNotificationHandler failed:', e);
+}
 
 /**
  * Request notification permissions and return the native FCM device token.

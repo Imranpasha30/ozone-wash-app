@@ -7,6 +7,7 @@ import CustomerNavigator from './CustomerNavigator';
 import FieldNavigator from './FieldNavigator';
 import AdminNavigator from './AdminNavigator';
 import { COLORS } from '../utils/constants';
+import { navigationRef } from './navigationRef';
 
 const RootNavigator = () => {
   const { isAuthenticated, isInitializing, user, loadStoredAuth } = useAuthStore();
@@ -31,7 +32,7 @@ const RootNavigator = () => {
 
   console.log('[8] Rendering NavigationContainer — user role:', user?.role);
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       {!isAuthenticated ? (
         <AuthNavigator />
       ) : user?.role === 'field_team' ? (

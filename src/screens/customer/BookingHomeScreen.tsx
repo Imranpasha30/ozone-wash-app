@@ -10,6 +10,7 @@ import usePremiumStore from '../../store/premium.store';
 import { bookingAPI, amcAPI, ecoScoreAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { useWebScrollFix } from '../../utils/useWebScrollFix';
+import { flush as flushPendingUploads } from '../../utils/pendingUploads';
 import { GOLD_GRADIENT, GOLD_GRADIENT_HORIZONTAL } from '../../utils/constants';
 import { Booking, AmcContract } from '../../types';
 import {
@@ -232,10 +233,9 @@ const BookingHomeScreen = () => {
 
   const loadEco = async () => {
     try {
-      const res = await ecoScoreAPI.getLeaderboard() as any;
-      const entries = res.data?.leaderboard || [];
-      const mine = entries.find((e: any) => e.team_name === user?.name) || entries[0];
-      if (mine) setEcoScore(mine);
+      const res = await ecoScoreAPI.getMyScore() as any;
+      const me = res.data;
+      if (me) setEcoScore(me);
     } catch (_) {}
   };
 
@@ -247,7 +247,12 @@ const BookingHomeScreen = () => {
     setRefreshing(false);
   };
 
-  useFocusEffect(useCallback(() => { fetchAll(); }, []));
+  useFocusEffect(useCallback(() => {
+    fetchAll();
+    // Fire-and-forget retry of any photos that previously failed to upload.
+    // Never blocks the UI; never throws.
+    flushPendingUploads().catch(() => {});
+  }, []));
 
   const statusColor = (s: string) => {
     if (s === 'completed') return C.success;
@@ -296,19 +301,26 @@ const BookingHomeScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Your EcoScore</Text>
           <View style={{ height: 12 }} />
-          <View style={styles.ecoCard}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('EcoScoreDetail')}
+            style={styles.ecoCard}
+          >
             <View style={styles.ecoScoreWrap}>
-              <Text style={styles.ecoScoreNum}>{ecoScore.avg_score ?? '--'}</Text>
+              <Text style={styles.ecoScoreNum}>{ecoScore.score ?? '--'}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.ecoLabel}>Hygiene Rating</Text>
+              <Text style={styles.ecoLabel}>Hygiene + Loyalty Rating</Text>
               <View style={styles.ecoBadge}>
                 <Star size={12} weight="fill" color={C.gold} />
-                <Text style={styles.ecoBadgeText}>{ecoScore.badge_level?.toUpperCase() || 'UNRATED'}</Text>
+                <Text style={styles.ecoBadgeText}>{(ecoScore.badge || 'unrated').toUpperCase()}</Text>
               </View>
-              <Text style={styles.ecoSub}>Based on your last service</Text>
+              <Text style={styles.ecoSub} numberOfLines={1}>
+                {ecoScore.rationale || 'Based on your service history'}
+              </Text>
             </View>
-          </View>
+            <ArrowRight size={18} weight="bold" color={C.muted} />
+          </TouchableOpacity>
         </View>
       )}
 

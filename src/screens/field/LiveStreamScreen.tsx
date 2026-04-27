@@ -33,6 +33,7 @@ try {
 }
 
 const APP_ID = process.env.EXPO_PUBLIC_AGORA_APP_ID || '';
+const APP_ID_VALID = !!APP_ID && APP_ID.length > 10 && !APP_ID.startsWith('your-');
 
 const LiveStreamScreen = () => {
   const navigation = useNavigation<any>();
@@ -53,12 +54,19 @@ const LiveStreamScreen = () => {
 
   useEffect(() => {
     if (!agoraAvailable) {
-      setError('Live streaming requires a native build.\n\nRun: eas build --profile development\n\nNot available in Expo Go.');
+      setError('Live streaming is unavailable on this build.');
+      setLoading(false);
+      return;
+    }
+    if (!APP_ID_VALID) {
+      setError('Live streaming is unavailable on this build');
       setLoading(false);
       return;
     }
     initAgora();
-    return () => { engineRef.current?.destroy(); };
+    return () => {
+      try { engineRef.current?.destroy(); } catch (_) {}
+    };
   }, []);
 
   const initAgora = async () => {

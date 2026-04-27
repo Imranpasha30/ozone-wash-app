@@ -7,6 +7,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { incidentAPI, uploadAPI } from '../../services/api';
+import { enqueue as enqueuePendingUpload } from '../../utils/pendingUploads';
 import { useTheme } from '../../hooks/useTheme';
 import {
   ArrowLeft, Camera, CheckCircle, Warning,
@@ -62,9 +63,17 @@ const IncidentReportScreen = () => {
     setSubmitting(true);
     try {
       let photo_url: string | undefined;
+      let photoQueued = false;
       if (photoUri) {
-        const uploadRes = await uploadAPI.uploadPhoto(photoUri, 'incidents') as any;
-        photo_url = uploadRes.data?.url || uploadRes.url;
+        try {
+          const uploadRes = await uploadAPI.uploadPhoto(photoUri, 'incidents') as any;
+          photo_url = uploadRes.data?.url || uploadRes.url;
+        } catch (uploadErr) {
+          // Upload failed — queue for later, but still submit the incident
+          // text so the field tech isn't blocked.
+          await enqueuePendingUpload(photoUri, jobId, 'incidents');
+          photoQueued = true;
+        }
       }
 
       await incidentAPI.create({
@@ -74,9 +83,13 @@ const IncidentReportScreen = () => {
         photo_url,
       });
 
-      Alert.alert('Incident Reported', 'Your incident report has been submitted.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      Alert.alert(
+        'Incident Reported',
+        photoQueued
+          ? 'Your report was submitted. The photo will upload when your connection improves.'
+          : 'Your incident report has been submitted.',
+        [{ text: 'OK', onPress: () => navigation.goBack() }],
+      );
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Could not submit report');
     } finally {

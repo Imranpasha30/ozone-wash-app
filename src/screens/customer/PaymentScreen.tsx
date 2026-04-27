@@ -105,6 +105,24 @@ const PaymentScreen = () => {
   const [showRazorpay, setShowRazorpay] = useState(false);
   const [razorpayHtml, setRazorpayHtml] = useState('');
   const bookingIdRef = useRef<string | null>(null);
+  const paymentTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Detect placeholder / unconfigured Razorpay key
+  const isPlaceholderKey = (k: any): boolean => {
+    if (!k || typeof k !== 'string') return true;
+    const s = k.trim();
+    if (s.length < 10) return true;
+    if (s.startsWith('your-')) return true;
+    if (s.toLowerCase().includes('placeholder')) return true;
+    return false;
+  };
+
+  const clearPaymentTimeout = () => {
+    if (paymentTimeoutRef.current) {
+      clearTimeout(paymentTimeoutRef.current);
+      paymentTimeoutRef.current = null;
+    }
+  };
 
   const PaymentMethodIcon = ({ method }: { method: string }) => {
     switch (method) {
@@ -190,10 +208,18 @@ const PaymentScreen = () => {
     </script></body></html>`;
 
   const handleRazorpayMessage = async (event: any) => {
+    clearPaymentTimeout();
+    let data: any;
     try {
-      const data = JSON.parse(event.nativeEvent.data);
+      data = JSON.parse(event.nativeEvent.data);
+    } catch (parseErr) {
       setShowRazorpay(false);
+      Alert.alert('Payment Error', 'Received an invalid response from payment gateway. Please try again.');
+      return;
+    }
+    setShowRazorpay(false);
 
+    try {
       if (data.type === 'success') {
         // Verify payment on backend
         await paymentAPI.verifyPayment({
@@ -209,10 +235,67 @@ const PaymentScreen = () => {
         Alert.alert('Payment Cancelled', 'You can try again or choose a different payment method.');
       }
     } catch (err: any) {
-      setShowRazorpay(false);
       Alert.alert('Payment Error', err.message || 'Could not verify payment.');
     }
   };
+
+  const handleWebViewError = () => {
+    clearPaymentTimeout();
+    setShowRazorpay(false);
+    const bookingId = bookingIdRef.current;
+    Alert.alert(
+      'Payment Unavailable',
+      'Could not load the payment screen. You can retry, or your booking has been saved — pay Cash on Delivery instead.',
+      [
+        { text: 'Retry', onPress: () => { if (bookingId) retryRazorpay(bookingId); } },
+        {
+          text: 'Use COD',
+          onPress: () => { if (bookingId) goToConfirmed(bookingId); },
+        },
+      ],
+    );
+  };
+
+  const armPaymentTimeout = (bookingId: string) => {
+    clearPaymentTimeout();
+    paymentTimeoutRef.current = setTimeout(() => {
+      setShowRazorpay(false);
+      Alert.alert(
+        'Payment Timed Out',
+        'No response from payment gateway. Please try again or use Cash on Delivery.',
+        [
+          { text: 'Retry', onPress: () => retryRazorpay(bookingId) },
+          { text: 'Use COD', onPress: () => goToConfirmed(bookingId) },
+        ],
+      );
+    }, 30000);
+  };
+
+  const retryRazorpay = async (bookingId: string) => {
+    try {
+      const orderRes = await paymentAPI.createOrder(bookingId) as any;
+      const { order_id, key_id, amount } = orderRes.data || orderRes;
+      if (!order_id || isPlaceholderKey(key_id)) {
+        Alert.alert(
+          'Online Payment Not Configured',
+          'Online payment is unavailable. Your booking will proceed as Cash on Delivery.',
+          [{ text: 'OK', onPress: () => goToConfirmed(bookingId) }],
+        );
+        return;
+      }
+      const html = buildRazorpayHtml(order_id, key_id, amount || draft.amount_paise, bookingId);
+      setRazorpayHtml(html);
+      setShowRazorpay(true);
+      armPaymentTimeout(bookingId);
+    } catch (err: any) {
+      Alert.alert('Payment Error', err.message || 'Could not start payment. Booking will proceed as COD.', [
+        { text: 'OK', onPress: () => goToConfirmed(bookingId) },
+      ]);
+    }
+  };
+
+  // Cleanup timeout on unmount
+  React.useEffect(() => () => clearPaymentTimeout(), []);
 
   const goToConfirmed = (bookingId: string) => {
     const addons = draft.addons || [];
@@ -250,18 +333,45 @@ const PaymentScreen = () => {
       }
 
       // Online payment — create Razorpay order and open checkout
-      const orderRes = await paymentAPI.createOrder(bookingId) as any;
+      let orderRes: any;
+      try {
+        orderRes = await paymentAPI.createOrder(bookingId) as any;
+      } catch (orderErr: any) {
+        // Backend payment endpoint failed — fall back to COD gracefully.
+        Alert.alert(
+          'Online Payment Unavailable',
+          'Could not initiate online payment. Your booking has been saved and will proceed as Cash on Delivery.',
+          [{ text: 'OK', onPress: () => goToConfirmed(bookingId) }],
+        );
+        return;
+      }
+
       const { order_id, key_id, amount } = orderRes.data || orderRes;
 
-      if (!order_id || !key_id) {
-        // If Razorpay not configured, proceed without payment (dev mode)
-        goToConfirmed(bookingId);
+      // Razorpay key missing / placeholder / unconfigured → COD fallback
+      if (!order_id || isPlaceholderKey(key_id)) {
+        Alert.alert(
+          'Online Payment Not Configured',
+          'Online payment is not configured for this build. Please choose Cash on Delivery — your booking has been saved.',
+          [{ text: 'OK', onPress: () => goToConfirmed(bookingId) }],
+        );
+        return;
+      }
+
+      // Web: WebView is null. Skip Razorpay and treat as confirmed (web is dev/marketing).
+      if (Platform.OS === 'web' || !WebView) {
+        Alert.alert(
+          'Use Mobile App to Pay',
+          'Online payment is only available in the mobile app. Your booking has been saved.',
+          [{ text: 'OK', onPress: () => goToConfirmed(bookingId) }],
+        );
         return;
       }
 
       const html = buildRazorpayHtml(order_id, key_id, amount || draft.amount_paise, bookingId);
       setRazorpayHtml(html);
       setShowRazorpay(true);
+      armPaymentTimeout(bookingId);
     } catch (err: any) {
       Alert.alert('Booking Failed', err.message || 'Something went wrong. Please try again.');
     } finally {
@@ -380,6 +490,8 @@ const PaymentScreen = () => {
               originWhitelist={['*']}
               source={{ html: razorpayHtml }}
               onMessage={handleRazorpayMessage}
+              onError={handleWebViewError}
+              onHttpError={handleWebViewError}
               javaScriptEnabled
               domStorageEnabled
               style={{ flex: 1, backgroundColor: C.background }}

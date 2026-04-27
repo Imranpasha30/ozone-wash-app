@@ -30,6 +30,7 @@ import CertVerifyResultScreen from '../screens/shared/CertVerifyResultScreen';
 import LiveWatchScreen from '../screens/customer/LiveWatchScreen';
 import AddressPickerScreen from '../screens/customer/AddressPickerScreen';
 import PolicyScreen from '../screens/shared/PolicyScreen';
+import EcoScoreDetailScreen from '../screens/customer/EcoScoreDetailScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -173,6 +174,7 @@ const CustomerNavigator = () => (
       }}
     />
     <Stack.Screen name="Policy" component={PolicyScreen} />
+    <Stack.Screen name="EcoScoreDetail" component={EcoScoreDetailScreen} />
   </Stack.Navigator>
 );
 

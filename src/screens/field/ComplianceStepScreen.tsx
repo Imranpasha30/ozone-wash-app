@@ -10,6 +10,7 @@ import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { complianceAPI } from '../../services/api';
 import { uploadAPI } from '../../services/api';
+import { enqueue as enqueuePendingUpload } from '../../utils/pendingUploads';
 import { useTheme } from '../../hooks/useTheme';
 import { COMPLIANCE_STEPS } from '../../utils/constants';
 import {
@@ -141,9 +142,16 @@ const ComplianceStepScreen = () => {
       else if (type === 'after') setData((d) => ({ ...d, photo_after_url: url }));
       else setData((d) => ({ ...d, microbial_test_url: url }));
     } catch (_) {
+      // Upload failed — keep the local URI so the form is still valid,
+      // and queue for later background flush.
       if (type === 'before') setData((d) => ({ ...d, photo_before_url: uri }));
       else if (type === 'after') setData((d) => ({ ...d, photo_after_url: uri }));
       else setData((d) => ({ ...d, microbial_test_url: uri }));
+      enqueuePendingUpload(uri, jobId, 'compliance').catch(() => {});
+      Alert.alert(
+        'Photo Saved Offline',
+        'Your photo will upload when your connection improves. You can keep working.',
+      );
     } finally {
       setUploading(false);
     }

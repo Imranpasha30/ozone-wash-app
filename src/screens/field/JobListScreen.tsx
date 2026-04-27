@@ -7,6 +7,7 @@ import {
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { jobAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
+import { flush as flushPendingUploads } from '../../utils/pendingUploads';
 import { Job } from '../../types';
 import useAuthStore from '../../store/auth.store';
 import { Clock, Wrench, ArrowRight, HandPalm, Warning, Fire, Siren, NavigationArrow, ArrowsClockwise } from '../../components/Icons';
@@ -81,6 +82,8 @@ const JobListScreen = () => {
     useCallback(() => {
       fetchJobs();
       setRouteOptimized(false);
+      // Background flush of any photos that previously failed to upload.
+      flushPendingUploads().catch(() => {});
     }, [])
   );
 

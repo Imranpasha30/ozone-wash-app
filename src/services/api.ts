@@ -19,10 +19,39 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// ── Response interceptor — unwrap data, handle auth errors ───────────────────
+// ── Retry helper ─────────────────────────────────────────────────────────────
+// One retry on transient failures (network error or 5xx) for safe verbs only,
+// 1.5 s back-off. Mutating verbs that are not explicitly idempotent are not
+// retried to avoid double-charging Razorpay / double-creating bookings.
+const RETRY_BACKOFF_MS = 1500;
+const isRetryableMethod = (method?: string) => {
+  const m = (method || 'get').toLowerCase();
+  return m === 'get' || m === 'head' || m === 'options' || m === 'put' || m === 'delete';
+};
+const isRetryableError = (error: any) => {
+  if (!error) return false;
+  if (error.config?.__isRetry) return false; // already retried once
+  if (!error.response) return true; // network / timeout / DNS
+  const code = error.response.status;
+  return code >= 500 && code < 600; // server errors only
+};
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+// ── Response interceptor — unwrap data, handle auth errors, retry once ───────
 api.interceptors.response.use(
   (response) => response.data,
   async (error) => {
+    const cfg = error?.config;
+    if (cfg && isRetryableMethod(cfg.method) && isRetryableError(error)) {
+      cfg.__isRetry = true;
+      await sleep(RETRY_BACKOFF_MS);
+      try {
+        return await api.request(cfg);
+      } catch (e) {
+        // fall through to normal error handling on second failure
+        error = e;
+      }
+    }
     const message = error.response?.data?.message || 'Something went wrong';
     const status = error.response?.status;
     if (status === 401) {
@@ -113,8 +142,13 @@ export const bookingAPI = {
   getSlots: (date: string) =>
     cachedGet('/bookings/slots', { params: { date } }),
 
+  // Legacy: tank_type + addons one-time pricing (kept for old screens)
   getPrice: (tank_type: string, tank_size_litres: number, addons: string[]) =>
     cachedGet('/bookings/price', { params: { tank_type, tank_size_litres, addons: addons.join(',') } }),
+
+  // New: pricing-matrix mode — tier × plan × tank_count
+  getMatrixPrice: (tank_size_litres: number, tank_count: number, plan: 'one_time' | 'monthly' | 'quarterly' | 'half_yearly') =>
+    cachedGet('/bookings/price', { params: { tank_size_litres, tank_count, plan } }),
 
   createBooking: (data: any) => {
     invalidateCache('/bookings');
@@ -255,6 +289,7 @@ export const complianceAPI = {
 
 // ── EcoScore ──────────────────────────────────────────────────────────────────
 export const ecoScoreAPI = {
+  // Legacy per-job
   calculateScore: (job_id: string) => {
     invalidateCache(`/ecoscore/${job_id}`);
     return api.post('/ecoscore/calculate', { job_id });
@@ -263,8 +298,46 @@ export const ecoScoreAPI = {
   getScore: (jobId: string) =>
     cachedGet(`/ecoscore/${jobId}`),
 
+  // Legacy team leaderboard (kept for back-compat)
   getLeaderboard: () =>
     cachedGet('/ecoscore/leaderboard'),
+
+  // ── New: rolling per-customer EcoScore ────────────────────────────────
+  /** GET /ecoscore/me — { score, badge, rationale, streak_days, components, history } */
+  getMyScore: () => cachedGet('/ecoscore/me'),
+
+  /** GET /ecoscore/customer-leaderboard — public anonymised top 50 customers */
+  getCustomerLeaderboard: () => cachedGet('/ecoscore/customer-leaderboard'),
+
+  // ── Admin: weights + recalc + drill-downs ─────────────────────────────
+  getWeights: () => cachedGet('/ecoscore/admin/weights'),
+
+  updateWeights: (weights: Record<string, number>) => {
+    invalidateCache('/ecoscore/admin/weights');
+    invalidateCache('/ecoscore/me');
+    return api.put('/ecoscore/admin/weights', weights);
+  },
+
+  recalcAll: () => {
+    invalidateCache('/ecoscore');
+    return api.post('/ecoscore/admin/recalc-all');
+  },
+
+  getTopCustomers: (limit = 20) =>
+    cachedGet('/ecoscore/admin/top', { params: { limit } }),
+
+  getBottomCustomers: (limit = 20) =>
+    cachedGet('/ecoscore/admin/bottom', { params: { limit } }),
+};
+
+// ── Ratings ───────────────────────────────────────────────────────────────────
+export const ratingAPI = {
+  submit: (job_id: string, rating: number, comment?: string) => {
+    invalidateCache(`/ratings/job/${job_id}`);
+    invalidateCache('/ecoscore/me');
+    return api.post('/ratings', { job_id, rating, comment });
+  },
+  getForJob: (jobId: string) => cachedGet(`/ratings/job/${jobId}`),
 };
 
 // ── Certificates ──────────────────────────────────────────────────────────────
@@ -283,8 +356,15 @@ export const certificateAPI = {
 
 // ── AMC ───────────────────────────────────────────────────────────────────────
 export const amcAPI = {
-  getPlans: () =>
-    cachedGet('/amc/plans'),
+  // When tank_size_litres is provided, returns the four matrix plans
+  // (one_time + monthly + quarterly + half_yearly) with computed totals.
+  // Otherwise returns the static legacy plan list.
+  getPlans: (tank_size_litres?: number, tank_count?: number) =>
+    cachedGet('/amc/plans', {
+      params: tank_size_litres
+        ? { tank_size_litres, tank_count: tank_count || 1 }
+        : undefined,
+    }),
 
   createContract: (data: any) => {
     invalidateCache('/amc/contracts');
@@ -364,6 +444,25 @@ export const adminAPI = {
 
   getExpiringAmc: (days?: number) =>
     cachedGet('/amc/expiring', { params: { days } }),
+
+  // ── Pricing manager ────────────────────────────────────────────────
+  getPricing: () =>
+    cachedGet('/admin/pricing'),
+
+  updatePricingRow: (
+    matrixId: string,
+    fields: { single_tank_paise?: number; per_tank_2_paise?: number; per_tank_2plus_paise?: number; notes?: string; active?: boolean },
+  ) => {
+    invalidateCache('/admin/pricing');
+    invalidateCache('/bookings/price');
+    invalidateCache('/amc/plans');
+    return api.put(`/admin/pricing/${matrixId}`, fields);
+  },
+
+  freezePricing: () => {
+    invalidateCache('/admin/pricing');
+    return api.post('/admin/pricing/freeze');
+  },
 };
 
 // ── Incidents ────────────────────────────────────────────────────────────────
@@ -427,6 +526,71 @@ export const uploadAPI = {
 export const livestreamAPI = {
   getToken: (channel: string, role: 'publisher' | 'subscriber') =>
     api.get('/livestream/token', { params: { channel, role } }),
+};
+
+// ── Incentives (FA payouts) ─────────────────────────────────────────────────
+// Field-team self endpoints + admin payout management. All amounts in paise.
+export const incentiveAPI = {
+  // Field-team self
+  getMyLedger: () =>
+    cachedGet('/incentives/me'),
+
+  getMyHistory: (params?: { limit?: number; offset?: number }) =>
+    cachedGet('/incentives/me/history', { params }),
+
+  // Admin
+  adminListPayouts: (month?: string) =>
+    cachedGet('/admin/incentives/payouts', { params: month ? { month } : {} }),
+
+  adminFreezeBatch: (batchId: string) => {
+    invalidateCache('/admin/incentives/payouts');
+    invalidateCache('/incentives/me');
+    return api.post(`/admin/incentives/payouts/${batchId}/freeze`);
+  },
+
+  adminMarkPaid: (batchId: string, payment_ref: string, notes?: string) => {
+    invalidateCache('/admin/incentives/payouts');
+    invalidateCache('/incentives/me');
+    return api.post(`/admin/incentives/payouts/${batchId}/mark-paid`, { payment_ref, notes });
+  },
+
+  adminReverseBatch: (batchId: string, reason?: string) => {
+    invalidateCache('/admin/incentives/payouts');
+    invalidateCache('/incentives/me');
+    return api.post(`/admin/incentives/payouts/${batchId}/reverse`, { reason });
+  },
+
+  adminGetRules: () =>
+    cachedGet('/admin/incentives/rules'),
+
+  adminUpdateRules: (fields: Record<string, number>) => {
+    invalidateCache('/admin/incentives/rules');
+    return api.put('/admin/incentives/rules', fields);
+  },
+};
+
+// ── MIS (Management Information System) ──────────────────────────────────────
+// All endpoints accept optional `?from=YYYY-MM-DD&to=YYYY-MM-DD` (default last
+// 30 days). Admin-protected on the backend. Each function returns the parsed
+// JSON for the corresponding contract in `src/types/mis.ts`.
+export const misAPI = {
+  getOperational: (params?: { from?: string; to?: string }) =>
+    cachedGet('/mis/operational', { params }),
+
+  getEcoScore: (params?: { from?: string; to?: string }) =>
+    cachedGet('/mis/ecoscore', { params }),
+
+  getRevenue: (params?: { from?: string; to?: string }) =>
+    cachedGet('/mis/revenue', { params }),
+
+  getEngagement: (params?: { from?: string; to?: string }) =>
+    cachedGet('/mis/customer-engagement', { params }),
+
+  getSales: (params?: { from?: string; to?: string }) =>
+    cachedGet('/mis/sales', { params }),
+
+  getReferrals: (params?: { from?: string; to?: string }) =>
+    cachedGet('/mis/referrals', { params }),
 };
 
 export default api;

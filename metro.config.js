@@ -1,7 +1,9 @@
 const { getDefaultConfig } = require('expo/metro-config');
+const { getSentryExpoConfig } = require('@sentry/react-native/metro');
 const path = require('path');
 
-const config = getDefaultConfig(__dirname);
+// Wrap with Sentry's metro config so source maps are uploaded on EAS builds.
+const config = getSentryExpoConfig(__dirname);
 
 // On web, redirect react-native-maps to a no-op stub.
 // The module uses native-only APIs (codegenNativeCommands) that crash

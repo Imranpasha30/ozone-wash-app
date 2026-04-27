@@ -11,6 +11,7 @@ import {
   CalendarBlank, CheckCircle, Wrench, Warning,
   ClipboardText, Receipt, Users, QrCode,
   CurrencyInr, Siren, Crown, UserCircle,
+  ChartPie, ArrowRight,
 } from '../../components/Icons';
 
 const AdminDashboardScreen = () => {
@@ -85,6 +86,22 @@ const AdminDashboardScreen = () => {
           </TouchableOpacity>
         )}
       </View>
+
+      {/* MIS Dashboards CTA */}
+      <TouchableOpacity
+        style={styles.misCta}
+        onPress={() => navigation.navigate('MisHub')}
+        activeOpacity={0.85}
+      >
+        <View style={styles.misCtaIcon}>
+          <ChartPie size={26} weight="fill" color={C.primaryFg} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.misCtaTitle}>Open Full MIS Dashboard</Text>
+          <Text style={styles.misCtaSub}>Operational, EcoScore, Revenue, Sales, Referrals</Text>
+        </View>
+        <ArrowRight size={20} color={C.primaryFg} />
+      </TouchableOpacity>
 
       {/* Quick Actions */}
       <Text style={styles.sectionTitle}>Quick Actions</Text>
@@ -198,6 +215,28 @@ const makeStyles = (C: any) => StyleSheet.create({
     gap: 10,
   },
   sectionTitle: { fontSize: 13, fontWeight: '700', color: C.muted, textTransform: 'uppercase', paddingHorizontal: 16, marginBottom: 10, marginTop: 4 },
+  misCta: {
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 18,
+    backgroundColor: C.primary,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    ...Platform.select({
+      ios: { shadowColor: C.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10 },
+      android: { elevation: 4 },
+    }),
+  },
+  misCtaIcon: {
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  misCtaTitle: { color: C.primaryFg, fontSize: 15, fontWeight: '700' },
+  misCtaSub: { color: 'rgba(255,255,255,0.85)', fontSize: 11, marginTop: 2 },
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, gap: 10, marginBottom: 20 },
   actionBtn: {
     flex: 1,

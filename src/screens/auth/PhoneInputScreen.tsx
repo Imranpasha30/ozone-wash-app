@@ -134,7 +134,7 @@ const PhoneInputScreen = () => {
     );
   }
 
-  // On web, KeyboardAvoidingView does nothing — use a ScrollView so the page
+  // On web, KeyboardAvoidingView does nothing - use a ScrollView so the page
   // can scroll to keep the focused input above the software keyboard.
   if (Platform.OS === 'web') {
     return (

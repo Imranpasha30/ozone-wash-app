@@ -21,6 +21,8 @@ if (Platform.OS !== 'web') {
 }
 
 const MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
+// Detect placeholder / unconfigured key
+const MAPS_KEY_VALID = !!MAPS_KEY && MAPS_KEY.length > 10 && !MAPS_KEY.startsWith('your-');
 
 // Default center: Hyderabad
 const DEFAULT_REGION = {
@@ -60,6 +62,16 @@ const AddressPickerScreen = ({ navigation, route }: any) => {
   const [confirmedAddress, setConfirmedAddress] = useState<string>(initialAddress ?? '');
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+  const [mapLoadError, setMapLoadError] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
+
+  // If maps key is missing entirely on native, force manual mode immediately
+  // so users are never blocked from booking by missing Google config.
+  useEffect(() => {
+    if (Platform.OS !== 'web' && !MAPS_KEY_VALID) {
+      setManualMode(true);
+    }
+  }, []);
 
   // Reverse geocode helper
   const reverseGeocode = useCallback(async (lat: number, lng: number) => {
@@ -278,8 +290,8 @@ const AddressPickerScreen = ({ navigation, route }: any) => {
           </View>
         </View>
 
-        {/* Map view (native only) */}
-        {Platform.OS !== 'web' ? (
+        {/* Map view (native only and when key is configured + not in manual mode) */}
+        {Platform.OS !== 'web' && MAPS_KEY_VALID && !manualMode && !mapLoadError ? (
           <View style={styles.mapContainer}>
             <MapView
               ref={mapRef}
@@ -292,6 +304,7 @@ const AddressPickerScreen = ({ navigation, route }: any) => {
               showsMyLocationButton={false}
               showsCompass={false}
               toolbarEnabled={false}
+              onMapLoadingFailed={() => setMapLoadError(true)}
               onPress={() => { if (showSuggestions) { setShowSuggestions(false); Keyboard.dismiss(); } }}
             />
 
@@ -321,17 +334,57 @@ const AddressPickerScreen = ({ navigation, route }: any) => {
               style={styles.gpsBtn}
               onPress={handleUseCurrentLocation}
               disabled={isLocating}
+              accessibilityLabel="Use current location"
             >
               {isLocating
                 ? <ActivityIndicator size="small" color={C.primary} />
                 : <NavigationArrow size={22} weight="fill" color={C.primary} />}
             </TouchableOpacity>
+
+            {/* Switch to manual entry — never let users get stuck */}
+            <TouchableOpacity
+              style={styles.manualToggle}
+              onPress={() => setManualMode(true)}
+              accessibilityLabel="Enter address manually"
+            >
+              <Text style={styles.manualToggleText}>Enter address manually</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.webFallback}>
             <MapPin size={48} weight="regular" color={C.border} />
-            <Text style={styles.webFallbackText}>Map view is available on Android & iOS</Text>
-            <TouchableOpacity style={styles.webGpsBtn} onPress={handleUseCurrentLocation}>
+            <Text style={styles.webFallbackText}>
+              {Platform.OS === 'web'
+                ? 'Map preview unavailable on web — please use the mobile app to pin your location, or enter your address manually below.'
+                : mapLoadError
+                  ? 'Map failed to load. Please enter your address manually below.'
+                  : !MAPS_KEY_VALID
+                    ? 'Map is unavailable on this build. Please enter your address manually below.'
+                    : 'Enter your address manually below.'}
+            </Text>
+            <TextInput
+              style={styles.manualInput}
+              placeholder="Type your full address"
+              placeholderTextColor={C.gray}
+              value={confirmedAddress}
+              onChangeText={(t) => { setConfirmedAddress(t); setSearchText(t); }}
+              multiline
+            />
+            {Platform.OS !== 'web' && MAPS_KEY_VALID && !mapLoadError && (
+              <TouchableOpacity
+                style={styles.webGpsBtn}
+                onPress={() => { setManualMode(false); }}
+                accessibilityLabel="Switch back to map view"
+              >
+                <MapPin size={18} weight="fill" color={C.primary} />
+                <Text style={styles.webGpsBtnText}>Use map instead</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={styles.webGpsBtn}
+              onPress={handleUseCurrentLocation}
+              accessibilityLabel="Use current location"
+            >
               <NavigationArrow size={18} weight="fill" color={C.primary} />
               <Text style={styles.webGpsBtnText}>Use current location</Text>
             </TouchableOpacity>
@@ -552,6 +605,36 @@ const makeStyles = (C: any) => StyleSheet.create({
     marginTop: 8,
   },
   webGpsBtnText: { fontSize: 14, color: C.primary, fontWeight: '600' },
+  manualInput: {
+    width: '90%',
+    backgroundColor: C.surface,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: C.border,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    minHeight: 80,
+    fontSize: 14,
+    color: C.foreground,
+    textAlignVertical: 'top',
+    marginTop: 8,
+  },
+  manualToggle: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.border,
+    ...Platform.select({
+      ios: { shadowColor: C.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 4 },
+      android: { elevation: 3 },
+    }),
+  },
+  manualToggleText: { fontSize: 12, color: C.primary, fontWeight: '700' },
 
   // ── Suggestions ──────────────────────────────────────────────────
   suggestionsSheet: {

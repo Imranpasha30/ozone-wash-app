@@ -20,9 +20,20 @@ const webConfig = {
   measurementId:     process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
+// Validate required Firebase config before init — missing/empty keys would
+// otherwise throw inside initializeApp and crash the web bundle.
+const isFirebaseConfigValid = (): boolean => {
+  const required = [webConfig.apiKey, webConfig.projectId, webConfig.appId];
+  return required.every((v) => typeof v === 'string' && v.length > 5 && !v.startsWith('your-'));
+};
+
 export const initFirebaseWeb = async () => {
   if (Platform.OS !== 'web') return null;
   if (firebaseApp) return firebaseApp;
+  if (!isFirebaseConfigValid()) {
+    console.warn('[Firebase] Config missing/invalid — skipping web init.');
+    return null;
+  }
 
   try {
     const { initializeApp, getApps } = await import('firebase/app');

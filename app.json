@@ -1,7 +1,8 @@
 {
   "expo": {
-    "name": "ozone-wash-app",
+    "name": "Ozone Wash",
     "slug": "ozone-wash-app",
+    "scheme": "ozonewash",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,6 +17,7 @@
       "bundleIdentifier": "in.ozonewash.app"
     },
     "android": {
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -24,10 +26,43 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "in.ozonewash.app",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "READ_MEDIA_IMAGES",
+        "READ_EXTERNAL_STORAGE",
+        "POST_NOTIFICATIONS",
+        "VIBRATE",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ]
     },
     "plugins": [
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Ozone Wash needs camera access to scan QR certificates and capture before/after compliance photos.",
+          "microphonePermission": "Ozone Wash needs microphone access during live cleaning streams so the field crew can narrate the process.",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Ozone Wash needs photo access to attach incident photos and crew evidence."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Ozone Wash uses your location to find the cleaning address and confirm crew arrival."
+        }
+      ]
     ],
     "web": {
       "favicon": "./assets/favicon.png"

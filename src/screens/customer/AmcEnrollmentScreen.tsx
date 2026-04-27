@@ -46,6 +46,54 @@ const AmcEnrollmentScreen = () => {
   const [showRazorpay, setShowRazorpay] = useState(false);
   const [razorpayHtml, setRazorpayHtml] = useState('');
   const contractIdRef = useRef<string | null>(null);
+  const paymentTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const isPlaceholderKey = (k: any): boolean => {
+    if (!k || typeof k !== 'string') return true;
+    const s = k.trim();
+    if (s.length < 10) return true;
+    if (s.startsWith('your-')) return true;
+    if (s.toLowerCase().includes('placeholder')) return true;
+    return false;
+  };
+
+  const clearPaymentTimeout = () => {
+    if (paymentTimeoutRef.current) {
+      clearTimeout(paymentTimeoutRef.current);
+      paymentTimeoutRef.current = null;
+    }
+  };
+
+  React.useEffect(() => () => clearPaymentTimeout(), []);
+
+  const goToConfirmed = (contractId: string) => {
+    navigation.reset({
+      index: 0,
+      routes: [
+        { name: 'CustomerTabs' },
+        { name: 'AmcConfirmed', params: { plan_label, plan_type, contract_id: contractId } },
+      ],
+    });
+  };
+
+  const armPaymentTimeout = (contractId: string) => {
+    clearPaymentTimeout();
+    paymentTimeoutRef.current = setTimeout(() => {
+      setShowRazorpay(false);
+      Alert.alert('Payment Timed Out', 'No response from payment gateway. Please try again later.', [
+        { text: 'OK' },
+      ]);
+    }, 30000);
+  };
+
+  const handleWebViewError = () => {
+    clearPaymentTimeout();
+    setShowRazorpay(false);
+    Alert.alert(
+      'Payment Unavailable',
+      'Could not load the payment screen. Please check your connection and try again.',
+    );
+  };
 
   const startDate = new Date();
   const endDate = new Date();
@@ -90,10 +138,18 @@ const AmcEnrollmentScreen = () => {
     </script></body></html>`;
 
   const handleRazorpayMessage = async (event: any) => {
+    clearPaymentTimeout();
+    let data: any;
     try {
-      const data = JSON.parse(event.nativeEvent.data);
+      data = JSON.parse(event.nativeEvent.data);
+    } catch (parseErr) {
       setShowRazorpay(false);
+      Alert.alert('Payment Error', 'Received an invalid response from payment gateway. Please try again.');
+      return;
+    }
+    setShowRazorpay(false);
 
+    try {
       if (data.type === 'success') {
         await paymentAPI.verifyAmcPayment({
           contract_id: data.contract_id,
@@ -101,20 +157,13 @@ const AmcEnrollmentScreen = () => {
           razorpay_payment_id: data.razorpay_payment_id,
           razorpay_signature: data.razorpay_signature,
         });
-        navigation.reset({
-          index: 0,
-          routes: [
-            { name: 'CustomerTabs' },
-            { name: 'AmcConfirmed', params: { plan_label, plan_type, contract_id: data.contract_id } },
-          ],
-        });
+        goToConfirmed(data.contract_id);
       } else if (data.type === 'failed') {
         Alert.alert('Payment Failed', data.error || 'Payment was unsuccessful. Please try again.');
       } else if (data.type === 'dismissed') {
         Alert.alert('Payment Cancelled', 'You can try again when ready.');
       }
     } catch (err: any) {
-      setShowRazorpay(false);
       Alert.alert('Payment Error', err.message || 'Could not verify payment.');
     }
   };
@@ -129,18 +178,35 @@ const AmcEnrollmentScreen = () => {
       contractIdRef.current = contract.id;
 
       // Step 2: Create Razorpay payment order
-      const orderRes = await paymentAPI.createAmcOrder(contract.id) as any;
+      let orderRes: any;
+      try {
+        orderRes = await paymentAPI.createAmcOrder(contract.id) as any;
+      } catch (orderErr: any) {
+        Alert.alert(
+          'Online Payment Unavailable',
+          'Your AMC contract has been saved. An admin will contact you to confirm payment.',
+          [{ text: 'OK', onPress: () => goToConfirmed(contract.id) }],
+        );
+        return;
+      }
+
       const { order_id, key_id, amount } = orderRes.data || orderRes;
 
-      if (!order_id || !key_id) {
-        // Dev mode — no Razorpay keys, go straight to confirmed
-        navigation.reset({
-          index: 0,
-          routes: [
-            { name: 'CustomerTabs' },
-            { name: 'AmcConfirmed', params: { plan_label, plan_type, contract_id: contract.id } },
-          ],
-        });
+      if (!order_id || isPlaceholderKey(key_id)) {
+        Alert.alert(
+          'Online Payment Not Configured',
+          'Online payment is not configured for this build. Your contract has been saved as pending — an admin will follow up.',
+          [{ text: 'OK', onPress: () => goToConfirmed(contract.id) }],
+        );
+        return;
+      }
+
+      if (Platform.OS === 'web' || !WebView) {
+        Alert.alert(
+          'Use Mobile App to Pay',
+          'AMC payment is only available in the mobile app. Your contract has been saved.',
+          [{ text: 'OK', onPress: () => goToConfirmed(contract.id) }],
+        );
         return;
       }
 
@@ -148,6 +214,7 @@ const AmcEnrollmentScreen = () => {
       const html = buildRazorpayHtml(order_id, key_id, amount || plan_price * 100, contract.id);
       setRazorpayHtml(html);
       setShowRazorpay(true);
+      armPaymentTimeout(contract.id);
     } catch (err: any) {
       Alert.alert('Enrollment Failed', err?.response?.data?.message || err.message || 'Something went wrong.');
     } finally {
@@ -275,6 +342,8 @@ const AmcEnrollmentScreen = () => {
               originWhitelist={['*']}
               source={{ html: razorpayHtml }}
               onMessage={handleRazorpayMessage}
+              onError={handleWebViewError}
+              onHttpError={handleWebViewError}
               javaScriptEnabled
               domStorageEnabled
               style={{ flex: 1, backgroundColor: C.background }}

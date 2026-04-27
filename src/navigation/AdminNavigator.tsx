@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { BottomTabBar } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { COLORS } from '../utils/constants';
-import { ChartBar, ClipboardText, Wrench, UserCircle } from '../components/Icons';
+import { ChartBar, ClipboardText, Wrench, UserCircle, ChartPie } from '../components/Icons';
 import WebSidebarBar from '../components/WebSidebarBar';
 import { useResponsive, SIDEBAR_WIDTH } from '../utils/responsive';
 
@@ -18,6 +18,16 @@ import AdminAmcScreen from '../screens/admin/AdminAmcScreen';
 import ProfileScreen from '../screens/customer/ProfileScreen';
 import QrScannerScreen from '../screens/shared/QrScannerScreen';
 import CertVerifyResultScreen from '../screens/shared/CertVerifyResultScreen';
+import MisHubScreen from '../screens/admin/MisHubScreen';
+import MisOperationalScreen from '../screens/admin/MisOperationalScreen';
+import MisEcoScoreScreen from '../screens/admin/MisEcoScoreScreen';
+import MisRevenueScreen from '../screens/admin/MisRevenueScreen';
+import MisEngagementScreen from '../screens/admin/MisEngagementScreen';
+import MisSalesScreen from '../screens/admin/MisSalesScreen';
+import MisReferralsScreen from '../screens/admin/MisReferralsScreen';
+import AdminPricingScreen from '../screens/admin/AdminPricingScreen';
+import AdminPayoutsScreen from '../screens/admin/AdminPayoutsScreen';
+import AdminEcoScoreScreen from '../screens/admin/AdminEcoScoreScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -81,6 +91,16 @@ const AdminTabs = () => {
       }}
     />
     <Tab.Screen
+      name="AdminMis"
+      component={MisHubScreen}
+      options={{
+        tabBarLabel: 'MIS',
+        tabBarIcon: ({ focused }) => (
+          <ChartPie size={24} weight={focused ? 'fill' : 'regular'} color={focused ? COLORS.primary : COLORS.muted} />
+        ),
+      }}
+    />
+    <Tab.Screen
       name="Profile"
       component={ProfileScreen}
       options={{
@@ -104,6 +124,17 @@ const AdminNavigator = () => (
     <Stack.Screen name="AdminAmc" component={AdminAmcScreen} />
     <Stack.Screen name="QrScanner" component={QrScannerScreen} />
     <Stack.Screen name="CertVerifyResult" component={CertVerifyResultScreen} />
+    {/* MIS Dashboards */}
+    <Stack.Screen name="MisHub" component={MisHubScreen} />
+    <Stack.Screen name="MisOperational" component={MisOperationalScreen} />
+    <Stack.Screen name="MisEcoScore" component={MisEcoScoreScreen} />
+    <Stack.Screen name="MisRevenue" component={MisRevenueScreen} />
+    <Stack.Screen name="MisEngagement" component={MisEngagementScreen} />
+    <Stack.Screen name="MisSales" component={MisSalesScreen} />
+    <Stack.Screen name="MisReferrals" component={MisReferralsScreen} />
+    <Stack.Screen name="AdminPricing" component={AdminPricingScreen} />
+    <Stack.Screen name="AdminPayouts" component={AdminPayoutsScreen} />
+    <Stack.Screen name="AdminEcoScore" component={AdminEcoScoreScreen} />
   </Stack.Navigator>
 );
 
