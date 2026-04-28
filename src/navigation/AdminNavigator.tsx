@@ -27,6 +27,7 @@ import MisSalesScreen from '../screens/admin/MisSalesScreen';
 import MisReferralsScreen from '../screens/admin/MisReferralsScreen';
 import AdminPricingScreen from '../screens/admin/AdminPricingScreen';
 import AdminPayoutsScreen from '../screens/admin/AdminPayoutsScreen';
+import AdminAgentCreditsScreen from '../screens/admin/AdminAgentCreditsScreen';
 import AdminEcoScoreScreen from '../screens/admin/AdminEcoScoreScreen';
 
 const Tab = createBottomTabNavigator();
@@ -134,6 +135,7 @@ const AdminNavigator = () => (
     <Stack.Screen name="MisReferrals" component={MisReferralsScreen} />
     <Stack.Screen name="AdminPricing" component={AdminPricingScreen} />
     <Stack.Screen name="AdminPayouts" component={AdminPayoutsScreen} />
+    <Stack.Screen name="AdminAgentCredits" component={AdminAgentCreditsScreen} />
     <Stack.Screen name="AdminEcoScore" component={AdminEcoScoreScreen} />
   </Stack.Navigator>
 );

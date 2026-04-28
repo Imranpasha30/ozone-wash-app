@@ -330,6 +330,22 @@ export const ecoScoreAPI = {
     cachedGet('/ecoscore/admin/bottom', { params: { limit } }),
 };
 
+// ── Rewards / EcoPoints Wallet ───────────────────────────────────────────────
+export const rewardsAPI = {
+  /** GET /rewards — public catalog of all active rewards */
+  getCatalog: () => cachedGet('/rewards'),
+
+  /** GET /rewards/me — authenticated: { wallet, eco, rewards (with eligibility), history } */
+  getMyRewards: () => cachedGet('/rewards/me'),
+
+  /** POST /rewards/redeem — body { reward_slug }. Returns { redemption, wallet }. */
+  redeem: (slug: string) => {
+    invalidateCache('/rewards/me');
+    invalidateCache('/ecoscore/me');
+    return api.post('/rewards/redeem', { reward_slug: slug });
+  },
+};
+
 // ── Ratings ───────────────────────────────────────────────────────────────────
 export const ratingAPI = {
   submit: (job_id: string, rating: number, comment?: string) => {
@@ -537,6 +553,21 @@ export const incentiveAPI = {
 
   getMyHistory: (params?: { limit?: number; offset?: number }) =>
     cachedGet('/incentives/me/history', { params }),
+
+  // ── New: PDF tier-based credit engine ────────────────────────────────
+  /**
+   * GET /incentives/me/credits — current month credit-based snapshot.
+   * Returns { credits_total, breakdown: {turnover,avg_time,tat,transactions,
+   *   checklist,ecoscore,feedback,addon,escalation}, tier, tier_thresholds,
+   *   raw: {turnover_paise, jobs_30d, avg_minutes, tat_pct, checklist_avg_pct,
+   *   ecoscore_avg, rating_avg, addon_pct, escalation_count} }
+   */
+  getMyCredits: () =>
+    api.get('/incentives/me/credits'),
+
+  /** Admin: GET /admin/incentives/credits/:month — all agents' credits for YYYY-MM */
+  getAllAgentCreditsForMonth: (month: string) =>
+    api.get('/admin/incentives/credits/' + month),
 
   // Admin
   adminListPayouts: (month?: string) =>

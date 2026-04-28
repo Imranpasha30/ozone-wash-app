@@ -94,6 +94,7 @@ const AdminPayoutsScreen: React.FC = () => {
   const [rulesOpen, setRulesOpen] = useState(false);
   const [rules, setRules] = useState<any>(null);
   const [rulesDraft, setRulesDraft] = useState<Record<string, string>>({});
+  const [rulesTab, setRulesTab] = useState<'perjob' | 'weights' | 'tiers'>('perjob');
 
   const monthQuery = fmtMonthQuery(monthCursor);
 
@@ -225,6 +226,7 @@ const AdminPayoutsScreen: React.FC = () => {
 
   const openRules = async () => {
     setRulesOpen(true);
+    setRulesTab('perjob');
     try {
       const res = (await incentiveAPI.adminGetRules()) as any;
       const r = res?.data?.rules || res?.rules;
@@ -239,6 +241,7 @@ const AdminPayoutsScreen: React.FC = () => {
 
   const saveRules = async () => {
     const editable = [
+      // ── Tab 1: Per-job rewards (legacy) ────────────────────────────
       'base_completion_paise','addon_commission_pct',
       'rating_5_paise','rating_4_paise','rating_3_paise',
       'referral_bonus_paise',
@@ -246,6 +249,15 @@ const AdminPayoutsScreen: React.FC = () => {
       'monthly_target_jobs','monthly_target_bonus_paise',
       'streak_bonus_paise','streak_threshold_months',
       'tier_platinum_paise','tier_gold_paise','tier_silver_paise',
+      // ── Tab 2: Credit weights (PDF parameters, NUMERIC(4,3)) ───────
+      'weight_turnover','weight_avg_time','weight_tat','weight_transactions',
+      'weight_checklist','weight_ecoscore','weight_feedback','weight_addon',
+      'weight_escalation',
+      // ── Tab 3: Tier thresholds + benefits ──────────────────────────
+      'tier_credits_platinum','tier_credits_gold','tier_credits_silver','tier_credits_bronze',
+      'cash_bonus_pct_platinum','cash_bonus_pct_gold','cash_bonus_pct_silver',
+      'leave_days_platinum','leave_days_gold',
+      'benchmark_job_minutes',
     ];
     const fields: Record<string, number> = {};
     for (const k of editable) {
@@ -269,6 +281,36 @@ const AdminPayoutsScreen: React.FC = () => {
       setSubmitting(false);
     }
   };
+
+  // ── Helpers for the tabbed rules modal ───────────────────────────────
+  const setDraftField = (k: string, v: string) =>
+    setRulesDraft(prev => ({ ...prev, [k]: v }));
+
+  const draftNumber = (k: string, fallback?: number): number => {
+    const raw = rulesDraft[k];
+    if (raw === undefined || raw === '') return fallback ?? 0;
+    const v = Number(raw);
+    return Number.isFinite(v) ? v : (fallback ?? 0);
+  };
+
+  // Credit-weight keys for live "Sum: X.XX" indicator
+  const WEIGHT_KEYS = [
+    'weight_turnover','weight_avg_time','weight_tat','weight_transactions',
+    'weight_checklist','weight_ecoscore','weight_feedback','weight_addon',
+    'weight_escalation',
+  ];
+  const weightDefaults: Record<string, number> = {
+    weight_turnover: 0.25, weight_avg_time: 0.10, weight_tat: 0.15,
+    weight_transactions: 0.10, weight_checklist: 0.10, weight_ecoscore: 0.15,
+    weight_feedback: 0.10, weight_addon: 0.05, weight_escalation: 0.05,
+  };
+
+  const weightSum = useMemo(() => {
+    return WEIGHT_KEYS.reduce((s, k) => s + draftNumber(k, weightDefaults[k] ?? 0), 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rulesDraft]);
+
+  const weightSumOk = Math.abs(weightSum - 1) < 0.0005;
 
   const totals = data?.totals || { paid_paise: 0, frozen_paise: 0, open_paise: 0 };
 
@@ -318,27 +360,38 @@ const AdminPayoutsScreen: React.FC = () => {
           </Card>
         ) : null}
 
-        {/* Totals KPIs */}
-        <View style={styles.kpiRow}>
+        {/* Totals KPIs - horizontally scrollable so the 3rd tile is fully reachable
+            on narrow screens. RNW's horizontal ScrollView occasionally fails to
+            engage drag-scroll, so the contentContainer allows native flex layout
+            and we set explicit minWidth on each tile to force overflow. */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.kpiRow}
+          style={styles.kpiTrack}
+        >
           <KpiTile
             label="Paid"
             value={fmtRupees(totals.paid_paise)}
             color={C.success}
             icon={<Wallet size={14} color={C.success} weight="fill" />}
+            style={styles.kpiTile}
           />
           <KpiTile
             label="Frozen"
             value={fmtRupees(totals.frozen_paise)}
             color={C.warning}
             icon={<Lightning size={14} color={C.warning} weight="fill" />}
+            style={styles.kpiTile}
           />
           <KpiTile
             label="Open"
             value={fmtRupees(totals.open_paise)}
             color={C.muted}
             icon={<CurrencyInr size={14} color={C.muted} weight="fill" />}
+            style={styles.kpiTile}
           />
-        </View>
+        </ScrollView>
 
         <View style={styles.actionsRow}>
           <TouchableOpacity onPress={openRules} style={[styles.actionBtn, { borderColor: C.border }]}>
@@ -346,6 +399,14 @@ const AdminPayoutsScreen: React.FC = () => {
           </TouchableOpacity>
           <TouchableOpacity onPress={exportCsv} style={[styles.actionBtn, { borderColor: C.border }]}>
             <Text style={{ color: C.primary, fontWeight: '600' }}>Export CSV</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.actionsRow}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('AdminAgentCredits', { month: monthQuery })}
+            style={[styles.actionBtn, { borderColor: C.primary, backgroundColor: C.primary + '10' }]}
+          >
+            <Text style={{ color: C.primary, fontWeight: '700' }}>Agent Credit Leaderboard</Text>
           </TouchableOpacity>
         </View>
 
@@ -464,7 +525,7 @@ const AdminPayoutsScreen: React.FC = () => {
         </View>
       </Modal>
 
-      {/* Rules modal */}
+      {/* Rules modal — tabbed: per-job rewards / credit weights / tier benefits */}
       <Modal
         visible={rulesOpen}
         transparent
@@ -474,25 +535,194 @@ const AdminPayoutsScreen: React.FC = () => {
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, styles.rulesCard, { backgroundColor: C.surface, borderColor: C.border }]}>
             <Text style={styles.modalTitle}>Incentive Rules</Text>
-            <ScrollView style={{ maxHeight: 380 }}>
-              {!rules ? (
+
+            {/* Tab pills */}
+            <View style={styles.tabRow}>
+              {([
+                { key: 'perjob',  label: 'Per-job rewards' },
+                { key: 'weights', label: 'Credit weights' },
+                { key: 'tiers',   label: 'Tiers & benefits' },
+              ] as const).map(t => {
+                const active = rulesTab === t.key;
+                return (
+                  <TouchableOpacity
+                    key={t.key}
+                    onPress={() => setRulesTab(t.key)}
+                    style={[
+                      styles.tabPill,
+                      { borderColor: active ? C.primary : C.border, backgroundColor: active ? C.primary + '15' : 'transparent' },
+                    ]}
+                  >
+                    <Text style={{
+                      color: active ? C.primary : C.muted,
+                      fontWeight: active ? '700' : '600',
+                      fontSize: 12,
+                    }}>
+                      {t.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {!rules ? (
+              <View style={{ paddingVertical: 24 }}>
                 <ActivityIndicator color={C.primary} />
-              ) : (
-                Object.entries(rulesDraft)
-                  .filter(([k]) => !['id','updated_at'].includes(k))
-                  .map(([k, v]) => (
-                    <View key={k} style={{ marginBottom: 8 }}>
-                      <Text style={styles.label}>{k}</Text>
+              </View>
+            ) : (
+              <ScrollView style={{ maxHeight: 380 }}>
+                {/* ─── TAB 1: Per-job rewards ─── */}
+                {rulesTab === 'perjob' ? (
+                  <View>
+                    <Text style={styles.tabHelp}>
+                      Per-job pay accrual rules — applied as agents complete jobs.
+                    </Text>
+                    {[
+                      'base_completion_paise','addon_commission_pct',
+                      'rating_5_paise','rating_4_paise','rating_3_paise',
+                      'referral_bonus_paise',
+                      'multiplier_platinum','multiplier_gold','multiplier_silver','multiplier_bronze',
+                      'monthly_target_jobs','monthly_target_bonus_paise',
+                      'streak_bonus_paise','streak_threshold_months',
+                      'tier_platinum_paise','tier_gold_paise','tier_silver_paise',
+                    ].map(k => (
+                      <View key={k} style={{ marginBottom: 8 }}>
+                        <Text style={styles.label}>{k}</Text>
+                        <TextInput
+                          value={String(rulesDraft[k] ?? '')}
+                          onChangeText={(t) => setDraftField(k, t)}
+                          keyboardType="numeric"
+                          style={[styles.input, { color: C.foreground, borderColor: C.border }]}
+                        />
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+
+                {/* ─── TAB 2: Credit weights ─── */}
+                {rulesTab === 'weights' ? (
+                  <View>
+                    <Text style={styles.tabHelp}>
+                      Weights for the 9 PDF parameters. Each is NUMERIC(4,3); the nine must sum to 1.000.
+                    </Text>
+                    <View style={[styles.sumPill, {
+                      borderColor: weightSumOk ? C.success : C.danger,
+                      backgroundColor: (weightSumOk ? C.success : C.danger) + '15',
+                    }]}>
+                      <Text style={{
+                        color: weightSumOk ? C.success : C.danger,
+                        fontWeight: '700', fontSize: 12,
+                      }}>
+                        Sum: {weightSum.toFixed(3)} {weightSumOk ? '✓' : '✗'}
+                      </Text>
+                    </View>
+                    {[
+                      { k: 'weight_turnover',     label: 'Turnover (net of GST)',  def: 0.25 },
+                      { k: 'weight_avg_time',     label: 'Avg Time Taken',         def: 0.10 },
+                      { k: 'weight_tat',          label: 'TAT Compliance',         def: 0.15 },
+                      { k: 'weight_transactions', label: 'Transactions',           def: 0.10 },
+                      { k: 'weight_checklist',    label: '8-Step Checklist',       def: 0.10 },
+                      { k: 'weight_ecoscore',     label: 'EcoScore Data Upload',   def: 0.15 },
+                      { k: 'weight_feedback',     label: 'Customer Feedback',      def: 0.10 },
+                      { k: 'weight_addon',        label: 'Add-on Conversion',      def: 0.05 },
+                      { k: 'weight_escalation',   label: 'Zero Escalation',        def: 0.05 },
+                    ].map(({ k, label, def }) => (
+                      <View key={k} style={{ marginBottom: 8 }}>
+                        <Text style={styles.label}>{label} <Text style={{ color: C.muted }}>· default {def}</Text></Text>
+                        <TextInput
+                          value={String(rulesDraft[k] ?? '')}
+                          onChangeText={(t) => setDraftField(k, t)}
+                          placeholder={String(def)}
+                          placeholderTextColor={C.muted}
+                          keyboardType="numeric"
+                          style={[styles.input, { color: C.foreground, borderColor: C.border }]}
+                        />
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+
+                {/* ─── TAB 3: Tier thresholds + benefits ─── */}
+                {rulesTab === 'tiers' ? (
+                  <View>
+                    <Text style={styles.tabHelp}>
+                      Credit thresholds for each tier and the cash/leave benefits awarded monthly.
+                    </Text>
+
+                    <Text style={styles.subSection}>Credit thresholds</Text>
+                    {[
+                      { k: 'tier_credits_platinum', label: 'Platinum credits threshold', def: 800 },
+                      { k: 'tier_credits_gold',     label: 'Gold credits threshold',     def: 600 },
+                      { k: 'tier_credits_silver',   label: 'Silver credits threshold',   def: 400 },
+                      { k: 'tier_credits_bronze',   label: 'Bronze credits threshold',   def: 200 },
+                    ].map(({ k, label, def }) => (
+                      <View key={k} style={{ marginBottom: 8 }}>
+                        <Text style={styles.label}>{label} <Text style={{ color: C.muted }}>· default {def}</Text></Text>
+                        <TextInput
+                          value={String(rulesDraft[k] ?? '')}
+                          onChangeText={(t) => setDraftField(k, t)}
+                          placeholder={String(def)}
+                          placeholderTextColor={C.muted}
+                          keyboardType="numeric"
+                          style={[styles.input, { color: C.foreground, borderColor: C.border }]}
+                        />
+                      </View>
+                    ))}
+
+                    <Text style={styles.subSection}>Cash bonus % (of turnover)</Text>
+                    {[
+                      { k: 'cash_bonus_pct_platinum', label: 'Platinum cash bonus %', def: 0.15 },
+                      { k: 'cash_bonus_pct_gold',     label: 'Gold cash bonus %',     def: 0.10 },
+                      { k: 'cash_bonus_pct_silver',   label: 'Silver cash bonus %',   def: 0.05 },
+                    ].map(({ k, label, def }) => (
+                      <View key={k} style={{ marginBottom: 8 }}>
+                        <Text style={styles.label}>{label} <Text style={{ color: C.muted }}>· default {def}</Text></Text>
+                        <TextInput
+                          value={String(rulesDraft[k] ?? '')}
+                          onChangeText={(t) => setDraftField(k, t)}
+                          placeholder={String(def)}
+                          placeholderTextColor={C.muted}
+                          keyboardType="numeric"
+                          style={[styles.input, { color: C.foreground, borderColor: C.border }]}
+                        />
+                      </View>
+                    ))}
+
+                    <Text style={styles.subSection}>Leave days</Text>
+                    {[
+                      { k: 'leave_days_platinum', label: 'Platinum leave days', def: 2 },
+                      { k: 'leave_days_gold',     label: 'Gold leave days',     def: 1 },
+                    ].map(({ k, label, def }) => (
+                      <View key={k} style={{ marginBottom: 8 }}>
+                        <Text style={styles.label}>{label} <Text style={{ color: C.muted }}>· default {def}</Text></Text>
+                        <TextInput
+                          value={String(rulesDraft[k] ?? '')}
+                          onChangeText={(t) => setDraftField(k, t)}
+                          placeholder={String(def)}
+                          placeholderTextColor={C.muted}
+                          keyboardType="numeric"
+                          style={[styles.input, { color: C.foreground, borderColor: C.border }]}
+                        />
+                      </View>
+                    ))}
+
+                    <Text style={styles.subSection}>Benchmarks</Text>
+                    <View style={{ marginBottom: 8 }}>
+                      <Text style={styles.label}>Benchmark job minutes <Text style={{ color: C.muted }}>· default 60</Text></Text>
                       <TextInput
-                        value={String(v ?? '')}
-                        onChangeText={(t) => setRulesDraft((prev) => ({ ...prev, [k]: t }))}
+                        value={String(rulesDraft['benchmark_job_minutes'] ?? '')}
+                        onChangeText={(t) => setDraftField('benchmark_job_minutes', t)}
+                        placeholder="60"
+                        placeholderTextColor={C.muted}
                         keyboardType="numeric"
                         style={[styles.input, { color: C.foreground, borderColor: C.border }]}
                       />
                     </View>
-                  ))
-              )}
-            </ScrollView>
+                  </View>
+                ) : null}
+              </ScrollView>
+            )}
+
             <View style={styles.modalActions}>
               <TouchableOpacity
                 onPress={() => setRulesOpen(false)}
@@ -529,7 +759,9 @@ const makeStyles = (C: any) => StyleSheet.create({
   },
   monthBtn: { padding: 8 },
   monthLabel: { fontSize: 16, fontWeight: '700', color: C.foreground },
-  kpiRow: { flexDirection: 'row', gap: 10, marginBottom: 8 },
+  kpiRow: { flexDirection: 'row', gap: 10, paddingRight: 16, paddingBottom: 4 },
+  kpiTrack: { marginBottom: 8 },
+  kpiTile:  { width: 160, flex: 0 as any, flexShrink: 0 },
   actionsRow: { flexDirection: 'row', gap: 10, marginTop: 8 },
   actionBtn: {
     flex: 1, alignItems: 'center', paddingVertical: 12,
@@ -570,6 +802,23 @@ const makeStyles = (C: any) => StyleSheet.create({
   rulesCard: { maxHeight: '90%' },
   modalTitle: { fontSize: 16, fontWeight: '700', color: C.foreground },
   modalCaption: { fontSize: 12, color: C.muted, marginTop: 4, marginBottom: 12 },
+  tabRow: { flexDirection: 'row', gap: 6, marginTop: 12, marginBottom: 8, flexWrap: 'wrap' },
+  tabPill: {
+    paddingHorizontal: 10, paddingVertical: 6,
+    borderWidth: 1, borderRadius: 999,
+  },
+  tabHelp: { fontSize: 11, color: C.muted, marginBottom: 10, lineHeight: 16 },
+  sumPill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderWidth: 1, borderRadius: 999,
+    marginBottom: 10,
+  },
+  subSection: {
+    fontSize: 11, color: C.foreground, fontWeight: '700',
+    marginTop: 12, marginBottom: 4,
+    textTransform: 'uppercase', letterSpacing: 0.6,
+  },
   label: { fontSize: 11, color: C.muted, marginTop: 8, marginBottom: 4, fontWeight: '600' },
   input: {
     borderWidth: 1, borderRadius: 8, padding: 10, fontSize: 13,

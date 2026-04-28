@@ -46,13 +46,13 @@ const ChecklistScreen = () => {
     if ((checklist?.completion_percentage || 0) < 100) {
       return Alert.alert(
         'Incomplete',
-        'Please complete all 8 compliance steps before finishing the job.'
+        `Please complete all ${totalCount} compliance phases before finishing the job.`
       );
     }
 
     Alert.alert(
       'Send End OTP',
-      'All 8 steps are complete. This will generate an End OTP for the customer to confirm job completion.',
+      `All ${totalCount} phases are complete. This will generate an End OTP for the customer to confirm job completion.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -84,7 +84,7 @@ const ChecklistScreen = () => {
 
   const steps = checklist?.checklist || [];
   const completedCount = checklist?.completed_steps || 0;
-  const totalCount = checklist?.total_steps || 8;
+  const totalCount = checklist?.total_steps || 9;
   const pct = checklist?.completion_percentage || 0;
 
   return (
@@ -125,16 +125,15 @@ const ChecklistScreen = () => {
                   Alert.alert('Step Locked', 'Please complete the previous step first.');
                   return;
                 }
-                if (isCompleted) {
-                  Alert.alert('Already Done', `Step ${step.step_number} is already completed.`);
-                  return;
-                }
+                // Completed phases open in read-only mode so the agent can review
+                // what was logged. Editing remains gated until we ship a proper
+                // edit flow (admin-approved correction).
                 navigation.navigate('ComplianceStep', {
                   job_id: jobId,
                   step_number: step.step_number,
+                  read_only: isCompleted,
                 });
               }}
-              disabled={isCompleted}
               activeOpacity={0.7}
             >
               <View style={styles.stepLeft}>

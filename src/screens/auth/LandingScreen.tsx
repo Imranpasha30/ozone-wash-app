@@ -3011,6 +3011,17 @@ const LandingScreen = () => {
               <Text style={[s.footerCopy, { color: B.muted }]}>
                 {'\u00a9'} 2026 VijRam Health Sense Pvt. Ltd.
               </Text>
+              <View style={s.footerPowered}>
+                <Text style={[s.footerCopy, { color: B.muted }]}>Powered by </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    if (Platform.OS === 'web') window.open('https://shyra.pro', '_blank', 'noopener,noreferrer');
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[s.footerCopy, s.footerPoweredLink]}>Shyra.pro</Text>
+                </TouchableOpacity>
+              </View>
               {isLarge && <Text style={[s.footerCopy, { color: B.muted }]}>Made with {'\ud83d\udca7'} in Hyderabad</Text>}
             </View>
           </View>
@@ -3513,10 +3524,15 @@ const s = StyleSheet.create({
   footerPolicies: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 16 },
   footerPolicyLink: { fontSize: 12, fontWeight: '600', textDecorationLine: 'underline' },
   footerCopyRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    borderTopWidth: 1, paddingTop: 18, marginTop: 20,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    borderTopWidth: 1, paddingTop: 18, marginTop: 20, flexWrap: 'wrap', gap: 8,
   },
   footerCopy: { fontSize: 12 },
+  footerPowered: { flexDirection: 'row', alignItems: 'center' },
+  footerPoweredLink: {
+    color: B.primaryDk, fontWeight: '700',
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+  } as any,
 
   /* Mobile sticky bottom - native uses 'absolute' (RN doesn't support 'fixed').
      Web overrides with 'fixed' so the bar stays pinned during page scroll. */

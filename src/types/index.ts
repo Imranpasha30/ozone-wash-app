@@ -68,34 +68,92 @@ export interface Job {
 }
 
 // ── Compliance ────────────────────────────────────────────────────────────
+// Aligned with FA Check List PDF: 9 phases (Stage 0 + Steps 1-8). All
+// PDF-specific fields are optional so the same shape persists rows for
+// whichever phase the agent is logging.
 export interface ComplianceStep {
   id?: string;
   job_id: string;
-  step_number: number;
+  step_number: number; // 0..8 (0 = Stage 0 PPE/Safety pre-flight)
   step_name: string;
+
+  // Photos (mandatory_photo varies per step; see COMPLIANCE_STEPS labels)
   photo_before_url?: string;
   photo_after_url?: string;
-  ozone_exposure_mins?: number;
-  microbial_test_url?: string;
-  chemical_type?: string;
-  chemical_qty_ml?: number;
-  ppe_list: string[];
+
+  // GPS auto-capture (Stage 0 + every step)
   gps_lat: number;
   gps_lng: number;
+
+  // Stage 0 - PPE & safety pre-flight
+  ppe_list?: string[]; // mask, gloves, boots, coverall, face_shield, o3_sensor
+  ladder_check?: 'Secured' | 'Needs adjustment';
+  electrical_check?: 'Safe' | 'Needs attention';
+  emergency_kit?: boolean;
+  spare_tank_water?: boolean;
+  fence_placed?: boolean;
+  danger_board?: boolean;
+  arrival_at?: string;
+
+  // Steps 1 + 8 - Water-test buckets (label text, not numeric)
+  turbidity?: string;
+  ph_level?: string;
+  orp?: string;
+  conductivity?: string;
+  tds?: string;
+  atp?: string;
+
+  // Step 2 - Drain & inspect
+  water_level_pct?: string;
+  tank_condition?: 'Good' | 'Attention needed' | 'Immediate attention';
+
+  // Step 3 - Mechanical scrub
+  scrub_completed?: boolean;
+
+  // Step 4 - High-pressure rinse
+  rinse_duration?: string;
+
+  // Step 5 - Sludge removal
+  disposal_status?: 'Proper disposal' | 'Needs verification';
+
+  // Step 6 - Ozone disinfection
+  ozone_cycle_duration?: string;
+  ozone_ppm_dosed?: string;
+  ozone_exposure_mins?: number; // legacy
+
+  // Step 7 - UV double lock (optional add-on)
+  uv_cycle_duration?: string;
+  uv_dose?: string;
+  uv_lumines_status?: 'Safe' | 'Needs adjustment';
+  uv_skipped?: boolean;
+
+  // Step 8 - After-wash testing & proof delivery
+  client_signature_url?: string;
+  technician_remarks?: string;
+
+  // Legacy fields (kept for backward compatibility with old rows)
+  microbial_test_url?: string;
+  microbial_result?: 'pass' | 'fail';
+  microbial_notes?: string;
+  chemical_type?: string;
+  chemical_qty_ml?: number;
+
   completed: boolean;
   logged_at?: string;
 }
 
 export interface ComplianceChecklist {
   job_id: string;
-  total_steps: number;
+  total_steps: number; // now 9
   completed_steps: number;
   completion_percentage: number;
   checklist: {
     step_number: number;
     step_name: string;
+    optional?: boolean;
     required_fields: string[];
     completed: boolean;
+    skipped?: boolean;
     logged: boolean;
     data: ComplianceStep | null;
   }[];

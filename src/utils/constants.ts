@@ -50,15 +50,99 @@ export const ADDONS = [
   { label: 'Advanced Testing', value: 'advanced_testing', price: 1200 },
 ];
 
+// 9-phase service SOP from FA Check List PDF.
+// Stage 0 is the pre-service PPE/safety gate. Steps 1-8 are the numbered
+// process steps the brand markets as the "8-step" clean. Step 7 (UV) is
+// optional - the agent can mark it Skipped if the booking didn't include UV.
+//
+// `customerMessage` is the WhatsApp/in-app text shown to the customer after
+// each phase completes (auto-sent by backend via NotificationService).
+// `mandatoryPhotoLabel` is what the agent sees on the photo upload tile.
 export const COMPLIANCE_STEPS = [
-  { step: 1, name: 'Site Inspection' },
-  { step: 2, name: 'PPE Check' },
-  { step: 3, name: 'Tank Drainage' },
-  { step: 4, name: 'Pre-Clean Photos' },
-  { step: 5, name: 'Ozone Treatment' },
-  { step: 6, name: 'Microbial Test' },
-  { step: 7, name: 'Post-Clean Photos' },
-  { step: 8, name: 'Customer Sign-off' },
+  {
+    step: 0,
+    name: 'PPE & Safety Discipline',
+    mandatoryPhotoLabel: 'PPE proof, ladder, fence + board',
+    customerMessage: 'Technician arrived on time, GPS verified, PPE checked, and safety fence with "Danger: Ozone at Work" board placed before starting service.',
+  },
+  {
+    step: 1,
+    name: 'Pre-Check & Setup',
+    mandatoryPhotoLabel: 'Tank before commencement',
+    customerMessage: 'Initial water quality tested - clarity, balance, and hygiene baseline recorded.',
+  },
+  {
+    step: 2,
+    name: 'Drain & Inspect',
+    mandatoryPhotoLabel: 'Drained tank',
+    customerMessage: 'Tank drained safely, condition assessed.',
+  },
+  {
+    step: 3,
+    name: 'Mechanical Scrub & Rotary Jet',
+    mandatoryPhotoLabel: 'Scrubbed walls/base',
+    customerMessage: 'Biofilm and deposits removed from tank walls and base.',
+  },
+  {
+    step: 4,
+    name: 'High-Pressure Rinse',
+    mandatoryPhotoLabel: 'Flushed tank',
+    customerMessage: 'Tank walls flushed clean with high-pressure water.',
+  },
+  {
+    step: 5,
+    name: 'Sludge Removal',
+    mandatoryPhotoLabel: 'Sludge extracted',
+    customerMessage: 'Settled debris and sludge removed from the tank.',
+  },
+  {
+    step: 6,
+    name: 'Ozone Disinfection',
+    mandatoryPhotoLabel: 'Ozone equipment in use',
+    customerMessage: 'Ozone sterilization completed - residue-free hygiene ensured.',
+  },
+  {
+    step: 7,
+    name: 'UV Double Lock',
+    optional: true,
+    mandatoryPhotoLabel: 'UV lamp in operation',
+    customerMessage: 'UV double sterilization applied - dose verified to ensure microbial inactivation.',
+  },
+  {
+    step: 8,
+    name: 'After-Wash Testing & Proof Delivery',
+    mandatoryPhotoLabel: 'Final clean tank',
+    customerMessage: 'Final water quality verified - clarity restored, balance maintained, hygiene confirmed. QR-signed hygiene certificate issued with EcoScore badge.',
+  },
+];
+
+// Bucket options for water-quality tests (used in Steps 1 and 8).
+export const WATER_TEST_BUCKETS = {
+  turbidity:    ['<5 NTU', '5-10 NTU', '>10 NTU'],
+  ph_level:     ['6.5-8.5 Safe', '<6.5 Acidic', '>8.5 Alkaline'],
+  orp:          ['>650 mV Strong', '450-650 Moderate', '<450 Weak'],
+  conductivity: ['<500 uS/cm', '500-1000', '>1000'],
+  tds:          ['<=500 Safe', '500-1000 Marginal', '>1000 Unsafe'],
+  atp:          ['<200 Low', '200-500 Moderate', '>500 High'],
+};
+
+export const WATER_LEVEL_BUCKETS  = ['0-10%', '11-20%', '21-30%', '>31%'];
+export const TANK_CONDITION_OPTIONS = ['Good', 'Attention needed', 'Immediate attention'];
+export const DURATION_BUCKETS     = ['<10 min', '10-20 min', '>20 min'];
+export const DISPOSAL_OPTIONS     = ['Proper disposal', 'Needs verification'];
+export const SAFETY_OPTIONS = {
+  ladder:     ['Secured', 'Needs adjustment'],
+  electrical: ['Safe', 'Needs attention'],
+};
+export const UV_DOSE_BUCKETS      = ['<20 mJ/cm2', '20-60', '>60'];
+export const UV_LUMINES_OPTIONS   = ['Safe', 'Needs adjustment'];
+export const PPE_ITEMS = [
+  { value: 'mask',        label: 'Mask' },
+  { value: 'gloves',      label: 'Gloves' },
+  { value: 'boots',       label: 'Boots' },
+  { value: 'coverall',    label: 'Coverall' },
+  { value: 'face_shield', label: 'Face shield' },
+  { value: 'o3_sensor',   label: 'O3 Sensor' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════
