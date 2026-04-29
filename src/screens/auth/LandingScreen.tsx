@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet, StatusBar,
   Platform, Image, ScrollView, Animated, Easing,
   NativeSyntheticEvent, NativeScrollEvent, useWindowDimensions,
+  Linking,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -91,6 +92,26 @@ const TESTIMONIALS = [
 type FaqEntry = { cat: string; q: string; a: string };
 // Live demo certificate hosted on Cloudflare R2 - opened from the hero QR card
 const DEMO_CERT_URL = 'https://pub-a27bf503711744b48b2b244e9fae3255.r2.dev/certificate/ozonewash-certificate%20(1).pdf';
+
+// App store URLs - Play Store live; iOS pending. Update once published.
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.ozonewash.app';
+const APP_STORE_URL  = 'https://apps.apple.com/app/ozone-wash/id000000000';
+const DEMO_VIDEO_URL = 'https://ozonewash.in/demo';
+const openDownload = () => {
+  const url = Platform.OS === 'ios' ? APP_STORE_URL : PLAY_STORE_URL;
+  if (Platform.OS === 'web') {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  } else {
+    Linking.openURL(url).catch(() => {});
+  }
+};
+const openDemo = () => {
+  if (Platform.OS === 'web') {
+    window.open(DEMO_VIDEO_URL, '_blank', 'noopener,noreferrer');
+  } else {
+    Linking.openURL(DEMO_VIDEO_URL).catch(() => {});
+  }
+};
 
 const FAQ_DATA: FaqEntry[] = [
   // Before You Book
@@ -922,6 +943,9 @@ function HeroVisual() {
   const [pct, setPct] = useState(0);
   const wrapRef = useRef<any>(null);
   const [par, setPar] = useState({ x: 0, y: 0 });
+  const [wrapW, setWrapW] = useState(0);
+  const compact = wrapW > 0 && wrapW < 720; // tablet / medium screens
+  const certCardW = compact ? 140 : 200;
 
   useEffect(() => {
     let raf: number; const t0 = performance.now();
@@ -942,7 +966,17 @@ function HeroVisual() {
     const onLeave = () => setPar({ x: 0, y: 0 });
     el.addEventListener('mousemove', onMove);
     el.addEventListener('mouseleave', onLeave);
-    return () => { el.removeEventListener('mousemove', onMove); el.removeEventListener('mouseleave', onLeave); };
+    const updateW = () => setWrapW(el.getBoundingClientRect().width);
+    updateW();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateW) : null;
+    ro?.observe(el);
+    window.addEventListener('resize', updateW);
+    return () => {
+      el.removeEventListener('mousemove', onMove);
+      el.removeEventListener('mouseleave', onLeave);
+      ro?.disconnect();
+      window.removeEventListener('resize', updateW);
+    };
   }, []);
 
   const Div = 'div' as any;
@@ -1225,7 +1259,7 @@ function HeroVisual() {
           position: 'absolute', right: 0, top: 20,
           transform: `translate3d(${par.x * 24}px, ${par.y * 24}px, 0) rotate(4deg)`,
           transition: 'transform .25s cubic-bezier(.2,.7,.2,1), box-shadow .3s',
-          background: '#fff', borderRadius: 16, padding: '14px 16px', width: 200,
+          background: '#fff', borderRadius: 16, padding: compact ? '10px 12px' : '14px 16px', width: certCardW,
           border: '1px solid rgba(2,132,199,0.12)',
           boxShadow: '0 28px 60px rgba(2,132,199,0.28)',
           animation: 'ozFloat 5.5s ease-in-out infinite .5s',
@@ -2037,6 +2071,62 @@ const LandingScreen = () => {
         border-color: ${B.primary} !important;
         box-shadow: 0 22px 40px rgba(2,132,199,0.15) !important;
       }
+
+      /* ── Floating Download App FAB ── */
+      @keyframes ozFabPulse {
+        0%, 100% { box-shadow: 0 16px 36px rgba(22,163,74,0.45); }
+        50%      { box-shadow: 0 18px 44px rgba(22,163,74,0.65), 0 0 0 8px rgba(34,197,94,0.18); }
+      }
+      @keyframes ozFabExpand {
+        0%, 8%, 100% {
+          width: 52px;
+          gap: 0;
+          padding-left: 0; padding-right: 0;
+        }
+        18%, 32% {
+          width: 200px;
+          gap: 10px;
+          padding-left: 14px; padding-right: 18px;
+        }
+      }
+      @keyframes ozFabTextReveal {
+        0%, 14%   { max-width: 0;     opacity: 0; }
+        20%, 30%  { max-width: 160px; opacity: 1; }
+        36%, 100% { max-width: 0;     opacity: 0; }
+      }
+      [data-oz-fab="true"] {
+        overflow: hidden;
+        cursor: pointer;
+        width: 52px;
+        gap: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        animation:
+          ozFabPulse 2.4s ease-in-out infinite,
+          ozFabExpand 7s ease-in-out 1.6s infinite;
+        transition: transform .25s ease;
+      }
+      [data-oz-fab-text="true"] {
+        max-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        opacity: 0;
+        display: inline-block;
+        animation: ozFabTextReveal 7s ease-in-out 1.6s infinite;
+      }
+      [data-oz-fab="true"]:hover {
+        width: 220px !important;
+        gap: 10px !important;
+        padding-left: 14px !important;
+        padding-right: 18px !important;
+        animation: ozFabPulse 2.4s ease-in-out infinite;
+        transform: translateY(-2px);
+      }
+      [data-oz-fab="true"]:hover [data-oz-fab-text="true"] {
+        animation: none;
+        max-width: 220px !important;
+        opacity: 1 !important;
+      }
     `;
     document.head.appendChild(el);
 
@@ -2309,18 +2399,12 @@ const LandingScreen = () => {
                     <Text style={s.heroCtaPrimaryText}>Book Your Clean</Text>
                     <ArrowRight size={18} weight="bold" color={B.primaryDk} />
                   </TouchableOpacity>
-                  {isLarge ? (
-                    <TouchableOpacity style={s.heroCtaGhost} activeOpacity={0.8}>
-                      <View style={s.heroPlayCircle}>
-                        <Play size={12} weight="fill" color="#fff" />
-                      </View>
-                      <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>Watch 60-Second Demo</Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity style={s.heroPlayBtn} activeOpacity={0.8}>
-                      <Play size={18} weight="fill" color="#fff" />
-                    </TouchableOpacity>
-                  )}
+                  <TouchableOpacity style={s.heroCtaGhost} onPress={openDemo} activeOpacity={0.8}>
+                    <View style={s.heroPlayCircle}>
+                      <Play size={12} weight="fill" color="#fff" />
+                    </View>
+                    <Text style={s.heroCtaGhostText}>{isLarge ? 'Watch 60-Second Demo' : 'Watch Demo'}</Text>
+                  </TouchableOpacity>
                 </View>
               </Reveal>
 
@@ -3153,6 +3237,25 @@ const LandingScreen = () => {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Floating Download App FAB - web only. Collapsed (icon-only) by default,
+          auto-expands periodically + on hover to reveal "Download App" text. */}
+      {Platform.OS === 'web' && (
+        <TouchableOpacity
+          onPress={openDownload}
+          activeOpacity={0.85}
+          style={[s.fabDownload, !isLarge && { bottom: (insets.bottom || 0) + 96 }]}
+          {...({ dataSet: { ozFab: 'true' } } as any)}
+        >
+          <View style={s.fabIconBox}>
+            <ArrowRight size={18} weight="bold" color="#fff" />
+          </View>
+          <Text
+            style={[s.fabText, Platform.OS === 'web' ? ({ whiteSpace: 'nowrap' } as any) : null]}
+            {...({ dataSet: { ozFabText: 'true' } } as any)}
+          >Download App</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -3230,6 +3333,11 @@ const s = StyleSheet.create({
     }),
   },
   navBtnText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  navCtaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  navDownloadBtn: {
+    backgroundColor: 'rgba(34,197,94,0.14)',
+    borderWidth: 1, borderColor: 'rgba(34,197,94,0.4)',
+  },
 
   /* ── Hero ── */
   hero: { overflow: 'hidden', paddingBottom: 0 },
@@ -3254,7 +3362,15 @@ const s = StyleSheet.create({
     fontSize: 15, lineHeight: 26, color: 'rgba(255,255,255,0.85)',
     textAlign: 'center', marginBottom: 28,
   },
-  heroCtas: { flexDirection: 'row', gap: 14, marginBottom: 28, justifyContent: 'center', alignItems: 'center' },
+  heroCtas: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 12, gap: 12, marginBottom: 28, justifyContent: 'center', alignItems: 'center' },
+  heroCtaGhostText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  heroCtaDownload: {
+    height: 56, paddingHorizontal: 18, borderRadius: 14,
+    backgroundColor: 'rgba(34,197,94,0.22)',
+    borderWidth: 1, borderColor: 'rgba(34,197,94,0.5)',
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+  } as any,
   heroCtaPrimary: {
     height: 56, paddingHorizontal: 24, borderRadius: 14,
     backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -3786,6 +3902,36 @@ const s = StyleSheet.create({
     }),
   },
   stickyBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+
+  /* Floating Download App FAB (web only, collapses to a 52px circle by default) */
+  fabDownload: {
+    position: 'absolute',
+    right: 20,
+    bottom: 24,
+    height: 52,
+    width: 52,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 10,
+    borderRadius: 999,
+    backgroundColor: B.leafDk,
+    zIndex: 9999,
+    overflow: 'hidden',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 16px 36px rgba(22,163,74,0.45)',
+        cursor: 'pointer',
+      } as any,
+      ios:     { shadowColor: 'rgba(22,163,74,0.6)', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 1, shadowRadius: 24 },
+      android: { elevation: 10 },
+    }),
+  },
+  fabIconBox: {
+    width: 30, height: 30, borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
+  fabText: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 0.2 },
 });
 
 export default LandingScreen;
