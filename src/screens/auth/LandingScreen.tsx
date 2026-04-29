@@ -49,14 +49,14 @@ const HOW = [
 ];
 type EightStep = { num: string; Icon: any; t: string; d: string; tag: string; tagKind: 'photo' | 'live' | 'uv' };
 const EIGHT_STEPS: EightStep[] = [
-  { num: '01', Icon: Lock,        t: 'Pre-Check & Setup',             d: 'Checklist, inspection, Ozone equipment staged, live streaming enabled. Before-wash water test sent via app.', tag: 'PRE PHOTO',  tagKind: 'photo' },
-  { num: '02', Icon: Drop,        t: 'Drain',                         d: 'Tank emptied safely. Condition assessed, sludge volume measured, water diverted per protocol.',           tag: 'IN-TANK',    tagKind: 'photo' },
-  { num: '03', Icon: Sparkle,     t: 'Mechanical Scrub & Rotary Jet', d: 'Dirt, algae, and biofilm deposits physically removed. Rotary jet reaches every wall contour.',          tag: 'SCRUB',      tagKind: 'photo' },
-  { num: '04', Icon: Lightning,   t: 'High-Pressure Rinse',           d: 'Walls and base flushed clean. Every loosened particle evacuated before disinfection begins.',           tag: 'RINSE',      tagKind: 'photo' },
-  { num: '05', Icon: Wrench,      t: 'Sludge Removal',                d: 'Settled debris extracted completely. Hazardous waste disposed per compliance.',                          tag: 'CLEAR',      tagKind: 'photo' },
-  { num: '06', Icon: Flask,       t: 'Ozone Disinfection',            d: 'Germs, pathogens, and toxins oxidised into oxygen. 99.99% kill - residue-free.',                         tag: 'O₃ · LIVE',  tagKind: 'live'  },
-  { num: '07', Icon: Eye,         t: 'UV Double Lock · optional',     d: 'Reinforces Ozone kill, adds a visible second sterilisation layer for extra assurance.',                  tag: 'UV ADD-ON',  tagKind: 'uv'    },
-  { num: '08', Icon: Certificate, t: 'After-Wash Testing & Proof',    d: 'Water test reports delivered via app. QR-signed hygiene certificate + after-photos. Saves 33% water.',  tag: '✓ QR CERT',  tagKind: 'photo' },
+  { num: '01', Icon: Lock,        t: 'Pre-Check & Setup',             d: 'Water tested across 6 parameters — Turbidity, pH, ORP, Conductivity, TDS, ATP. Hygiene baseline recorded. Before-wash photo sent via app.', tag: 'PRE PHOTO',  tagKind: 'photo' },
+  { num: '02', Icon: Drop,        t: 'Drain & Inspect',               d: 'Tank emptied safely. Water level + tank condition logged. Sludge volume assessed against the protocol.',                                    tag: 'IN-TANK',    tagKind: 'photo' },
+  { num: '03', Icon: Sparkle,     t: 'Mechanical Scrub & Rotary Jet', d: 'Biofilm and deposits physically removed from walls and base. Rotary jet reaches every wall contour.',                                       tag: 'SCRUB',      tagKind: 'photo' },
+  { num: '04', Icon: Lightning,   t: 'High-Pressure Rinse',           d: 'Walls and base flushed clean over a timed rinse. Every loosened particle evacuated before disinfection begins.',                            tag: 'RINSE',      tagKind: 'photo' },
+  { num: '05', Icon: Wrench,      t: 'Sludge Removal',                d: 'Settled debris extracted in full. Disposal route verified, hazardous waste handled per compliance.',                                        tag: 'CLEAR',      tagKind: 'photo' },
+  { num: '06', Icon: Flask,       t: 'Ozone Disinfection',            d: 'Calibrated Ozone cycle dosed at 1–2 ppm. 99.99% kill across germs, biofilm and toxins. Residue-free finish.',                              tag: 'O₃ · LIVE',  tagKind: 'live'  },
+  { num: '07', Icon: Eye,         t: 'UV Double Lock · optional',     d: 'UV dose of 20–60 mJ/cm² layered on top of Ozone. Lumines logged. Microbial inactivation locked twice.',                                     tag: 'UV ADD-ON',  tagKind: 'uv'    },
+  { num: '08', Icon: Certificate, t: 'After-Wash Testing & Proof',    d: 'Same 6 parameters re-tested — certified safe. Client signature, technician remarks. QR-signed hygiene certificate + final photo.',          tag: '✓ QR CERT',  tagKind: 'photo' },
 ];
 const FEATURES = [
   { Icon: Leaf,        t: 'Eco-Friendly',      d: 'Zero chemicals. Ozone decomposes into oxygen. Smart process saves water vs chemical cleaning.' },
@@ -72,9 +72,9 @@ const STATS: { v: number; suffix: string; l: string; lShort?: string; decimal?: 
   { v: 1,    suffix: 'st',    l: 'Patent Applied',        lShort: 'Patent' },
 ];
 const SERVICES = [
-  { Icon: Buildings, name: 'Overhead Tank',    price: '\u20B9799', cap: 'up to 2,000L' },
-  { Icon: Drop,      name: 'Underground Tank', price: '\u20B9999', cap: 'up to 5,000L' },
-  { Icon: Wrench,    name: 'Syntex / Plastic', price: '\u20B9799', cap: 'any shape' },
+  { Icon: Buildings, name: 'Overhead Tank'    , cap: 'Any Size' },
+  { Icon: Drop,      name: 'Underground Tank', cap: 'Any Size' },
+  { Icon: Wrench,    name: 'Syntex / Plastic', cap: 'any shape' },
 ];
 const TESTIMONIALS = [
   { name: 'Ananya R.',  area: 'Madhapur',     text: 'Booked Friday evening, cleaned Saturday morning. Before/after photos inside the tank were genuinely shocking.', r: 5 },
@@ -140,6 +140,7 @@ const FAQ_DATA: FaqEntry[] = [
 ];
 const COMPARE_BAD = [
   'Chemicals linger in water for days',
+  'Chemicals fail to neutralize many toxins - uncertainty remains',
   'Fail against resistant germs (Cryptosporidium, Giardia, biofilm & fungi)',
   'No certification, no proof of hygiene',
   'No before/after water testing',
@@ -147,16 +148,32 @@ const COMPARE_BAD = [
   'Cleaner leaves, uncertainty remains',
 ];
 const COMPARE_GOOD = [
-  'Ozone decomposes to pure oxygen \u2014 zero residue',
+  'Ozone decomposes to pure Oxygen - Zero Chemical residue',
   'UV double-locks hygiene, reinforcing Ozone\u2019s germ kill',
-  '99.99% germ neutralisation \u2014 even resistant pathogens',
+  '99.99% germs killed - even resistant pathogens and Toxins neutralised',
   'QR-verified hygiene certificate after every clean',
   'Before/after water testing reports delivered via app',
   'Patent-applied 8-step process with ATP verification',
   'Live app tracking with before/after proof photos',
-  'Smart process saves 33% water vs chemical cleaning',
+  'Ozone process saves 33% water compared to chemical cleaning',
 ];
-const CERT_TAGS = ['Ozone readings', 'ATP verification', 'Before/after photos', 'Crew ID & signature', 'Shareable proof'];
+const CERT_TAGS = ['Sanitation levels', 'ATP readings', 'Before/after photos', 'Crew verification'];
+
+type AddOn = { Icon: any; name: string; tag?: string; tagKind?: 'soon' | 'pro'; desc: string };
+const ADD_ONS: AddOn[] = [
+  { Icon: Eye,         name: 'UV Sterilization Pass',        tag: 'DOUBLE LOCK', tagKind: 'pro',
+    desc: 'Your tank already gets Ozone sterilization in the base service. UV adds a second kill step — a visible double layer of protection. Ozone neutralises microbes, UV destroys any residual bacteria.' },
+  { Icon: Leaf,        name: 'Anti-Algae Spray / Coating',
+    desc: 'Eco-safe spray prevents algae regrowth after cleaning. Keeps water fresher for longer and reduces the need for frequent service.' },
+  { Icon: Drop,        name: 'Anti-Lime / Descaling Treatment',
+    desc: 'Hard-water deposits damage tanks and affect water quality. Our descaling treatment removes lime safely, restoring tank hygiene.' },
+  { Icon: Flask,       name: 'Pathogen Testing & Lab Report',
+    desc: 'Scientific proof of hygiene — certified lab testing for E. coli, coliforms, and other bacteria, with a shareable compliance report.' },
+  { Icon: Wrench,      name: 'Structural Safety Audit',
+    desc: 'Beyond cleaning, we inspect tank walls, lids, and covers for cracks or leaks. A preventive check that keeps your tank safe and durable.' },
+  { Icon: Lightning,   name: 'IoT Sensor Installation',      tag: 'COMING SOON', tagKind: 'soon',
+    desc: 'Continuous, sensor-driven monitoring of your tank hygiene — water level, quality, and contamination alerts straight to the app.' },
+];
 
 /* ══════════════════════════════════════════════════════════════════
    REVEAL HOOK + WRAPPER
@@ -2128,7 +2145,10 @@ const LandingScreen = () => {
             <View style={s.navLogo}>
               <Image source={require('../../../assets/logo.png')} style={s.navLogoImg} resizeMode="contain" />
             </View>
-            <Text style={[s.navBrand, { color: B.ink }]}>Ozone Wash<TM size={9} /></Text>
+            <View>
+              <Text style={[s.navBrand, { color: B.ink }]}>Ozone Wash<TM size={8.5} /></Text>
+              <Text style={[s.navTagline, { color: B.muted }]}>Hygiene You Can See. Health You Can Feel.</Text>
+            </View>
           </View>
           {isLarge && (
             <View style={s.navLinks}>
@@ -2150,7 +2170,7 @@ const LandingScreen = () => {
             style={[s.navBtn, { backgroundColor: B.ink }]}
             activeOpacity={0.85}
           >
-            <Text style={s.navBtnText}>{isLarge ? 'Book Our Clean' : 'Book'}</Text>
+            <Text style={s.navBtnText}>{isLarge ? 'Book Your Clean' : 'Book'}</Text>
             <ArrowRight size={14} weight="bold" color="#fff" />
           </TouchableOpacity>
         </View>
@@ -2175,7 +2195,10 @@ const LandingScreen = () => {
               <View style={s.navLogo}>
                 <Image source={require('../../../assets/logo.png')} style={s.navLogoImg} resizeMode="contain" />
               </View>
-              <Text style={[s.navBrand, { color: '#fff' }]}>Ozone Wash<TM size={9} /></Text>
+              <View>
+                <Text style={[s.navBrand, { color: '#fff' }]}>Ozone Wash<TM size={9} /></Text>
+                <Text style={[s.navTagline, { color: 'rgba(255,255,255,0.72)' }]}>Hygiene you can see. Health you can feel.</Text>
+              </View>
             </View>
             {isLarge && (
               <View style={s.navLinks}>
@@ -2203,7 +2226,7 @@ const LandingScreen = () => {
               <Text style={[
                 s.navBtnText,
                 isLarge && { color: B.primaryDk },
-              ]}>{isLarge ? 'Book Our Clean' : 'Book'}</Text>
+              ]}>{isLarge ? 'Book Your Clean' : 'Book'}</Text>
               <ArrowRight size={14} weight="bold" color={isLarge ? B.primaryDk : '#fff'} />
             </TouchableOpacity>
           </View>
@@ -2230,7 +2253,7 @@ const LandingScreen = () => {
               <Reveal>
                 <View style={s.heroBadge}>
                   <View style={s.heroBadgeDot} />
-                  <Text style={s.heroBadgeText}>{isLarge ? 'TRUSTED ACROSS HYDERABAD \u00b7 INDIA\u2019S 1ST PATENT-APPLIED' : 'TRUSTED IN HYDERABAD \u00b7 PATENT-APPLIED'}</Text>
+                  <Text style={s.heroBadgeText}>{isLarge ? 'INDIA\u2019S 1ST PATENT-APPLIED OZONE CLEANING' : 'PATENT-APPLIED OZONE CLEANING'}</Text>
                 </View>
               </Reveal>
 
@@ -2242,31 +2265,48 @@ const LandingScreen = () => {
                     fontSize: 72, lineHeight: 1, letterSpacing: -2.5,
                     color: '#fff', margin: '0 0 20px', textWrap: 'balance',
                   }}>
-                    Hygiene you can see.<br />
+                    Pure Tanks.<br />
                     <span style={{
                       background: 'linear-gradient(90deg, #BAE6FD, #FFFFFF 60%)',
                       WebkitBackgroundClip: 'text',
                       WebkitTextFillColor: 'transparent',
-                    }}>Health you can feel.</span>
+                    }}>Proven Hygiene.</span>
                   </h1>
                 ) : (
                   <Text style={[s.heroH1, isLarge && { fontSize: 72, lineHeight: 72, letterSpacing: -2.5, textAlign: 'left' }]}>
-                    Hygiene you can see.{'\n'}
-                    <Text style={s.heroH1Grad}>Health you can feel.</Text>
+                    Pure Tanks.{'\n'}
+                    <Text style={s.heroH1Grad}>Proven Hygiene.</Text>
                   </Text>
                 )}
               </Reveal>
 
               <Reveal delay={160}>
-                <Text style={[s.heroPara, isLarge && { fontSize: 18, lineHeight: 30, textAlign: 'left', maxWidth: 500 }]}>
-                  India’s 1st patent-applied Ozone cleaning - certified, chemical-free, and trusted by families across Hyderabad. Book in 60 seconds. Certified crew at your doorstep. QR-verified hygiene report, proof in every drop.
-                </Text>
+                <View style={[s.heroBullets, isLarge && { alignItems: 'flex-start' }]}>
+                  <View style={s.heroBulletPill}>
+                    <View style={s.heroBulletIcon}>
+                      <CheckCircle size={14} weight="fill" color={B.leaf} />
+                    </View>
+                    <Text style={s.heroBulletText}>Book in 60 seconds. Certified crew at your doorstep.</Text>
+                  </View>
+                  <View style={s.heroBulletPill}>
+                    <View style={s.heroBulletIcon}>
+                      <CheckCircle size={14} weight="fill" color={B.leaf} />
+                    </View>
+                    <Text style={s.heroBulletText}>QR-verified hygiene report. Proof in every clean.</Text>
+                  </View>
+                  <View style={s.heroBulletPill}>
+                    <View style={s.heroBulletIcon}>
+                      <CheckCircle size={14} weight="fill" color={B.leaf} />
+                    </View>
+                    <Text style={s.heroBulletText}>Ozone Power. Zero Chemicals.</Text>
+                  </View>
+                </View>
               </Reveal>
 
               <Reveal delay={240}>
                 <View style={[s.heroCtas, isLarge && { justifyContent: 'flex-start' }]}>
                   <TouchableOpacity style={s.heroCtaPrimary} onPress={goToLogin} activeOpacity={0.85}>
-                    <Text style={s.heroCtaPrimaryText}>Book Our Clean</Text>
+                    <Text style={s.heroCtaPrimaryText}>Book Your Clean</Text>
                     <ArrowRight size={18} weight="bold" color={B.primaryDk} />
                   </TouchableOpacity>
                   {isLarge ? (
@@ -2284,19 +2324,6 @@ const LandingScreen = () => {
                 </View>
               </Reveal>
 
-              <Reveal delay={340}>
-                <View style={s.heroTrustRow}>
-                  {(isLarge
-                    ? ['No Chemicals - Ever', 'Insured & Certified Crews', 'Ozone Power, Zero Chemicals', 'Rated \u2605 4.9 by Customers']
-                    : ['No Chemicals', 'Insured & Certified', 'Patent-Applied Process']
-                  ).map((t, i) => (
-                    <View key={i} style={s.heroTrustItem}>
-                      <CheckCircle size={13} weight="fill" color={B.leaf} />
-                      <Text style={s.heroTrustText}>{t}</Text>
-                    </View>
-                  ))}
-                </View>
-              </Reveal>
             </View>
 
             {/* Right column - desktop phone mockup */}
@@ -2323,8 +2350,12 @@ const LandingScreen = () => {
                   return (
                     <View key={i} style={[s.statsGlassItem, i < STATS.length - 1 && s.statsGlassDivider]}>
                       {isPatent ? (
-                        // Patent column: show ONLY the seal - no number, no label.
-                        <PatentMedal size={64} />
+                        // Patent column - elevated visually: larger seal,
+                        // raised above the stats row, with a soft halo glow.
+                        <View style={s.patentElevated}>
+                          <View style={s.patentHalo} />
+                          <PatentMedal size={92} />
+                        </View>
                       ) : (
                         <>
                           <Text style={s.statsGlassVal}>
@@ -2383,7 +2414,7 @@ const LandingScreen = () => {
                     { Icon: QrCode,      t: 'QR-Verified Proof' },
                     { Icon: Users,       t: 'Insured & Certified Crews' },
                     { Icon: Leaf,        t: 'Zero Chemicals · Eco-Safe' },
-                    { Icon: Lightning,   t: 'Same-Day Slots' },
+                   
                   ].map((c, i) => (
                     <View key={i} style={s.trustChip}>
                       <c.Icon size={14} color={B.primaryDk} weight="fill" />
@@ -2409,7 +2440,7 @@ const LandingScreen = () => {
               {isLarge && (
                 <Reveal delay={120} style={{ maxWidth: 380 }}>
                   <Text style={{ fontSize: 14, color: B.muted, textAlign: 'right', lineHeight: 22 }}>
-                    Pick your tank, pick a slot - our insured & certified crew delivers proof-based hygiene with QR-signed certificates after every clean.
+                    App-enabled service, pick your tank, pick a slot - our insured & certified crew delivers proof-based hygiene.
                   </Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
                     <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: B.leaf }} />
@@ -2439,14 +2470,16 @@ const LandingScreen = () => {
                     <Text style={[
                       s.serviceName,
                       { color: active ? '#fff' : B.ink },
-                      isLarge && { fontSize: 22, letterSpacing: -0.5 },
+                      isLarge && { fontSize: 24, letterSpacing: -0.5 },
                     ]}>{svc.name}</Text>
-                    <Text style={[s.serviceCap, { color: active ? 'rgba(255,255,255,0.8)' : B.muted }]}>{svc.cap}</Text>
                     {isLarge ? (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 22 }}>
-                        <Text style={{ fontSize: 13, fontWeight: '800', color: active ? '#fff' : B.ink }}>From {svc.price}</Text>
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: active ? 'rgba(255,255,255,0.85)' : B.primaryDk }}> · Book this tank</Text>
-                        <ArrowRight size={14} weight="bold" color={active ? '#fff' : B.primaryDk} />
+                      <View style={s.serviceFooterRow}>
+                        <View style={[
+                          s.serviceArrowChip,
+                          { backgroundColor: active ? '#fff' : B.aqua },
+                        ]}>
+                          <ArrowRight size={16} weight="bold" color={B.primaryDk} />
+                        </View>
                       </View>
                     ) : (
                       <View style={s.serviceArrow}>
@@ -2493,6 +2526,57 @@ const LandingScreen = () => {
             )}
           </View>
 
+          {/* ════════════════════ ADD-ONS ════════════════════ */}
+          <View style={[s.section, { paddingHorizontal: pad, alignItems: 'center' }]}>
+            <View style={{ width: '100%', maxWidth: maxW }}>
+              <View style={isLarge ? { alignItems: 'center', marginBottom: 28 } : undefined}>
+                <Reveal>
+                  <Text style={[s.sectionLabel, { color: B.primaryDk }]}>HYGIENE UPGRADES</Text>
+                </Reveal>
+                <Reveal delay={60}>
+                  <Text style={[s.sectionTitle, { color: B.ink }, isLarge && s.sectionTitleLg, isLarge && { textAlign: 'center' }]}>
+                    Add-Ons. <SerifAccent>Stack the proof.</SerifAccent>
+                  </Text>
+                </Reveal>
+                <Reveal delay={120}>
+                  <Text style={[s.addOnIntro, isLarge && { textAlign: 'center', maxWidth: 720 }]}>
+                    Stack any of these on top of your base clean. Pricing scales with tank capacity — pick what your tank needs at booking.
+                  </Text>
+                </Reveal>
+              </View>
+
+              <View style={[s.addOnGrid, isLarge && { flexDirection: 'row', flexWrap: 'wrap', gap: 18 }]}>
+                {ADD_ONS.map((a, i) => (
+                  <Reveal key={i} delay={80 + i * 40}>
+                    <View style={[s.addOnCard, isLarge && { width: (maxW - 48 - 36) / 3 }]}>
+                      <View style={s.addOnTopRow}>
+                        <View style={s.addOnIconBox}>
+                          <a.Icon size={22} color={B.primaryDk} weight="duotone" />
+                        </View>
+                        {a.tag && (
+                          <View style={[
+                            s.addOnTag,
+                            a.tagKind === 'soon' && { backgroundColor: 'rgba(100,116,139,0.12)', borderColor: 'rgba(100,116,139,0.25)' },
+                            a.tagKind === 'pro'  && { backgroundColor: 'rgba(34,197,94,0.12)',  borderColor: 'rgba(34,197,94,0.3)' },
+                          ]}>
+                            <Text style={[
+                              s.addOnTagText,
+                              a.tagKind === 'soon' && { color: B.muted },
+                              a.tagKind === 'pro'  && { color: B.leafDk },
+                            ]}>{a.tag}</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={s.addOnName}>{a.name}</Text>
+                      <Text style={s.addOnDesc}>{a.desc}</Text>
+                    </View>
+                  </Reveal>
+                ))}
+              </View>
+
+            </View>
+          </View>
+
           {/* ════════════════════ COMPARISON ════════════════════ */}
           <View style={[s.section, { paddingHorizontal: pad, backgroundColor: B.surfaceAlt, alignItems: 'center' }]}>
            <View style={{ width: '100%', maxWidth: maxW }}>
@@ -2502,7 +2586,7 @@ const LandingScreen = () => {
               </Reveal>
               <Reveal delay={60}>
                 <Text style={[s.sectionTitle, { color: B.ink }, isLarge && s.sectionTitleLg, isLarge && { textAlign: 'center' }]}>
-                  {isLarge ? <>Proof-Based Hygiene: The <SerifAccent>Ozone & UV</SerifAccent> Advantage.</> : <>The <SerifAccent>Ozone & UV</SerifAccent> Advantage.</>}
+                  {isLarge ? <>The <SerifAccent>Ozone & UV</SerifAccent> Advantage.</> : <>The <SerifAccent>Ozone & UV</SerifAccent> Advantage.</>}
                 </Text>
               </Reveal>
             </View>
@@ -2511,11 +2595,13 @@ const LandingScreen = () => {
               {/* Bad card */}
               <Reveal delay={100} style={isLarge ? { flex: 1 } : undefined}>
                 <View style={[s.compareCard, s.compareCardBad, isLarge && { minHeight: 320 }]}>
-                  <View style={s.compareBadge}>
-                    <Text style={[s.compareBadgeText, { color: B.danger }]}>{'\u2717'} AVOID</Text>
+                  <View style={s.compareTitleRow}>
+                    <View style={[s.compareBadge, { marginBottom: 0 }]}>
+                      <Text style={[s.compareBadgeText, { color: B.danger }]}>{'\u2717'} AVOID</Text>
+                    </View>
+                    <Text style={[s.compareTitle, { color: B.ink, marginBottom: 0 }]}>The Old Way</Text>
                   </View>
-                  <Text style={[s.compareTitle, { color: B.ink }]}>The Old Way</Text>
-                  <Text style={[s.compareSubtitle, { color: B.muted }]}>Chlorine, bleach, chemicals & guesswork.</Text>
+                  <Text style={[s.compareSubtitle, { color: B.muted }]}>Chlorine, Bleach, Chemicals & Guesswork.</Text>
                   {(isLarge ? COMPARE_BAD : COMPARE_BAD.slice(0, 3)).map((t, i) => (
                     <View key={i} style={s.compareItem}>
                       <View style={[s.compareItemDot, { backgroundColor: B.dangerBg }]}>
@@ -2534,10 +2620,12 @@ const LandingScreen = () => {
                   style={[s.compareCard, isLarge && { minHeight: 320 }]}
                 >
                   <BubblesEffect count={isLarge ? 7 : 5} seed={4} />
-                  <View style={[s.compareBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                    <Text style={[s.compareBadgeText, { color: '#fff' }]}>{'\u2713'} RECOMMENDED</Text>
+                  <View style={s.compareTitleRow}>
+                    <View style={[s.compareBadge, { backgroundColor: 'rgba(255,255,255,0.2)', marginBottom: 0 }]}>
+                      <Text style={[s.compareBadgeText, { color: '#fff' }]}>{'\u2713'} RECOMMENDED</Text>
+                    </View>
+                    <Text style={[s.compareTitle, { color: '#fff', marginBottom: 0 }]}>Ozone Wash<TM size={16} /></Text>
                   </View>
-                  <Text style={[s.compareTitle, { color: '#fff' }]}>Ozone Wash<TM size={16} /></Text>
                   <Text style={[s.compareSubtitle, { color: 'rgba(255,255,255,0.85)' }]}>Lab-grade hygiene. App-verified. Patent-applied.</Text>
                   {(isLarge ? COMPARE_GOOD : COMPARE_GOOD.slice(0, 3)).map((t, i) => (
                     <View key={i} style={s.compareItem}>
@@ -2745,12 +2833,29 @@ const LandingScreen = () => {
                   <Text style={[s.sectionLabel, { color: B.leaf }]}>DIGITAL CERTIFICATE · SHAREABLE PROOF</Text>
                 </Reveal>
                 <Reveal delay={60}>
-                  <Text style={s.certTitle}>Hygiene you can see. <SerifAccent color="#BAE6FD">Health you can feel.</SerifAccent></Text>
+                  <Text style={s.certTitle}><SerifAccent color="#BAE6FD">Digital Certificate.</SerifAccent></Text>
+                </Reveal>
+                <Reveal delay={90}>
+                  <Text style={s.certTagline}>Hygiene you can see. Health you can feel.</Text>
                 </Reveal>
                 <Reveal delay={120}>
-                  <Text style={s.certBody}>
-                    Every visit ends with a QR-signed hygiene certificate - Ozone readings, ATP verification, before/after tank photos, and a tamper-evident crew signature. Instantly shareable with tenants, RWAs, buyers, or inspectors.
-                  </Text>
+                  <Text style={s.certBody}>Every visit ends with a QR-signed hygiene certificate:</Text>
+                </Reveal>
+                <Reveal delay={150}>
+                  <View style={s.certBullets}>
+                    {['Ozone readings', 'ATP verification', 'Before/after tank photos', 'Crew ID & tamper-evident signature'].map((b, i) => (
+                      <View key={i} style={s.certBulletRow}>
+                        <View style={s.certBulletDot} />
+                        <Text style={s.certBulletText}>{b}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </Reveal>
+                <Reveal delay={170}>
+                  <View style={s.certShareRow}>
+                    <Text style={s.certShareLbl}>Shareable Proof </Text>
+                    <Text style={s.certShareBody}>{'→'} Instantly share with tenants, RWAs, buyers, or inspectors.</Text>
+                  </View>
                 </Reveal>
                 <Reveal delay={180}>
                   <View style={s.certTags}>
@@ -2774,7 +2879,7 @@ const LandingScreen = () => {
                     <Text style={s.certCardBrand}>Ozone Wash<TM size={9} /></Text>
                   </View>
                   <Text style={s.certCardType}>CERTIFICATE OF HYGIENE</Text>
-                  <Text style={s.certCardTank}>Overhead Tank {'\u00b7'} 2,000L</Text>
+                  <Text style={s.certCardTank}>Overhead Tank {'\u00b7'} Any Size</Text>
                   <View style={s.certCardGrid}>
                     {[['Date', '20 Apr 2026'], ['Location', 'Madhapur'], ['Ozone ppm', '2.4 ppm'], ['ATP reading', '18 RLU']].map(([l, v], i) => (
                       <View key={i} style={{ width: '48%' }}>
@@ -2951,7 +3056,7 @@ const LandingScreen = () => {
                 {isLarge && (
                   <TouchableOpacity style={s.finalCtaBtnGhost} activeOpacity={0.8}>
                     <Phone size={16} weight="regular" color="#fff" />
-                    <Text style={s.finalCtaBtnGhostText}>Call +91 98481 44854</Text>
+                    <Text style={s.finalCtaBtnGhostText}>81 79 69 59 59 </Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -2969,7 +3074,7 @@ const LandingScreen = () => {
                   <Text style={[s.footerBrand, { color: B.ink }]}>Ozone Wash<TM size={10} /></Text>
                 </View>
                 <Text style={[s.footerTagline, { color: B.muted }]}>
-                  Hygiene you can see. Health you can feel. India’s 1st patent-applied, app-enabled tank hygiene service. Powered by VijRam Health Sense Pvt. Ltd.
+                  Pure Tanks. Proven Hygiene. India’s 1st patent-applied, app-enabled tank hygiene service. Powered by VijRam Health Sense Pvt. Ltd.
                 </Text>
                 <View style={s.footerLocRow}>
                   <MapPin size={13} weight="fill" color={B.muted} />
@@ -3043,7 +3148,7 @@ const LandingScreen = () => {
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
               style={[StyleSheet.absoluteFillObject, { borderRadius: 14 }]}
             />
-            <Text style={s.stickyBtnText}>Book Our Clean Now</Text>
+            <Text style={s.stickyBtnText}>Book Your Clean Now</Text>
             <ArrowRight size={18} weight="bold" color="#fff" />
           </TouchableOpacity>
         </View>
@@ -3094,6 +3199,10 @@ const s = StyleSheet.create({
   },
   navLogoImg: { width: 26, height: 26 },
   navBrand: { fontWeight: '800', fontSize: 16, letterSpacing: -0.3, fontFamily: 'Manrope, Inter, sans-serif' },
+  navTagline: {
+    fontSize: 9.5, fontWeight: '500', letterSpacing: 0.3,
+    fontStyle: 'italic', marginTop: 1, lineHeight: 12,
+  },
   navLinks: { flexDirection: 'row', gap: 14, alignItems: 'center', marginHorizontal: 18 },
   navLinkBtn: {
     paddingHorizontal: 18, paddingVertical: 10, borderRadius: 999,
@@ -3178,6 +3287,25 @@ const s = StyleSheet.create({
   heroTrustItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   heroTrustText: { fontSize: 12, color: 'rgba(255,255,255,0.85)' },
 
+  // Hero bullet pills - replaces the old long tagline; visually highlighted
+  // with a soft white-tinted pill background + green check icon to draw the
+  // eye to the two key value props.
+  heroBullets: { gap: 10, marginBottom: 28, alignItems: 'flex-start' },
+  heroBulletPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingVertical: 9, paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(8px)' } as any : {}),
+  },
+  heroBulletIcon: {
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: 'rgba(34,197,94,0.18)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  heroBulletText: { fontSize: 14, color: '#fff', fontWeight: '600', letterSpacing: 0.1 },
+
   /* Stats glass (desktop) */
   statsGlass: {
     flexDirection: 'row',
@@ -3192,6 +3320,29 @@ const s = StyleSheet.create({
   statsGlassDivider: { borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.2)' },
   statsGlassVal: { fontSize: 34, fontWeight: '800', color: '#fff', marginBottom: 4, letterSpacing: -1 },
   statsGlassLbl: { fontSize: 12, color: 'rgba(255,255,255,0.75)', letterSpacing: 0.5, textAlign: 'center' },
+
+  // Patent column - raised above the stats row + soft halo behind the seal so
+  // it reads as the "trust anchor" of the strip, not just another tile.
+  patentElevated: {
+    alignItems: 'center', justifyContent: 'center',
+    transform: [{ translateY: -16 }],
+    position: 'relative',
+  },
+  patentHalo: {
+    position: 'absolute',
+    width: 130, height: 130, borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    ...Platform.select({
+      default: { boxShadow: '0 0 32px 8px rgba(255,255,255,0.18)' } as any,
+      ios:     { shadowColor: 'rgba(255,255,255,0.6)', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 32 },
+      android: { elevation: 12 },
+    }),
+  },
+  patentLabel: {
+    fontSize: 10, fontWeight: '800', letterSpacing: 1.6,
+    color: 'rgba(255,255,255,0.92)', marginTop: 8,
+    textTransform: 'uppercase',
+  },
 
   /* Stats card (mobile) */
   statsCard: {
@@ -3289,11 +3440,71 @@ const s = StyleSheet.create({
   serviceName: { fontSize: 14, fontWeight: '700', fontFamily: 'Manrope, sans-serif' },
   serviceCap: { fontSize: 13, marginTop: 4 },
   serviceArrow: { marginLeft: 'auto' },
+
+  // Minimal footer row for desktop service cards: price pill on the left,
+  // small arrow chip on the right. Replaces the wordier "From ₹799 · Book this tank" CTA.
+  serviceFooterRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
+    marginTop: 'auto', paddingTop: 24,
+  },
+  servicePricePill: {
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
+    borderWidth: 1,
+  },
+  servicePriceText: {
+    fontSize: 14, fontWeight: '800', letterSpacing: 0.2,
+  },
+  serviceArrowChip: {
+    width: 36, height: 36, borderRadius: 999,
+    alignItems: 'center', justifyContent: 'center',
+    ...Platform.select({
+      default: { boxShadow: '0 6px 14px rgba(2,132,199,0.18)' } as any,
+      ios:     { shadowColor: 'rgba(2,132,199,0.3)', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 1, shadowRadius: 14 },
+      android: { elevation: 4 },
+    }),
+  },
   bookBtn: {
     marginTop: 14, height: 48, borderRadius: 14,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
   },
   bookBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+
+  /* Add-Ons */
+  addOnIntro: {
+    fontSize: 15, color: B.muted, lineHeight: 24,
+    marginTop: 6, maxWidth: 560,
+  },
+  addOnGrid: { gap: 14 },
+  addOnCard: {
+    backgroundColor: '#fff', borderRadius: 20, padding: 22,
+    borderWidth: 1, borderColor: B.line,
+    ...Platform.select({
+      default: { boxShadow: '0 10px 24px rgba(2,132,199,0.06)' } as any,
+      ios:     { shadowColor: 'rgba(2,132,199,0.12)', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 1, shadowRadius: 24 },
+      android: { elevation: 3 },
+    }),
+  },
+  addOnTopRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  addOnIconBox: {
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: B.aqua, alignItems: 'center', justifyContent: 'center',
+  },
+  addOnTag: {
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
+    borderWidth: 1, backgroundColor: 'rgba(14,165,233,0.1)', borderColor: 'rgba(14,165,233,0.25)',
+  },
+  addOnTagText: { fontSize: 10, fontWeight: '800', letterSpacing: 1, color: B.primaryDk },
+  addOnName: {
+    fontSize: 16, fontWeight: '800', color: B.ink,
+    letterSpacing: -0.2, lineHeight: 22, marginBottom: 8,
+  },
+  addOnDesc: { fontSize: 13.5, color: B.muted, lineHeight: 21 },
+  addOnFootnote: {
+    fontSize: 12, color: B.muted, textAlign: 'center', marginTop: 22, fontStyle: 'italic',
+  },
 
   /* Comparison */
   compareRow: { gap: 12 },
@@ -3303,10 +3514,20 @@ const s = StyleSheet.create({
     alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 5,
     borderRadius: 999, backgroundColor: B.dangerBg, marginBottom: 14,
   },
+  // Lays out the AVOID/RECOMMENDED pill and the card title on the same line.
+  // alignItems: 'baseline' lines up the pill text with the title baseline so
+  // they read as a single horizontal line rather than two stacked elements
+  // that happen to share a row.
+  compareTitleRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    flexWrap: 'wrap', marginBottom: 6,
+  },
   compareBadgeText: { fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
   compareTitle: {
     fontSize: 24, fontWeight: '800', letterSpacing: -0.8, marginBottom: 4,
+    lineHeight: 28,
     fontFamily: 'Manrope, sans-serif',
+    ...(Platform.OS === 'android' ? ({ includeFontPadding: false } as any) : {}),
   },
   compareSubtitle: { fontSize: 14, marginBottom: 16 },
   compareItem: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginBottom: 10 },
@@ -3375,7 +3596,18 @@ const s = StyleSheet.create({
     fontSize: 48, fontWeight: '800', color: '#fff', letterSpacing: -1.5,
     lineHeight: 52, marginVertical: 10, fontFamily: 'Manrope, sans-serif',
   },
-  certBody: { fontSize: 17, color: 'rgba(255,255,255,0.8)', lineHeight: 28, marginBottom: 28, maxWidth: 500 },
+  certTagline: {
+    fontSize: 16, fontStyle: 'italic', color: 'rgba(255,255,255,0.72)',
+    letterSpacing: 0.2, marginBottom: 18, fontFamily: 'Manrope, sans-serif',
+  },
+  certBody: { fontSize: 17, color: 'rgba(255,255,255,0.85)', lineHeight: 28, marginBottom: 14, maxWidth: 520, fontWeight: '600' },
+  certBullets: { gap: 10, marginBottom: 22, maxWidth: 520 },
+  certBulletRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  certBulletDot: { width: 7, height: 7, borderRadius: 999, backgroundColor: '#22D3EE' },
+  certBulletText: { fontSize: 16, color: 'rgba(255,255,255,0.88)', lineHeight: 24, flex: 1 },
+  certShareRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 26, maxWidth: 520 },
+  certShareLbl: { fontSize: 15, fontWeight: '800', color: '#BAE6FD', letterSpacing: 0.3 },
+  certShareBody: { fontSize: 15, color: 'rgba(255,255,255,0.82)', lineHeight: 24 },
   certTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   certTag: {
     paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
