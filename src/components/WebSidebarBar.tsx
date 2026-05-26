@@ -13,6 +13,7 @@ import useSidebarStore, {
   SIDEBAR_WIDTH_EXPANDED, SIDEBAR_WIDTH_COLLAPSED,
 } from '../store/sidebar.store';
 import { CaretLeft, CaretRight } from './Icons';
+import GooglePlayColorLogo from './GooglePlayColorLogo';
 
 const WebSidebarBar = ({ state, descriptors, navigation }: BottomTabBarProps) => {
   const collapsed = useSidebarStore((s) => s.collapsed);
@@ -103,6 +104,26 @@ const WebSidebarBar = ({ state, descriptors, navigation }: BottomTabBarProps) =>
         })}
       </View>
 
+      {/* Play Store badge — sits directly below the nav (under Profile),
+          above the VijRam footer. Web-only — links to the Play Store. */}
+      {!collapsed && (
+        <TouchableOpacity
+          style={s.storeBadge}
+          onPress={() => {
+            if (Platform.OS === 'web') {
+              window.open('https://play.google.com/store/apps/details?id=in.ozonewash.app', '_blank');
+            }
+          }}
+          activeOpacity={0.85}
+        >
+          <GooglePlayColorLogo size={28} />
+          <View>
+            <Text style={s.storeBadgeKicker}>GET IT ON</Text>
+            <Text style={s.storeBadgeName}>Google Play</Text>
+          </View>
+        </TouchableOpacity>
+      )}
+
       {/* Footer */}
       {!collapsed && (
         <View style={s.sidebarFooter}>
@@ -177,6 +198,16 @@ const s = StyleSheet.create({
   },
   sidebarFooterText: { fontSize: 11, color: COLORS.muted, fontWeight: '600' },
   sidebarFooterSub: { fontSize: 10, color: COLORS.muted, marginTop: 2 },
+  storeBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: 8,
+    marginHorizontal: 16, marginTop: 8, marginBottom: 12,
+    backgroundColor: '#0B0B0B',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  storeBadgeKicker: { fontSize: 8, color: '#fff', letterSpacing: 1.2, fontWeight: '600' },
+  storeBadgeName: { fontSize: 14, color: '#fff', fontWeight: '800', marginTop: 1 },
 });
 
 export default WebSidebarBar;

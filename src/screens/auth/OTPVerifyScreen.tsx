@@ -29,12 +29,28 @@ const OTPVerifyScreen = () => {
   }, []);
 
   const handleOtpChange = (value: string, index: number) => {
+    // Strip anything non-digit (handles iOS autofill which can include spaces).
+    const cleaned = value.replace(/\D/g, '');
+
+    // Multi-char input (paste OR Android/iOS SMS auto-fill into box 0).
+    // Spread the digits across the 6 boxes and auto-verify when complete.
+    if (cleaned.length > 1) {
+      const digits = cleaned.slice(0, 6).split('');
+      const newOtp = ['', '', '', '', '', ''];
+      digits.forEach((d, i) => { newOtp[i] = d; });
+      setOtp(newOtp);
+      const focusIdx = Math.min(digits.length, 5);
+      inputs.current[focusIdx]?.focus();
+      if (digits.length === 6) handleVerify(newOtp.join(''));
+      return;
+    }
+
     const newOtp = [...otp];
-    newOtp[index] = value;
+    newOtp[index] = cleaned;
     setOtp(newOtp);
-    if (value && index < 5) inputs.current[index + 1]?.focus();
-    if (index === 5 && value) {
-      const fullOtp = [...newOtp].join('');
+    if (cleaned && index < 5) inputs.current[index + 1]?.focus();
+    if (index === 5 && cleaned) {
+      const fullOtp = newOtp.join('');
       if (fullOtp.length === 6) handleVerify(fullOtp);
     }
   };
@@ -101,7 +117,16 @@ const OTPVerifyScreen = () => {
             onChangeText={value => handleOtpChange(value, i)}
             onKeyPress={e => handleKeyPress(e, i)}
             keyboardType="number-pad"
-            maxLength={1}
+            // First box accepts the full 6-digit autofill; rest stay single-char.
+            // The handler splits multi-char input across boxes.
+            maxLength={i === 0 ? 6 : 1}
+            // iOS picks up the SMS code automatically from the keyboard
+            // suggestion bar when this is set on a text input.
+            textContentType={i === 0 ? 'oneTimeCode' : 'none'}
+            // Android picks up the OTP via the SMS User Consent API + this hint.
+            autoComplete={i === 0 ? 'sms-otp' : 'off'}
+            // Older RN compat for Android autofill.
+            importantForAutofill={i === 0 ? 'yes' : 'no'}
             autoFocus={i === 0}
             selectTextOnFocus
           />

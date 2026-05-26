@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import RootNavigator from './src/navigation/RootNavigator';
 import { navigationRef } from './src/navigation/navigationRef';
 import DialogHost from './src/components/DialogHost';
+import AppPromoBanner from './src/components/AppPromoBanner';
 
 // Initialise Sentry as early as possible (no-op in dev so it doesn't spam local testing).
 // Guarded: missing/empty DSN must NOT crash. Skip init entirely if absent.
@@ -282,6 +283,7 @@ function App() {
       <SafeAreaProvider>
         <GestureHandlerRootView style={{ flex: 1 }}>
           {Platform.OS !== 'web' && <NotificationColdStart />}
+          <AppPromoBanner />
           <RootNavigator />
           <DialogHost />
         </GestureHandlerRootView>

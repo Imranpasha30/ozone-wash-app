@@ -113,4 +113,5 @@ export {
   LightbulbFilament,
   Sparkle,
   Play,
+  GooglePlayLogo,
 } from 'phosphor-react-native';
