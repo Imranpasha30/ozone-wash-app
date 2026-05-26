@@ -10,11 +10,12 @@ import usePremiumStore from '../../store/premium.store';
 import { bookingAPI, amcAPI, ecoScoreAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { useWebScrollFix } from '../../utils/useWebScrollFix';
+import { useResponsive } from '../../utils/responsive';
 import { flush as flushPendingUploads } from '../../utils/pendingUploads';
 import { GOLD_GRADIENT, GOLD_GRADIENT_HORIZONTAL } from '../../utils/constants';
 import { Booking, AmcContract } from '../../types';
 import {
-  Bell, Drop, ArrowRight, ClipboardText, Trophy, UserCircle,
+  Bell, Drop, ArrowRight, ClipboardText, Trophy, UserCircle, Car, Leaf,
   ShieldCheck, FileText, Calendar, Crown, Star, Warning,
 } from '../../components/Icons';
 
@@ -104,7 +105,7 @@ const makeStyles = (C: any) => StyleSheet.create({
   ecoBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: C.goldBg, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
-    marginTop: 4,
+    marginTop: 4, alignSelf: 'flex-start',
   },
   ecoBadgeText: { fontSize: 11, fontWeight: '700', color: C.gold },
   ecoSub: { fontSize: 12, color: C.muted, marginTop: 4 },
@@ -207,6 +208,14 @@ const BookingHomeScreen = () => {
   const C = useTheme();
   const styles = React.useMemo(() => makeStyles(C), [C]);
   const scrollRef = useWebScrollFix();
+  const { isLarge } = useResponsive();
+
+  // Web-only layout: cap content width and centre it. On wide screens, group
+  // the two hero CTAs (Book a Cleaning + Book Car Wash) side-by-side so the
+  // dashboard doesn't look like a single stretched column.
+  const innerWidthStyle = isLarge
+    ? { maxWidth: 1100, alignSelf: 'center' as const, width: '100%' as const, paddingHorizontal: 28 }
+    : undefined;
 
   const navigation = useNavigation<any>();
   const { user } = useAuthStore();
@@ -285,6 +294,7 @@ const BookingHomeScreen = () => {
     >
       <StatusBar barStyle={usePremiumStore.getState().isPremium ? 'light-content' : 'dark-content'} />
 
+      <View style={innerWidthStyle}>
       {/* Header */}
       <View style={styles.header}>
         <View>
@@ -304,10 +314,10 @@ const BookingHomeScreen = () => {
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={() => navigation.navigate('EcoScoreDetail')}
-            style={styles.ecoCard}
+            style={[styles.ecoCard, isLarge && { maxWidth: 560, padding: 24 }]}
           >
-            <View style={styles.ecoScoreWrap}>
-              <Text style={styles.ecoScoreNum}>{ecoScore.score ?? '--'}</Text>
+            <View style={[styles.ecoScoreWrap, isLarge && { width: 76, height: 76, borderRadius: 38, marginRight: 20 }]}>
+              <Text style={[styles.ecoScoreNum, isLarge && { fontSize: 28 }]}>{ecoScore.score ?? '--'}</Text>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.ecoLabel}>Hygiene + Loyalty Rating</Text>
@@ -324,8 +334,10 @@ const BookingHomeScreen = () => {
         </View>
       )}
 
-      {/* Hero CTA — Book a Cleaning */}
-      <TouchableOpacity onPress={() => navigation.navigate('TankDetails')} activeOpacity={0.85}>
+      {/* Hero CTAs — Book a Cleaning + Book Car Wash. On wide screens, render
+          side-by-side; on phones, stack vertically. */}
+      <View style={isLarge ? { flexDirection: 'row', gap: 14 } : undefined}>
+      <TouchableOpacity onPress={() => navigation.navigate('TankDetails')} activeOpacity={0.85} style={isLarge ? { flex: 1 } : undefined}>
         {usePremiumStore.getState().isPremium ? (
           <LinearGradient
             colors={[...GOLD_GRADIENT]}
@@ -358,6 +370,38 @@ const BookingHomeScreen = () => {
           </View>
         )}
       </TouchableOpacity>
+
+      {/* Hero CTA — Book Car Wash (Phase 3 — EV doorstep service) */}
+      <TouchableOpacity
+        onPress={() => navigation.navigate('AutoWashBooking')}
+        activeOpacity={0.85}
+        style={isLarge ? { flex: 1 } : { marginTop: 12 }}
+      >
+        <LinearGradient
+          colors={['#0F172A', '#0369A1']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroCta}
+        >
+          <View style={[styles.heroIconWrap, { backgroundColor: 'rgba(34,197,94,0.22)' }]}>
+            <Car size={28} weight="fill" color="#fff" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+              <Text style={[styles.heroTitle, { color: '#fff' }]}>Book Car Wash</Text>
+              <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: 'rgba(34,197,94,0.22)', flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                <Leaf size={9} weight="fill" color="#86EFAC" />
+                <Text style={{ fontSize: 9, fontWeight: '800', letterSpacing: 0.8, color: '#86EFAC' }}>EV · ZERO EMISSIONS</Text>
+              </View>
+            </View>
+            <Text style={[styles.heroSub, { color: 'rgba(255,255,255,0.78)' }]}>Doorstep ozone car hygiene · from ₹399</Text>
+          </View>
+          <View style={[styles.heroArrow, { backgroundColor: 'rgba(255,255,255,0.18)' }]}>
+            <ArrowRight size={20} weight="bold" color="#fff" />
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
+      </View>
 
       {/* AMC Status */}
       <View style={styles.section}>
@@ -483,6 +527,7 @@ const BookingHomeScreen = () => {
             </TouchableOpacity>
           ))
         )}
+      </View>
       </View>
     </ScrollView>
   );

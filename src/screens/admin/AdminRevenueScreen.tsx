@@ -10,6 +10,7 @@ import { useTheme } from '../../hooks/useTheme';
 import {
   CurrencyInr, TrendUp, CheckCircle, ClipboardText, Receipt,
 } from '../../components/Icons';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const AdminRevenueScreen = () => {
   const C = useTheme();
@@ -72,10 +73,7 @@ const AdminRevenueScreen = () => {
     >
       <StatusBar barStyle="dark-content" backgroundColor={C.background} />
 
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Revenue</Text>
-        <Text style={styles.headerSub}>Overview</Text>
-      </View>
+      <ScreenHeader title="Revenue" subtitle="Overview" fallbackRoute="AdminDashboard" />
 
       {/* Total Revenue Card */}
       <View style={styles.totalCard}>

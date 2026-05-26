@@ -9,6 +9,7 @@ import { bookingAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { ArrowLeft, ArrowRight, Calendar, Clock, HandPalm, Info } from '../../components/Icons';
+import WebContainer from '../../components/WebContainer';
 
 const DateTimeScreen = () => {
   const C = useTheme();
@@ -95,6 +96,7 @@ const DateTimeScreen = () => {
       </View>
 
       <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
+        <WebContainer variant="narrow">
         {/* Date Picker */}
         <View style={styles.labelRow}>
           <Calendar size={16} weight="regular" color={C.primary} />
@@ -180,6 +182,7 @@ const DateTimeScreen = () => {
           <Text style={styles.nextText}>Continue to Add-ons</Text>
           <ArrowRight size={18} weight="bold" color={C.primaryFg} />
         </TouchableOpacity>
+        </WebContainer>
       </ScrollView>
     </View>
   );

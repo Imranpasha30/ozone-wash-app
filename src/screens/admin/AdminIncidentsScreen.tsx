@@ -8,6 +8,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { incidentAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { Siren, CheckCircle, Warning, ArrowRight } from '../../components/Icons';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const FILTERS = ['All', 'Open', 'Resolved', 'Escalated'];
 
@@ -150,10 +151,11 @@ const AdminIncidentsScreen = () => {
     <View style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor={C.background} />
 
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Incidents</Text>
-        <Text style={styles.headerCount}>{filtered.length} incident{filtered.length !== 1 ? 's' : ''}</Text>
-      </View>
+      <ScreenHeader
+        title="Incidents"
+        subtitle={`${filtered.length} incident${filtered.length !== 1 ? 's' : ''}`}
+        fallbackRoute="AdminDashboard"
+      />
 
       <ScrollView
         horizontal showsHorizontalScrollIndicator={false}

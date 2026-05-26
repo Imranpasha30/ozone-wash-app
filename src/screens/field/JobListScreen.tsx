@@ -11,6 +11,7 @@ import { flush as flushPendingUploads } from '../../utils/pendingUploads';
 import { Job } from '../../types';
 import useAuthStore from '../../store/auth.store';
 import { Clock, Wrench, ArrowRight, HandPalm, Warning, Fire, Siren, NavigationArrow, ArrowsClockwise } from '../../components/Icons';
+import { useResponsive } from '../../utils/responsive';
 import * as Location from 'expo-location';
 
 const formatCountdown = (scheduledAt: string, nowMs: number) => {
@@ -42,6 +43,10 @@ const JobListScreen = () => {
   const C = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
   const { user } = useAuthStore();
+  const { isLarge } = useResponsive();
+  const webListStyle = isLarge
+    ? { maxWidth: 900, width: '100%' as const, alignSelf: 'center' as const, padding: 24 }
+    : null;
   const [jobs, setJobs] = useState<Job[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -379,7 +384,10 @@ const JobListScreen = () => {
           data={filtered}
           keyExtractor={(j) => j.id}
           renderItem={renderItem}
-          contentContainerStyle={filtered.length === 0 ? styles.emptyContainer : styles.list}
+          contentContainerStyle={[
+            filtered.length === 0 ? styles.emptyContainer : styles.list,
+            webListStyle,
+          ]}
           refreshControl={
             Platform.OS !== 'web'
               ? <RefreshControl refreshing={refreshing} onRefresh={() => fetchJobs(true)} tintColor={C.primary} />

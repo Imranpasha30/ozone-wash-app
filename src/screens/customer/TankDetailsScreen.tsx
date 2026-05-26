@@ -16,6 +16,7 @@ import {
   ArrowLeft, ArrowRight, House, Wrench, Drop, MapPin, CurrencyInr,
   NavigationArrow, Buildings, User, Phone, LightbulbFilament, Plus, Trash, Star,
 } from '../../components/Icons';
+import WebContainer from '../../components/WebContainer';
 
 const MAX_SAVED = 5;
 const savedAddressKey = (userId: string) => `saved_addresses_${userId}`;
@@ -228,6 +229,7 @@ const TankDetailsScreen = () => {
   return (
     <RootWrapper {...rootWrapperProps}>
       <ScrollView ref={scrollRef} contentContainerStyle={styles.container}>
+        <WebContainer variant="narrow">
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -338,7 +340,20 @@ const TankDetailsScreen = () => {
                 placeholderTextColor={C.gray}
               />
 
-              {/* Per-tank location (tanks 2+) */}
+              {/* Per-tank location — every tank shows where the crew will go.
+                  Tank 1 sources from the Service Address at the bottom (read-only
+                  chip below). Tanks 2+ can either inherit Tank 1 or set their own. */}
+              {idx === 0 && (
+                <View style={styles.tankLocationSection}>
+                  <Text style={styles.subLabel}>Location</Text>
+                  <View style={styles.tank1LocBox}>
+                    <MapPin size={14} weight="fill" color={C.primary} />
+                    <Text style={styles.tank1LocText}>
+                      Uses the <Text style={{ fontWeight: '700' }}>Service Address</Text> below
+                    </Text>
+                  </View>
+                </View>
+              )}
               {idx > 0 && (
                 <View style={styles.tankLocationSection}>
                   <Text style={styles.subLabel}>Location</Text>
@@ -409,10 +424,15 @@ const TankDetailsScreen = () => {
 
           {/* Add Tank Button */}
           {tanks.length < 5 && (
-            <TouchableOpacity style={styles.addTankBtn} onPress={addTank}>
-              <Plus size={18} weight="bold" color={C.primary} />
-              <Text style={styles.addTankText}>Add Another Tank</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity style={styles.addTankBtn} onPress={addTank}>
+                <Plus size={18} weight="bold" color={C.primary} />
+                <Text style={styles.addTankText}>Add Another Tank</Text>
+              </TouchableOpacity>
+              <Text style={styles.multiLocHint}>
+                Each tank can be at the same address or a different location — set per-tank when you add more.
+              </Text>
+            </>
           )}
 
           {/* Address */}
@@ -543,6 +563,7 @@ const TankDetailsScreen = () => {
             <ArrowRight size={18} weight="bold" color={C.primaryFg} />
           </TouchableOpacity>
         </View>
+        </WebContainer>
       </ScrollView>
     </RootWrapper>
   );
@@ -616,6 +637,18 @@ const makeStyles = (C: any) => StyleSheet.create({
   tankPriceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border },
   tankPriceLabel: { fontSize: 12, color: C.muted },
   tankPriceValue: { fontSize: 14, fontWeight: '700', color: C.primary },
+  multiLocHint: {
+    fontSize: 11, color: C.muted, fontStyle: 'italic',
+    textAlign: 'center', marginTop: 6, marginBottom: 10,
+    paddingHorizontal: 16, lineHeight: 15,
+  },
+  tank1LocBox: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: C.primaryBg, borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 10,
+    borderWidth: 1, borderColor: C.primary + '33',
+  },
+  tank1LocText: { fontSize: 12, color: C.primary, flex: 1 },
   addTankBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     borderWidth: 1.5, borderColor: C.primary, borderStyle: 'dashed',

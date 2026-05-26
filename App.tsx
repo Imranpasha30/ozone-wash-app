@@ -1,12 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { View, Text, ScrollView, Platform } from 'react-native';
+import { View, Text, ScrollView, Platform, Alert } from 'react-native';
+import { confirm as showConfirm, alert as showAlert } from './src/services/dialog';
 import * as Notifications from 'expo-notifications';
 import * as Sentry from '@sentry/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RootNavigator from './src/navigation/RootNavigator';
 import { navigationRef } from './src/navigation/navigationRef';
+import DialogHost from './src/components/DialogHost';
 
 // Initialise Sentry as early as possible (no-op in dev so it doesn't spam local testing).
 // Guarded: missing/empty DSN must NOT crash. Skip init entirely if absent.
@@ -154,6 +156,38 @@ function App() {
   useEffect(() => {
     if (Platform.OS !== 'web') return;
 
+    // Monkey-patch Alert.alert on web so every existing usage in the codebase
+    // (Alert.alert('title', 'message', [{text, onPress}, ...])) routes through
+    // our themed ConfirmDialog instead of the system window.alert. Native is
+    // untouched. The native Alert API supports up to 3 buttons; we map common
+    // 1-button (info) and 2-button (cancel/confirm) shapes.
+    Alert.alert = (title: string, message?: string, buttons?: any[]) => {
+      const list = buttons && buttons.length > 0 ? buttons : [{ text: 'OK' }];
+      // Single-button info → themed alert (no cancel option).
+      if (list.length === 1) {
+        const only = list[0];
+        showAlert({
+          title,
+          message,
+          confirmText: only.text || 'OK',
+        }).then(() => { only.onPress?.(); });
+        return;
+      }
+      // Two-button or more → take the cancel + the non-cancel as confirm.
+      const cancelBtn = list.find((b) => b.style === 'cancel') || list[0];
+      const confirmBtn = list.find((b) => b !== cancelBtn) || list[list.length - 1];
+      showConfirm({
+        title,
+        message,
+        cancelText: cancelBtn.text || 'Cancel',
+        confirmText: confirmBtn.text || 'OK',
+        destructive: confirmBtn.style === 'destructive',
+      }).then((ok) => {
+        if (ok) confirmBtn.onPress?.();
+        else cancelBtn.onPress?.();
+      });
+    };
+
     // Fix viewport so content scrolls above the software keyboard on mobile web.
     // interactive-widget=resizes-content shrinks the layout viewport (not just visual
     // viewport) when the keyboard appears, pushing content up automatically.
@@ -174,6 +208,43 @@ function App() {
       #root { height: 100%; }
       /* Smooth momentum scrolling inside scroll containers */
       [style*="overflow"] { -webkit-overflow-scrolling: touch; }
+      /*
+       * Flex chain fix: RN-Web's flex:1 wrappers (.r-flex-13awgt0) inherit
+       * default min-height:auto, which makes them grow to fit their content
+       * instead of shrinking to fit their parent. That's why ScrollViews on
+       * pushed Stack screens end up taller than the viewport and the bottom
+       * gets clipped (body has overflow:hidden). min-height:0 lets the flex
+       * chain honour the viewport-bounded ancestor.
+       */
+      .r-flex-13awgt0 { min-height: 0 !important; min-width: 0 !important; }
+      /*
+       * React Navigation's Card wrapper uses .r-minHeight-2llsf (min-height:100%)
+       * which combined with content-natural-height blows up the height above the
+       * viewport. Force min-height:0 so the card respects its bounded parent.
+       */
+      .r-minHeight-2llsf { min-height: 0 !important; height: 100% !important; }
+      /* Force RN-Web ScrollView (overflowY: scroll) to honour parent height. */
+      .r-overflowY-1rnoaur {
+        max-height: 100%;
+        flex: 1 1 0% !important;
+        /* Avoid scroll-anchor jumps when content height changes (lists, etc). */
+        overflow-anchor: none;
+      }
+      /*
+       * Remove the browser's blue focus ring on text inputs / textareas /
+       * select. RN-Web uses native <input> elements under the hood; the
+       * default focus glow looks out of place against our custom borders.
+       * We keep keyboard focus visually traceable via the existing custom
+       * border styles in each screen.
+       */
+      input, textarea, select { outline: none !important; }
+      input:focus, textarea:focus, select:focus,
+      input:focus-visible, textarea:focus-visible, select:focus-visible {
+        outline: none !important;
+        box-shadow: none !important;
+      }
+      /* Disable iOS Safari tap highlight + WebKit text-fill colour quirks. */
+      input, textarea { -webkit-tap-highlight-color: transparent; }
     `;
     document.head.appendChild(style);
 
@@ -212,6 +283,7 @@ function App() {
         <GestureHandlerRootView style={{ flex: 1 }}>
           {Platform.OS !== 'web' && <NotificationColdStart />}
           <RootNavigator />
+          <DialogHost />
         </GestureHandlerRootView>
       </SafeAreaProvider>
     </ErrorBoundary>

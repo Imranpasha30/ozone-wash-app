@@ -12,214 +12,239 @@ export type PolicyType = 'terms' | 'privacy' | 'refund';
 const TITLES: Record<PolicyType, string> = {
   terms: 'Terms & Conditions',
   privacy: 'Privacy Policy',
-  refund: 'Refund Policy',
+  refund: 'Cancellation & Reschedule Policy',
 };
 
 const UPDATED: Record<PolicyType, string> = {
-  terms: 'Last updated: April 1, 2026',
-  privacy: 'Last updated: April 1, 2026',
-  refund: 'Last updated: April 1, 2026',
+  terms: 'Last updated: May 2, 2026',
+  privacy: 'Last updated: May 2, 2026',
+  refund: 'Last updated: May 2, 2026',
 };
 
 /* ────────────────────────────────────────────────────────────────────────── */
 const TERMS_CONTENT = `
 TERMS & CONDITIONS
 
-These Terms and Conditions ("Terms") govern your use of the Ozone Wash mobile application and services provided by VijRam Health Sense Pvt. Ltd. ("Company", "we", "our", "us"), a company incorporated under the laws of India, with its principal office in Hyderabad, Telangana.
+1. ACCEPTANCE OF TERMS
 
-By downloading or using the app, booking a service, or accessing our platform in any way, you agree to be bound by these Terms.
+By accessing or using Ozonewash.in or the Ozone Wash™ mobile app, you agree to these Terms & Conditions. If you do not agree, please discontinue use immediately.
 
-1. SERVICES
+2. SERVICES PROVIDED
 
-Ozone Wash provides app-enabled water tank hygiene cleaning services using ozone treatment technology. Our services include overhead tank cleaning, underground sump cleaning, and plastic/syntex tank cleaning, along with optional add-ons such as lime treatment, structure health checks, and advanced water testing.
+• Ozone Wash™ provides residential and commercial tank hygiene services using ozone and UV technology.
+• Services include cleaning, disinfection, certification, and optional hygiene add-ons (UV, anti-algae, pathogen testing, IoT sensors).
+• All services are subject to availability, inspection, and confirmation at the time of booking.
 
-2. ELIGIBILITY
+3. BOOKING & PAYMENTS
 
-You must be at least 18 years old to use this application and book services. By using the app, you represent and warrant that you have the legal capacity to enter into a binding contract.
+• Bookings can be made via website, app, WhatsApp, or phone.
+• Prices shown are indicative; final pricing is confirmed after tank inspection.
+• Payments must be made via approved gateways (UPI, cards, wallets, COD).
+• GST is applicable as per Indian law.
 
-3. BOOKING & APPOINTMENTS
+4. ANNUAL MAINTENANCE CONTRACTS (AMC)
 
-3.1 Bookings are confirmed only upon successful payment or COD confirmation.
-3.2 You are responsible for ensuring the service location is accessible on the scheduled date and time.
-3.3 Please ensure the tank is empty or nearly empty prior to our team's arrival for best results.
-3.4 The Company reserves the right to reschedule appointments due to unforeseen circumstances or force majeure events, with advance notice wherever possible.
+• AMC plans (monthly, quarterly, half-yearly, yearly) provide discounted recurring services.
+• AMC discounts: Monthly (30%), Quarterly (15%), Half-Yearly (10%), Yearly (5%).
+• AMC contracts are non-transferable and valid only for the registered property.
 
-4. PRICING
+5. HYGIENE CERTIFICATES & ECOSCORE
 
-4.1 All prices displayed in the app are inclusive of applicable taxes unless stated otherwise.
-4.2 Prices may vary based on tank size, type, location, and selected add-ons.
-4.3 The Company reserves the right to modify pricing at any time, but confirmed bookings will be honoured at the original price.
+• Each service generates a QR-verified hygiene certificate with before/after photos, ozone readings, and crew ID.
+• EcoScore™ badges (Platinum/Gold/Silver/Bronze) reflect compliance and hygiene standards.
+• Certificates are valid until the next scheduled cleaning or AMC renewal.
 
-5. PAYMENTS
+6. PATHOGEN TESTING (TERRA ENVIRON LABS)
 
-5.1 We accept UPI, debit/credit cards, digital wallets, and Cash on Delivery.
-5.2 Online payments are processed through Razorpay. We do not store your payment card information.
-5.3 In case of payment failure, no amount will be deducted. If deducted, it will be refunded within 5–7 business days.
+• Ozone Wash™ offers optional pathogen testing through Terra Environ Labs Pvt. Ltd., a NABL-accredited and ISO 9001-certified laboratory.
+• Testing covers up to 23 parameters, including E. coli, coliforms, turbidity, TDS, hardness, nitrates, and other water quality indicators.
+• Pathogen testing validates tank hygiene post-cleaning. It does not certify the purity of incoming municipal, borewell, or tanker water.
+• Reports are issued by Terra Environ Labs and shared digitally with customers. Ozone Wash™ is not responsible for delays or discrepancies in third-party lab reporting.
+• Pathogen testing is a paid add-on service, priced between ₹1,500–₹4,000 depending on tank size and scope. AMC customers may avail discounted pathogen testing as part of their hygiene upgrade bundle.
+• Customers agree that Ozone Wash™ acts as a facilitator and shall not be liable for health claims, disputes, or regulatory actions arising solely from lab findings.
+• Customers consent to Ozone Wash™ storing and sharing lab reports with RWAs, hospitals, or regulators if required.
 
-6. CANCELLATIONS
+7. CUSTOMER RESPONSIBILITIES
 
-6.1 You may cancel a booking up to 4 hours before the scheduled slot at no charge.
-6.2 Cancellations made within 4 hours of the slot may attract a cancellation fee as specified in our Refund Policy.
-6.3 No-shows (customer unavailable at the time of service) may be treated as a cancellation.
+• Ensure safe access to tanks, availability of power supply, and alternate water arrangements during cleaning.
+• Do not use tank water until the hygiene certificate is issued.
+• Customers must not interfere with ozone/UV equipment during operation.
 
-7. SERVICE GUARANTEE
+8. LIMITATIONS OF SERVICE
 
-7.1 We guarantee professional ozone-based tank cleaning with an 8-step compliance process.
-7.2 A digital hygiene certificate with QR verification is issued upon successful completion of service.
-7.3 If you are not satisfied with the quality of service, please raise a concern through the app within 24 hours of service completion and we will address it.
+• Ozone Wash™ cleans tanks and sumps only; it does not guarantee the purity of incoming municipal, borewell, or tanker water.
+• Certificates validate tank hygiene, not the external water source.
+• Service timelines may vary depending on tank size, condition, and accessibility.
 
-8. ANNUAL MAINTENANCE CONTRACTS (AMC)
+9. LIABILITY & INDEMNITY
 
-8.1 AMC subscribers receive scheduled tank cleaning services as per the selected plan.
-8.2 AMC plans are non-transferable and tied to the registered account.
-8.3 Renewal is the customer's responsibility. Lapsed AMC plans are not eligible for retroactive renewals.
+• Ozone Wash™ is not liable for damages caused by pre-existing tank defects, structural issues, or contaminated water sources.
+• Customers indemnify Ozone Wash™ against claims arising from misuse of tanks post-cleaning.
 
-9. INTELLECTUAL PROPERTY
+10. DATA & PRIVACY
 
-All content, logos, trademarks, and materials on the Ozone Wash app are the exclusive property of VijRam Health Sense Pvt. Ltd. and are protected under applicable intellectual property laws.
+• Customer data (name, address, contact, service logs, photos, lab reports) is collected for service delivery and compliance.
+• Data is stored securely and may be shared with regulators (GHMC, TSPCB) if required.
+• Ozone Wash™ does not sell customer data to third parties.
 
-10. LIMITATION OF LIABILITY
+11. CANCELLATION & REFUNDS
 
-To the fullest extent permitted by law, the Company shall not be liable for any indirect, incidental, or consequential damages arising from the use of our services. Our total liability shall not exceed the amount paid for the specific service in question.
+• Bookings may be cancelled up to 24 hours before scheduled service.
+• Refunds are processed within 7–10 business days.
+• AMC cancellations are subject to pro-rated deductions.
 
-11. GOVERNING LAW
+12. INTELLECTUAL PROPERTY
 
-These Terms shall be governed by the laws of India. Any disputes shall be subject to the exclusive jurisdiction of courts in Hyderabad, Telangana.
+• Ozone Wash™, Ozone Guard™, EcoScore™, and the 8-Step Hygiene Process are patent-applied and trademarked.
+• Unauthorized use, reproduction, or imitation is strictly prohibited.
 
-12. CONTACT
+13. GOVERNING LAW
 
-For any queries regarding these Terms, contact us at:
-📧 support@ozonewash.in
-📞 +91 98481 44854
+• These Terms & Conditions are governed by the laws of India.
+• Jurisdiction: Hyderabad, Telangana.
+
+14. AMENDMENTS
+
+• Ozone Wash™ reserves the right to update these Terms & Conditions at any time.
+• Changes will be notified via website/app updates.
+
+CONTACT
+
+VijRam Health Sense Pvt. Ltd.
+Flat No 201, Sai Krishna Thakur Residency, Padmaraonagar,
+Secunderabad, Hyderabad – 500025
+📧 hello@ozonewash.in
+📞 81 79 69 59 59
 `;
 
 /* ────────────────────────────────────────────────────────────────────────── */
 const PRIVACY_CONTENT = `
 PRIVACY POLICY
 
-VijRam Health Sense Pvt. Ltd. ("Company", "we", "us", "our") is committed to protecting your personal information. This Privacy Policy explains how we collect, use, store, and share your data when you use the Ozone Wash app.
+1. INTRODUCTION
 
-1. INFORMATION WE COLLECT
+Ozone Wash™, operated by VijRam Health Sense Pvt. Ltd., values your privacy. This Privacy Policy explains how we collect, use, store, and protect your personal information when you use our website, mobile app, or services.
 
-1.1 Personal Information: Name, mobile number, email address, and service address provided during registration or booking.
-1.2 Location Data: With your consent, we collect GPS location to detect your service address and for field team navigation. Location data is only collected when you explicitly use the location feature.
-1.3 Device Information: Device type, OS version, app version, and unique device identifiers for push notifications and analytics.
-1.4 Transaction Data: Booking history, payment status, and AMC subscription details.
-1.5 Usage Data: App interactions and feature usage patterns to improve the product.
+2. INFORMATION WE COLLECT
 
-2. HOW WE USE YOUR DATA
+We may collect the following information:
+• Personal details: Name, phone number, email, address.
+• Service data: Tank type, size, booking details, AMC contracts.
+• Proof data: Before/after photos, hygiene certificates, EcoScore logs.
+• Payment data: UPI, card, wallet, or COD transaction details.
+• Lab reports: Pathogen testing results from Terra Environ Labs (if opted).
+• Device data: IP address, browser type, app usage logs.
 
-2.1 To process and fulfil your service bookings.
-2.2 To send booking confirmations, OTP verifications, and service updates via SMS, WhatsApp, and push notifications.
-2.3 To issue digital hygiene certificates linked to your account.
-2.4 To improve our services through aggregated, anonymised analytics.
-2.5 To contact you for support-related queries.
-2.6 To comply with applicable legal and regulatory requirements.
+3. HOW WE USE YOUR INFORMATION
 
-3. DATA SHARING
+We use your information to:
+• Deliver and manage tank hygiene services.
+• Generate QR-verified hygiene certificates and EcoScore badges.
+• Provide AMC reminders, renewal alerts, and compliance tracking.
+• Share pathogen testing reports (if opted) with RWAs, hospitals, or regulators.
+• Improve our services, app performance, and customer experience.
+• Comply with legal and regulatory requirements.
 
-3.1 We do not sell, rent, or trade your personal information to third parties.
-3.2 We share data with:
-    • Razorpay: for payment processing (governed by their privacy policy).
-    • Firebase (Google): for authentication and push notifications.
-    • Cloudflare R2: for secure storage of compliance photos and certificates.
-    • SMS/WhatsApp providers: only for sending transactional messages.
-3.3 We may disclose data if required by law or government authorities.
+4. SHARING OF INFORMATION
 
-4. DATA RETENTION
-
-We retain your personal data for as long as your account is active or as required by law. You may request deletion of your account and associated data by contacting us.
+• Service delivery: Data is shared with our certified crews for job execution.
+• Lab testing: Pathogen testing reports are issued by Terra Environ Labs, NABL accredited and ISO 9001 certified.
+• Regulatory compliance: Data may be shared with GHMC, TSPCB, or other authorities if required.
+• Third-party integrations: Payment gateways, WhatsApp automation, and IoT sensors operate under their own privacy policies.
+• We do not sell or rent customer data to third parties.
 
 5. DATA SECURITY
 
-We implement industry-standard security measures including encryption in transit (HTTPS/TLS), secure database access controls, and JWT-based authentication to protect your data.
+• All customer data is stored securely with encryption and access controls.
+• Certificates, photos, and lab reports are protected with QR verification and tamper-evident signatures.
+• Regular audits ensure compliance with Indian IT Act and data protection norms.
 
-6. YOUR RIGHTS
+6. CUSTOMER RIGHTS
 
 You have the right to:
-• Access your personal data stored with us.
-• Correct inaccurate information.
-• Request deletion of your data (subject to legal obligations).
-• Withdraw consent for non-essential data processing.
+• Access your hygiene certificates, EcoScore, and lab reports.
+• Request correction of inaccurate personal data.
+• Request deletion of your data (subject to regulatory retention requirements).
+• Opt out of marketing communications.
 
-To exercise these rights, contact us at support@ozonewash.in.
+7. DATA RETENTION
 
-7. CHILDREN'S PRIVACY
-
-Our services are not directed to children under 18. We do not knowingly collect data from minors.
+• Service logs, certificates, and AMC records are retained for minimum 24 months for compliance and audit purposes.
+• Lab reports are retained as per NABL/ISO guidelines.
+• Data may be anonymized for analytics after expiry.
 
 8. COOKIES & TRACKING
 
-The app does not use browser cookies. We may use anonymised device identifiers for analytics purposes only.
+• The website may use cookies for session management, analytics, and personalization.
+• Customers can disable cookies in browser settings, but some features may not function properly.
 
-9. CHANGES TO THIS POLICY
+9. CHILDREN'S PRIVACY
 
-We may update this Privacy Policy periodically. We will notify you of significant changes through the app or via registered contact information.
+Our services are intended for households, RWAs, and institutions. We do not knowingly collect personal data from children under 18 without parental consent.
 
-10. CONTACT
+10. CHANGES TO POLICY
 
-For privacy-related queries:
-📧 privacy@ozonewash.in
-📞 +91 98481 44854
-VijRam Health Sense Pvt. Ltd., Hyderabad, Telangana — 500001
+Ozone Wash™ reserves the right to update this Privacy Policy. Updates will be published on the website and app.
+
+11. CONTACT US
+
+For privacy concerns, corrections, or data requests, contact:
+
+VijRam Health Sense Pvt. Ltd.
+Flat No 201, Sai Krishna Thakur Residency, Padmaraonagar,
+Secunderabad, Hyderabad – 500025
+📧 hello@ozonewash.in
+📞 81 79 69 59 59
 `;
 
 /* ────────────────────────────────────────────────────────────────────────── */
 const REFUND_CONTENT = `
-REFUND & CANCELLATION POLICY
+CANCELLATION & RESCHEDULE POLICY
 
-This policy applies to all services booked through the Ozone Wash app, operated by VijRam Health Sense Pvt. Ltd.
+1. GENERAL POLICY
 
-1. CANCELLATIONS BY CUSTOMER
+• Ozone Wash™ allows customers to cancel or reschedule bookings subject to the conditions below.
+• All requests must be made via website, app, WhatsApp, or customer support.
+• Refunds and reschedules are processed in compliance with Indian consumer protection laws.
 
-1.1 Free Cancellation: You may cancel a confirmed booking free of charge up to 4 hours before the scheduled service slot.
-1.2 Late Cancellation: Cancellations made within 4 hours of the scheduled slot will attract a cancellation fee of ₹200 or 10% of the booking value, whichever is higher.
-1.3 No-Show: If the customer is unavailable at the service location at the scheduled time, the booking will be treated as a no-show and no refund will be issued.
-1.4 How to Cancel: Cancellations must be made through the app under "My Bookings → View Details → Cancel Booking".
+2. CANCELLATION
 
-2. CANCELLATIONS BY OZONE WASH
+• Free cancellation: Up to 24 hours before scheduled service → full refund.
+• Late cancellation: Within 24 hours of service → 25% deduction to cover crew allocation costs.
+• Service not delivered: If Ozone Wash™ fails to deliver due to operational reasons (crew unavailability, equipment failure, regulatory restrictions) → full refund or reschedule at no extra cost.
+• AMC contracts: Refunds are pro-rated based on services already delivered. Discounts or benefits already availed (EcoScore points, hygiene upgrades) will be excluded.
+• Add-ons: Hygiene upgrades (UV, anti-algae, pathogen testing, IoT sensors) are non-refundable once delivered. If pathogen testing by Terra Environ Labs is delayed or not delivered, only the testing fee will be refunded.
 
-2.1 If we are unable to fulfil a confirmed booking due to team unavailability, weather, or any other reason, we will notify you at least 2 hours in advance.
-2.2 A full refund will be processed within 3–5 business days.
-2.3 We will offer you the option to reschedule at no extra charge.
+3. RESCHEDULE
 
-3. REFUND ELIGIBILITY
+• Free reschedule: Requests made at least 24 hours before service.
+• Late reschedule: Requests made within 24 hours of service may incur a 15% rescheduling fee.
+• AMC customers: May reschedule services within the same cycle (monthly, quarterly, half-yearly, yearly) without penalty. Missed AMC services can be rescheduled, but EcoScore™ tracking will mark delays.
+• Add-ons: Rescheduling of hygiene upgrades is possible only if requested before crew arrival. Pathogen testing reschedules depend on Terra Environ Labs' availability.
+• Limitations: Rescheduling is subject to crew availability and may not be guaranteed during peak demand periods (festivals, summer shortages).
 
-3.1 Prepaid bookings (UPI/card/wallet) that are cancelled within the free cancellation window are eligible for a full refund.
-3.2 Partial refunds may be issued for late cancellations after deducting the applicable cancellation fee.
-3.3 Cash on Delivery (COD) bookings do not require a refund; no charge is collected if cancelled before service commencement.
-3.4 Refunds are not applicable after the service has been successfully completed and a hygiene certificate has been issued.
+4. REFUND & RESCHEDULE PROCESSING
 
-4. QUALITY COMPLAINTS
+• Refunds are processed via the original payment method (UPI, card, wallet, COD).
+• Processing time: 7–10 business days.
+• Customers receive confirmation via SMS/WhatsApp/email once refund or reschedule is approved.
 
-4.1 If you are dissatisfied with the quality of service, raise a complaint within 24 hours of service completion through the app.
-4.2 We will investigate and, at our discretion, offer a re-service at no cost or a partial refund up to 50% of the service value.
-4.3 Refunds are not issued for complaints raised after 24 hours of service completion.
+5. EXCEPTIONS
 
-5. AMC PLAN REFUNDS
+No refunds or reschedules will be issued for:
+• Incorrect customer information (wrong address, inaccessible tanks).
+• Service refusal at site due to unsafe conditions or non-compliance with safety SOPs.
+• Partial dissatisfaction where hygiene certificate and proof photos confirm service completion.
 
-5.1 AMC plans that have not been used for any service are eligible for a full refund within 7 days of purchase.
-5.2 Partial refunds may be issued for unused services in an AMC plan, calculated on a pro-rata basis.
-5.3 AMC plans partially consumed are not eligible for full refunds.
+6. CONTACT
 
-6. REFUND TIMELINE
+For cancellations, refunds, or reschedules, contact:
 
-Approved refunds are processed to the original payment method:
-• UPI / Wallets: 1–3 business days
-• Debit / Credit Cards: 5–7 business days
-• Net Banking: 3–5 business days
-
-7. HOW TO REQUEST A REFUND
-
-Contact us at:
-📧 support@ozonewash.in
-📞 +91 98481 44854
-
-Please provide your booking ID and reason for refund. Our team will respond within 24 business hours.
-
-8. DISPUTES
-
-Any refund dispute may be escalated via email to disputes@ozonewash.in. Unresolved disputes will be subject to the governing law and jurisdiction as described in our Terms & Conditions.
+VijRam Health Sense Pvt. Ltd.
+Flat No 201, Sai Krishna Thakur Residency, Padmaraonagar,
+Secunderabad, Hyderabad – 500025
+📧 hello@ozonewash.in
+📞 81 79 69 59 59
 `;
 
 const CONTENT: Record<PolicyType, string> = {
@@ -271,9 +296,9 @@ const PolicyScreen = () => {
         <View style={styles.footer}>
           <Text style={styles.footerText}>
             For any queries, contact us at{' '}
-            <Text style={styles.footerLink}>support@ozonewash.in</Text>
+            <Text style={styles.footerLink}>hello@ozonewash.in</Text>
             {' '}or call{' '}
-            <Text style={styles.footerLink}>+91 98481 44854</Text>
+            <Text style={styles.footerLink}>81 79 69 59 59</Text>
           </Text>
         </View>
       </ScrollView>

@@ -12,6 +12,7 @@ import { MisHeader } from '../../components/charts/MisScaffold';
 import {
   ChartBar, Leaf, CurrencyInr, Users, TrendUp, Buildings, CaretRight, Tag, Wallet, Gear,
 } from '../../components/Icons';
+import WebContainer from '../../components/WebContainer';
 
 interface CardDef {
   key: string;
@@ -116,6 +117,7 @@ const MisHubScreen: React.FC = () => {
         style={{ flex: 1 }}
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
       >
+        <WebContainer>
         <Text style={styles.intro}>
           Tap a dashboard to drill into KPIs, trends, and gaps for the selected period.
         </Text>
@@ -136,6 +138,7 @@ const MisHubScreen: React.FC = () => {
             <CaretRight size={18} color={C.muted} />
           </TouchableOpacity>
         ))}
+        </WebContainer>
       </ScrollView>
     </View>
   );

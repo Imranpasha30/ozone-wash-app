@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authAPI } from '../services/api';
+import { authAPI, adminAuthAPI } from '../services/api';
 
 interface User {
   id: string;
@@ -8,6 +8,10 @@ interface User {
   role: 'customer' | 'field_team' | 'admin';
   name: string | null;
   lang: string;
+  // Admin-only fields (present when role === 'admin')
+  username?: string;
+  email?: string;
+  admin_role?: 'super_admin' | 'ops_manager' | 'finance' | 'support' | 'read_only';
 }
 
 interface AuthState {
@@ -18,6 +22,7 @@ interface AuthState {
   isAuthenticated: boolean;
   sendOtp: (phone: string) => Promise<void>;
   verifyOtp: (phone: string, otp: string) => Promise<string>;
+  adminLogin: (username: string, password: string) => Promise<void>;
   loadStoredAuth: () => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: User) => void;
@@ -73,6 +78,34 @@ const useAuthStore = create<AuthState>((set) => ({
       });
 
       return user.role;
+    } catch (err) {
+      set({ isLoading: false });
+      throw err;
+    }
+  },
+
+  // Username + password admin login. Maps the admin record into a `User`
+  // shape with role='admin' so the existing RootNavigator + middleware
+  // route to AdminNavigator without any other changes.
+  adminLogin: async (username: string, password: string) => {
+    set({ isLoading: true });
+    try {
+      const response: any = await adminAuthAPI.login(username, password);
+      const token = response.data.token;
+      const admin = response.data.admin;
+      const user: User = {
+        id: admin.id,
+        phone: admin.phone || '',
+        role: 'admin',
+        name: admin.full_name || admin.username,
+        lang: 'en',
+        username: admin.username,
+        email: admin.email,
+        admin_role: admin.admin_role,
+      };
+      await AsyncStorage.setItem('token', token);
+      await AsyncStorage.setItem('user', JSON.stringify(user));
+      set({ token, user, isAuthenticated: true, isLoading: false });
     } catch (err) {
       set({ isLoading: false });
       throw err;

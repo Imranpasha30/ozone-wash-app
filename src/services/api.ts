@@ -137,6 +137,44 @@ export const authAPI = {
   },
 };
 
+// ── Admin Auth (username + bcrypt password, no OTP) ──────────────────────────
+// Spec: Master Prompt v2.0 PART 2.2.3. Distinct from phone-OTP customer auth.
+// All admin endpoints carry a JWT with `type: 'admin'` and a `session_id`
+// that the backend validates against the admin_sessions table — server-side
+// session revocation is supported.
+export const adminAuthAPI = {
+  login: (username: string, password: string) =>
+    api.post('/admin-auth/login', { username, password }),
+
+  logout: () => api.post('/admin-auth/logout'),
+
+  me: () => api.get('/admin-auth/me'),
+
+  changePassword: (old_password: string, new_password: string) =>
+    api.post('/admin-auth/change-password', { old_password, new_password }),
+
+  // ── Super-admin only ──────────────────────────────────────────────────────
+  listAccounts: () => api.get('/admin-auth/accounts'),
+
+  createAccount: (body: {
+    username: string;
+    email: string;
+    full_name: string;
+    phone?: string;
+    admin_role?: 'super_admin' | 'ops_manager' | 'finance' | 'support' | 'read_only';
+    password?: string;            // omit to auto-generate a temp password (returned once)
+  }) => api.post('/admin-auth/accounts', body),
+
+  deactivateAccount: (id: string) =>
+    api.patch(`/admin-auth/accounts/${id}/deactivate`),
+
+  revokeSessions: (id: string) =>
+    api.post(`/admin-auth/accounts/${id}/revoke-sessions`),
+
+  auditLog: (params?: { limit?: number; offset?: number; admin_id?: string; action?: string }) =>
+    api.get('/admin-auth/audit-log', { params }),
+};
+
 // ── Bookings ──────────────────────────────────────────────────────────────────
 export const bookingAPI = {
   getSlots: (date: string) =>
@@ -246,6 +284,11 @@ export const jobAPI = {
     invalidateCache('/jobs');
     return api.post(`/jobs/${jobId}/request`);
   },
+
+  // Field team — see own requests (pending/approved/rejected). Used to power
+  // the "My Requests" tab so users don't re-request a job they've already
+  // requested or to track status.
+  getMyJobRequests: () => api.get('/jobs/my-requests'),
 
   // Conflict detection — check if a team member has a job at the given time
   checkConflict: (teamId: string, scheduledAt: string, excludeJobId?: string) =>
@@ -404,6 +447,50 @@ export const adminAPI = {
   getAllBookings: (params?: { status?: string; date?: string; limit?: number; offset?: number }) =>
     cachedGet('/bookings', { params }),
 
+  // Admin alerts (slot conflicts, no-team-available, technician overcommit).
+  // The conflict detector queues these automatically after booking create /
+  // job assignment. Admin sees them on the dashboard banner.
+  getAlerts: (unackOnly = true) =>
+    api.get('/admin/alerts', { params: { unack: unackOnly ? '1' : '0' } }),
+  getAlertCount: () => api.get('/admin/alerts/count'),
+  ackAlert: (id: string) => api.patch(`/admin/alerts/${id}/ack`),
+  // Unified inbox — alerts + pending job requests + unassigned jobs in one call.
+  // Used by the live admin notification panel on the dashboard.
+  getInbox: () => api.get('/admin/alerts/inbox'),
+
+  // ── Field teams (admin team management) ──────────────────────────────
+  listFieldTeams: () => api.get('/teams'),
+  getFieldTeam: (id: string) => api.get(`/teams/${id}`),
+  createFieldTeam: (body: { name: string; leader_id: string; description?: string }) =>
+    api.post('/teams', body),
+  updateFieldTeam: (id: string, body: { name?: string; leader_id?: string; description?: string; is_active?: boolean }) =>
+    api.patch(`/teams/${id}`, body),
+  deleteFieldTeam: (id: string) => api.delete(`/teams/${id}`),
+  addTeamMember: (teamId: string, body: { agent_id: string; share_pct?: number; transfer?: boolean }) =>
+    api.post(`/teams/${teamId}/members`, body),
+  removeTeamMember: (teamId: string, agentId: string) =>
+    api.delete(`/teams/${teamId}/members/${agentId}`),
+  updateTeamMemberShare: (teamId: string, agentId: string, share_pct: number) =>
+    api.patch(`/teams/${teamId}/members/${agentId}/share`, { share_pct }),
+
+  // Field-team-facing — agent sees their own team.
+  getMyTeam: () => api.get('/teams/me'),
+
+  // Customer drill-in dashboard — lifetime spend, services count, AMC, eco,
+  // recent activity. Used by AdminCustomerDetailScreen.
+  getCustomerStats: (customerId: string) =>
+    api.get(`/admin/customers/${customerId}/stats`),
+
+  // Top customers leaderboard with reason tags ("Top spender", "Repeat",
+  // "GOLD AMC", etc). Powers the highlight strip on AdminCustomersScreen.
+  getTopCustomers: (limit = 10) =>
+    api.get('/admin/customers/top', { params: { limit } }),
+
+  // Promote / demote a user between customer and field_team. Admin role itself
+  // is managed via admin-auth.
+  setUserRole: (userId: string, role: 'customer' | 'field_team') =>
+    api.patch(`/admin/users/${userId}/role`, { role }),
+
   confirmBooking: (id: string) => {
     invalidateCache('/bookings');
     return api.patch(`/bookings/${id}/confirm`);
@@ -554,6 +641,16 @@ export const incentiveAPI = {
   getMyHistory: (params?: { limit?: number; offset?: number }) =>
     cachedGet('/incentives/me/history', { params }),
 
+  // Detailed earnings dashboard for the logged-in field agent.
+  // Returns profile, lifetime totals, last-12-month series, breakdown by
+  // reason + by team, last 30 ledger transactions, and the agent's current
+  // team. Used by the field-team IncentiveScreen "Detailed stats" tab.
+  getMyDetailedStats: () => api.get('/incentives/me/stats'),
+
+  // Admin variant — drill into any agent's full earnings.
+  getAgentDetailedStats: (agentId: string) =>
+    api.get(`/incentives/agent/${agentId}/stats`),
+
   // ── New: PDF tier-based credit engine ────────────────────────────────
   /**
    * GET /incentives/me/credits — current month credit-based snapshot.
@@ -622,6 +719,69 @@ export const misAPI = {
 
   getReferrals: (params?: { from?: string; to?: string }) =>
     cachedGet('/mis/referrals', { params }),
+};
+
+// ── Auto Wash (Phase 3 — EV doorstep car hygiene) ────────────────────────────
+// Spec: backend src/modules/auto-wash + Auto Wash Scope PDF Section 8.
+// All amounts in paise (₹1 = 100).
+export const autoWashAPI = {
+  // Catalog (public)
+  getPackages:           () => cachedGet('/auto-wash/packages'),
+  getAddons:             () => cachedGet('/auto-wash/addons'),
+  getSubscriptionPlans:  () => cachedGet('/auto-wash/subscription-plans'),
+
+  // Pricing — never trusted client-side; always re-fetch before checkout
+  quote: (body: {
+    vehicle_type: 'hatchback' | 'sedan' | 'suv_muv' | 'luxury' | 'two_wheeler';
+    package_code: 'ecorinse' | 'ecoshield' | 'ozonecomplete' | 'hygieneelite';
+    addon_codes?: string[];
+    subscription_code?: string | null;
+  }) => api.post('/auto-wash/quote', body),
+
+  // Vehicles
+  listVehicles:    () => cachedGet('/auto-wash/vehicles'),
+  addVehicle:      (body: any) => { invalidateCache('/auto-wash/vehicles'); return api.post('/auto-wash/vehicles', body); },
+  updateVehicle:   (id: string, body: any) => { invalidateCache('/auto-wash/vehicles'); return api.put(`/auto-wash/vehicles/${id}`, body); },
+  deleteVehicle:   (id: string) => { invalidateCache('/auto-wash/vehicles'); return api.delete(`/auto-wash/vehicles/${id}`); },
+
+  // Bookings
+  createBooking: (body: any) => {
+    invalidateCache('/auto-wash/bookings');
+    return api.post('/auto-wash/bookings', body);
+  },
+  getBooking:       (id: string) => cachedGet(`/auto-wash/bookings/${id}`),
+  bookingHistory:   (params?: { limit?: number; offset?: number }) =>
+                       cachedGet('/auto-wash/bookings/history', { params }),
+
+  // Subscriptions
+  createSubscription:  (body: { plan_type: string; vehicle_ids?: string[] }) => {
+    invalidateCache('/auto-wash/subscriptions');
+    return api.post('/auto-wash/subscriptions', body);
+  },
+  getActiveSubscription:  () => cachedGet('/auto-wash/subscriptions/active'),
+  pauseSubscription:      (id: string, pause_until: string) => {
+    invalidateCache('/auto-wash/subscriptions');
+    return api.put(`/auto-wash/subscriptions/${id}/pause`, { pause_until });
+  },
+  cancelSubscription:     (id: string) => {
+    invalidateCache('/auto-wash/subscriptions');
+    return api.put(`/auto-wash/subscriptions/${id}/cancel`);
+  },
+
+  // Field crew
+  getJobsToday:   () => cachedGet('/auto-wash/jobs/today'),
+  uploadPreInspection: (jobId: string, photo_urls: string[]) =>
+    api.post(`/auto-wash/jobs/${jobId}/pre-inspection`, { photo_urls }),
+  startStep:      (jobId: string, stepNo: number) =>
+    api.post(`/auto-wash/jobs/${jobId}/steps/${stepNo}/start`),
+  endStep:        (jobId: string, stepNo: number, body: any) =>
+    api.post(`/auto-wash/jobs/${jobId}/steps/${stepNo}/end`, body),
+  completeJob:    (jobId: string, body: any) =>
+    api.post(`/auto-wash/jobs/${jobId}/complete`, body),
+
+  // Public verify (no auth)
+  verifyCertificate: (qrToken: string) =>
+    api.get(`/auto-wash/verify/${qrToken}`),
 };
 
 export default api;

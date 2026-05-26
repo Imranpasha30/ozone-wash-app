@@ -24,19 +24,21 @@ import QrScannerScreen from '../screens/shared/QrScannerScreen';
 import CertVerifyResultScreen from '../screens/shared/CertVerifyResultScreen';
 import LiveStreamScreen from '../screens/field/LiveStreamScreen';
 import IncentiveScreen from '../screens/field/IncentiveScreen';
+import AutoWashJobScreen from '../screens/field/AutoWashJobScreen';
+import EarningsStatsScreen from '../screens/shared/EarningsStatsScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
 const FieldTabs = () => {
-  const { isLarge } = useResponsive();
+  const { isLarge, SIDEBAR_WIDTH } = useResponsive();
   return (
   <Tab.Navigator
     tabBar={(props) =>
       isLarge ? <WebSidebarBar {...props} /> : <BottomTabBar {...props} />
     }
-    sceneContainerStyle={isLarge ? { marginLeft: SIDEBAR_WIDTH } : undefined}
     screenOptions={{
+      tabBarPosition: isLarge ? 'left' : 'bottom',
       headerShown: false,
       tabBarActiveTintColor: COLORS.primary,
       tabBarInactiveTintColor: COLORS.muted,
@@ -128,6 +130,10 @@ const FieldNavigator = () => (
     <Stack.Screen name="QrScanner" component={QrScannerScreen} />
     <Stack.Screen name="CertVerifyResult" component={CertVerifyResultScreen} />
     <Stack.Screen name="LiveStream" component={LiveStreamScreen} />
+    {/* Auto Wash (Phase 3) — crew compliance flow */}
+    <Stack.Screen name="AutoWashJob" component={AutoWashJobScreen} />
+    {/* Detailed earnings dashboard — accessed from IncentiveScreen */}
+    <Stack.Screen name="EarningsStats" component={EarningsStatsScreen} />
   </Stack.Navigator>
 );
 

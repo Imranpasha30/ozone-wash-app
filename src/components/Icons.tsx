@@ -7,6 +7,7 @@ export {
   ArrowLeft,
   ArrowRight,
   CaretDown,
+  CaretLeft,
   CaretRight,
   House,
   X,
@@ -82,6 +83,7 @@ export {
   Image,
 
   // Domain-specific
+  Car,
   Drop,
   Leaf,
   Lightning,

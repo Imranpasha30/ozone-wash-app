@@ -7,6 +7,7 @@ import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { useFocusEffect } from '@react-navigation/native';
 import { adminAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
+import { useResponsive } from '../../utils/responsive';
 import { ClipboardText, Check, X } from '../../components/Icons';
 
 const FILTERS = ['All', 'Pending', 'Confirmed', 'Completed', 'Cancelled'];
@@ -15,6 +16,10 @@ const AdminBookingsScreen = () => {
   const C = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
   const scrollRef = useWebScrollFix();
+  const { isLarge } = useResponsive();
+  const webListStyle = isLarge
+    ? { maxWidth: 1100, width: '100%' as const, alignSelf: 'center' as const, padding: 24 }
+    : null;
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -78,22 +83,49 @@ const AdminBookingsScreen = () => {
     return C.warning;
   };
 
-  const renderItem = ({ item }: { item: any }) => (
-    <View style={styles.card}>
+  const renderItem = ({ item }: { item: any }) => {
+    const isAutoWash = item.kind === 'auto_wash';
+    // Distinct tints per booking kind so admins can scan the list at a glance.
+    //   tank cleaning → faint blue (matches the brand primary)
+    //   auto wash     → faint green (matches the EV/ozone-clean palette)
+    // Border colour is bumped to the saturated shade for stronger separation.
+    const kindBg = isAutoWash ? 'rgba(34,197,94,0.06)' : 'rgba(59,130,246,0.05)';
+    const kindBorder = isAutoWash ? 'rgba(34,197,94,0.45)' : 'rgba(59,130,246,0.35)';
+    return (
+    <View style={[styles.card, {
+      backgroundColor: kindBg,
+      borderLeftWidth: 4,
+      borderLeftColor: kindBorder,
+    }]}>
       <View style={styles.cardTop}>
         <View style={styles.cardInfo}>
-          <Text style={styles.bookingId}>Booking #{item.id?.slice(0, 8).toUpperCase()}</Text>
-          {item.job_id && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <View style={{
+              paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
+              backgroundColor: isAutoWash ? 'rgba(34,197,94,0.15)' : C.primaryBg,
+            }}>
+              <Text style={{
+                fontSize: 9, fontWeight: '800', letterSpacing: 0.8,
+                color: isAutoWash ? '#16A34A' : C.primary,
+              }}>
+                {isAutoWash ? 'AUTO WASH' : 'TANK CLEANING'}
+              </Text>
+            </View>
+            <Text style={styles.bookingId}>#{item.id?.slice(0, 8).toUpperCase()}</Text>
+          </View>
+          {item.job_id && !isAutoWash && (
             <Text style={styles.bookingId}>Job #{item.job_id?.slice(0, 8).toUpperCase()}</Text>
           )}
           <Text style={styles.customerName}>{item.customer_name || item.customer_phone || '\u2014'}</Text>
           <Text style={styles.cardDetail}>
-            {item.tank_type?.toUpperCase()} · {item.tank_size_litres}L · {'\u20B9'}{((item.amount_paise || 0) / 100).toLocaleString('en-IN')}
+            {isAutoWash
+              ? `${(item.vehicle_type || 'vehicle').replace('_', ' ').toUpperCase()}${item.registration_number ? ` · ${item.registration_number}` : ''} · ${(item.service_package || 'car wash').toUpperCase()}`
+              : `${(item.tank_type || 'tank').toUpperCase()} · ${item.tank_size_litres ?? '—'}L`} · {((item.amount_paise || 0) / 100).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
           </Text>
           <Text style={styles.cardDate}>
             {new Date(item.slot_time).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
           </Text>
-          <Text style={styles.cardAddress} numberOfLines={1}>{item.address}</Text>
+          {item.address ? <Text style={styles.cardAddress} numberOfLines={1}>{item.address}</Text> : null}
           <Text style={styles.cardDetail}>
             {item.team_name ? `Team: ${item.team_name}` : 'Unassigned'}
           </Text>
@@ -103,23 +135,28 @@ const AdminBookingsScreen = () => {
         </View>
       </View>
 
-      {item.status === 'pending' && (
+      {/* Pending → legacy bookings only (new bookings auto-confirm).
+          Confirmed → admin can still cancel (e.g. customer no-show, scheduling
+          conflict). In-progress / completed / cancelled rows show no actions. */}
+      {(item.status === 'pending' || item.status === 'confirmed') && (
         <View style={styles.actions}>
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.confirmBtn]}
-            onPress={() => handleConfirm(item.id)}
-            disabled={!!actionLoading}
-            activeOpacity={0.7}
-          >
-            {actionLoading === item.id + '_confirm'
-              ? <ActivityIndicator size="small" color={C.primary} />
-              : (
-                <View style={styles.actionBtnInner}>
-                  <Check size={16} weight="bold" color={C.primary} />
-                  <Text style={styles.confirmText}> Confirm</Text>
-                </View>
-              )}
-          </TouchableOpacity>
+          {item.status === 'pending' && (
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.confirmBtn]}
+              onPress={() => handleConfirm(item.id)}
+              disabled={!!actionLoading}
+              activeOpacity={0.7}
+            >
+              {actionLoading === item.id + '_confirm'
+                ? <ActivityIndicator size="small" color={C.primary} />
+                : (
+                  <View style={styles.actionBtnInner}>
+                    <Check size={16} weight="bold" color={C.primary} />
+                    <Text style={styles.confirmText}> Confirm</Text>
+                  </View>
+                )}
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={[styles.actionBtn, styles.cancelBtn]}
             onPress={() => handleCancel(item.id)}
@@ -138,7 +175,8 @@ const AdminBookingsScreen = () => {
         </View>
       )}
     </View>
-  );
+    );
+  };
 
   return (
     <View style={styles.root}>
@@ -176,7 +214,10 @@ const AdminBookingsScreen = () => {
           data={filtered}
           keyExtractor={(b) => b.id}
           renderItem={renderItem}
-          contentContainerStyle={filtered.length === 0 ? styles.emptyContainer : styles.list}
+          contentContainerStyle={[
+            filtered.length === 0 ? styles.emptyContainer : styles.list,
+            webListStyle,
+          ]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={() => fetchBookings(true)} tintColor={C.primary} />
           }

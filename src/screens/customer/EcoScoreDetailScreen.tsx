@@ -22,6 +22,7 @@ import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { ecoScoreAPI, rewardsAPI } from '../../services/api';
 import EcoScoreRing from '../../components/eco/EcoScoreRing';
 import RewardCard, { RewardForCard } from '../../components/eco/RewardCard';
+import WebContainer from '../../components/WebContainer';
 import {
   ArrowLeft, Trophy, Star, Crown, Medal, ShieldCheck,
   LightbulbFilament, ArrowRight, Wallet,
@@ -301,6 +302,7 @@ const EcoScoreDetailScreen: React.FC = () => {
             : undefined
         }
       >
+        <WebContainer>
         {/* a) Hero — Circular EcoScore Ring */}
         <View style={styles.heroCard}>
           <EcoScoreRing
@@ -453,6 +455,7 @@ const EcoScoreDetailScreen: React.FC = () => {
             <ArrowRight size={14} weight="bold" color={C.primaryFg} />
           </TouchableOpacity>
         </View>
+        </WebContainer>
       </ScrollView>
     </View>
   );

@@ -6,6 +6,7 @@ import {
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { bookingAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
+import { useResponsive } from '../../utils/responsive';
 import { Booking } from '../../types';
 import { Drop, ClipboardText, ArrowRight, Key } from '../../components/Icons';
 
@@ -96,6 +97,10 @@ const makeStyles = (C: any) => StyleSheet.create({
 const MyBookingsScreen = () => {
   const C = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
+  const { isLarge } = useResponsive();
+  const webListStyle = isLarge
+    ? { maxWidth: 900, width: '100%' as const, alignSelf: 'center' as const, padding: 24 }
+    : null;
 
   const navigation = useNavigation<any>();
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -135,24 +140,31 @@ const MyBookingsScreen = () => {
 
   const fmt = (n: number) => `₹${(n / 100).toLocaleString('en-IN')}`;
 
-  const renderItem = ({ item }: { item: Booking }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => navigation.navigate('BookingDetail', { booking_id: item.id })}
-      activeOpacity={0.7}
-    >
+  const renderItem = ({ item }: { item: Booking & any }) => {
+    const isAutoWash = item.kind === 'auto_wash';
+    const onPress = isAutoWash
+      ? () => navigation.navigate('AutoWashBookingDetail', { id: item.id })
+      : () => navigation.navigate('BookingDetail', { booking_id: item.id });
+    return (
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.cardBody}>
         <View style={styles.cardTop}>
-          <View style={styles.tankIconContainer}>
-            <Drop size={22} weight="fill" color={C.primary} />
+          <View style={[styles.tankIconContainer, isAutoWash && { backgroundColor: 'rgba(34,197,94,0.12)' }]}>
+            <Drop size={22} weight="fill" color={isAutoWash ? '#16A34A' : C.primary} />
           </View>
           <View style={styles.cardInfo}>
-            <Text style={styles.bookingId}>#{item.id?.slice(0, 8).toUpperCase()}</Text>
+            <Text style={styles.bookingId}>
+              {isAutoWash ? '🚗 AUTO WASH' : '💧 TANK'} · #{item.id?.slice(0, 8).toUpperCase()}
+            </Text>
             <Text style={styles.tankType}>
-              {item.tank_type?.replace('_', ' ').toUpperCase()} — {item.tank_size_litres}L
+              {isAutoWash
+                ? `${item.vehicle_type?.replace('_', ' ').toUpperCase() || 'VEHICLE'}${item.registration_number ? ` · ${item.registration_number}` : ''} — ${item.service_package?.toUpperCase() || 'CAR WASH'}`
+                : `${item.tank_type?.replace('_', ' ').toUpperCase()} — ${item.tank_size_litres}L`}
             </Text>
             <Text style={styles.date}>{formatDate(item.slot_time)} at {formatTime(item.slot_time)}</Text>
-            <Text style={styles.address} numberOfLines={1}>{item.address}</Text>
+            <Text style={styles.address} numberOfLines={1}>
+              {isAutoWash ? (item.vehicle_nickname || 'Doorstep service · EV crew') : item.address}
+            </Text>
           </View>
           <View style={[styles.badge, { backgroundColor: statusColor(item.status) }]}>
             <Text style={styles.badgeText}>{item.status?.toUpperCase()}</Text>
@@ -185,7 +197,8 @@ const MyBookingsScreen = () => {
         </View>
       )}
     </TouchableOpacity>
-  );
+    );
+  };
 
   return (
     <View style={styles.root}>
@@ -204,7 +217,10 @@ const MyBookingsScreen = () => {
           data={bookings}
           keyExtractor={(b) => b.id}
           renderItem={renderItem}
-          contentContainerStyle={bookings.length === 0 ? styles.emptyContainer : styles.list}
+          contentContainerStyle={[
+            bookings.length === 0 ? styles.emptyContainer : styles.list,
+            webListStyle,
+          ]}
           refreshControl={
             Platform.OS !== 'web'
               ? <RefreshControl refreshing={refreshing} onRefresh={() => fetchBookings(true)} tintColor={C.primary} />

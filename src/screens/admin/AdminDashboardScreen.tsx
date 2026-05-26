@@ -6,16 +6,21 @@ import {
 import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { adminAPI } from '../../services/api';
+import useAuthStore from '../../store/auth.store';
 import { useTheme } from '../../hooks/useTheme';
 import {
   CalendarBlank, CheckCircle, Wrench, Warning,
   ClipboardText, Receipt, Users, QrCode,
   CurrencyInr, Siren, Crown, UserCircle,
-  ChartPie, ArrowRight,
+  ChartPie, ArrowRight, ShieldCheck, Car,
 } from '../../components/Icons';
+import WebContainer from '../../components/WebContainer';
+import AdminInboxPanel from '../../components/AdminInboxPanel';
 
 const AdminDashboardScreen = () => {
   const navigation = useNavigation<any>();
+  const me = useAuthStore((s) => s.user);
+  const isSuperAdmin = me?.admin_role === 'super_admin';
   const C = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
   const scrollRef = useWebScrollFix();
@@ -69,10 +74,17 @@ const AdminDashboardScreen = () => {
     >
       <StatusBar barStyle="dark-content" backgroundColor={C.background} />
 
+      <WebContainer>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Admin Dashboard</Text>
         <Text style={styles.headerSub}>Today's overview</Text>
       </View>
+
+      {/* Live admin inbox — three primary buckets (alerts, requests,
+          unassigned) plus all sub-categories (slot conflicts, SLA breach,
+          incidents, payment pending, AMC expiring, new bookings, etc).
+          Polls /admin/alerts/inbox every 30 s. */}
+      <AdminInboxPanel />
 
       {/* Stats Grid */}
       <View style={styles.statsGrid}>
@@ -103,49 +115,40 @@ const AdminDashboardScreen = () => {
         <ArrowRight size={20} color={C.primaryFg} />
       </TouchableOpacity>
 
-      {/* Quick Actions */}
+      {/* Quick Actions — flat grid (one container with flexWrap) so the layout
+          is consistent regardless of item count. */}
       <Text style={styles.sectionTitle}>Quick Actions</Text>
-      <View style={styles.actionsRow}>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('AdminBookings')} activeOpacity={0.7}>
-          <ClipboardText size={32} weight="regular" color={C.primary} />
-          <Text style={styles.actionLabel}>Bookings</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('AdminJobs')} activeOpacity={0.7}>
-          <Wrench size={32} weight="regular" color={C.primary} />
-          <Text style={styles.actionLabel}>Jobs</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('QrScanner')} activeOpacity={0.7}>
-          <QrCode size={32} weight="regular" color={C.primary} />
-          <Text style={styles.actionLabel}>Scan Cert</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.actionsRow}>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('AdminTeams')} activeOpacity={0.7}>
-          <Users size={32} weight="regular" color={C.primary} />
-          <Text style={styles.actionLabel}>Agents</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('AdminCustomers')} activeOpacity={0.7}>
-          <UserCircle size={32} weight="regular" color={C.primary} />
-          <Text style={styles.actionLabel}>Customers</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('AdminRevenue')} activeOpacity={0.7}>
-          <CurrencyInr size={32} weight="regular" color={C.primary} />
-          <Text style={styles.actionLabel}>Revenue</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.actionsRow}>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('AdminIncidents')} activeOpacity={0.7}>
-          <Siren size={32} weight="regular" color={C.primary} />
-          <Text style={styles.actionLabel}>Incidents</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('AdminAmc')} activeOpacity={0.7}>
-          <Crown size={32} weight="regular" color={C.primary} />
-          <Text style={styles.actionLabel}>AMC</Text>
-        </TouchableOpacity>
-        <View style={styles.actionBtn}>
-          <View style={{ opacity: 0 }}><QrCode size={32} weight="regular" color={C.primary} /></View>
-          <Text style={[styles.actionLabel, { opacity: 0 }]}>Spacer</Text>
-        </View>
+      <View style={styles.actionsGrid}>
+        {([
+          { label: 'Bookings',  icon: ClipboardText, route: 'AdminBookings' },
+          { label: 'Jobs',      icon: Wrench,        route: 'AdminJobs' },
+          { label: 'Scan Cert', icon: QrCode,        route: 'QrScanner' },
+          { label: 'Agents',    icon: Users,         route: 'AdminTeams' },
+          { label: 'Customers', icon: UserCircle,    route: 'AdminCustomers' },
+          { label: 'Revenue',   icon: CurrencyInr,   route: 'AdminRevenue' },
+          { label: 'Incidents', icon: Siren,         route: 'AdminIncidents' },
+          { label: 'AMC',       icon: Crown,         route: 'AdminAmc' },
+          { label: 'Auto Wash', icon: Car,           route: 'AdminAutoWash' },
+          { label: 'Teams',     icon: Users,         route: 'AdminFieldTeams' },
+          ...(isSuperAdmin
+            ? [{ label: 'Admins', icon: ShieldCheck, route: 'AdminCreateAccount' }]
+            : []),
+        ] as const).map((a) => {
+          const Icon = a.icon;
+          return (
+            <TouchableOpacity
+              key={a.label}
+              style={styles.actionBtn}
+              onPress={() => navigation.navigate(a.route)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.actionIconWrap}>
+                <Icon size={22} weight="regular" color={C.primary} />
+              </View>
+              <Text style={styles.actionLabel}>{a.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Recent Bookings */}
@@ -155,7 +158,8 @@ const AdminDashboardScreen = () => {
           <Text style={styles.emptyText}>No bookings yet</Text>
         </View>
       ) : (
-        recentBookings.map((b) => (
+        <View style={styles.recentBookingsList}>
+        {recentBookings.map((b) => (
           <TouchableOpacity
             key={b.id}
             style={styles.bookingCard}
@@ -172,8 +176,10 @@ const AdminDashboardScreen = () => {
               {b.tank_type?.toUpperCase()} · {b.tank_size_litres}L · {'\u20B9'}{((b.amount_paise || 0) / 100).toLocaleString('en-IN')}
             </Text>
           </TouchableOpacity>
-        ))
+        ))}
+        </View>
       )}
+      </WebContainer>
     </ScrollView>
   );
 };
@@ -237,20 +243,42 @@ const makeStyles = (C: any) => StyleSheet.create({
   },
   misCtaTitle: { color: C.primaryFg, fontSize: 15, fontWeight: '700' },
   misCtaSub: { color: 'rgba(255,255,255,0.85)', fontSize: 11, marginTop: 2 },
-  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, gap: 10, marginBottom: 20 },
+  actionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    gap: 12,
+    marginBottom: 20,
+  },
   actionBtn: {
-    flex: 1,
+    // Fixed-width tiles so the grid looks consistent regardless of item count.
+    // calc keeps 5 per row on web (gap-aware); on mobile it falls back to ~30% (3 per row).
+    width: Platform.OS === 'web' ? ('calc(20% - 10px)' as any) : '30%',
+    minWidth: 120,
     backgroundColor: C.surface,
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 14,
+    paddingVertical: 18,
+    paddingHorizontal: 10,
     alignItems: 'center',
     gap: 8,
+    borderWidth: 1,
+    borderColor: C.border,
     ...Platform.select({
-      ios: { shadowColor: C.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 },
-      android: { elevation: 2 },
+      ios: { shadowColor: C.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 6 },
+      android: { elevation: 1 },
     }),
   },
-  actionLabel: { fontSize: 13, color: C.foreground, fontWeight: '600' },
+  actionIconWrap: {
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: C.primaryBg,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  actionLabel: { fontSize: 13, color: C.foreground, fontWeight: '600', textAlign: 'center' },
+  // Cap the list at ~5 cards' worth of height with internal scroll.
+  // Prevents an ever-growing dashboard as more bookings come in.
+  recentBookingsList: Platform.OS === 'web'
+    ? ({ maxHeight: 360, overflow: 'auto', paddingRight: 4 } as any)
+    : { maxHeight: 360 },
   bookingCard: {
     marginHorizontal: 16,
     marginBottom: 8,

@@ -14,6 +14,7 @@ import {
   ArrowLeft, ArrowRight, Check, CreditCard, Wallet, CurrencyInr,
   Receipt, Phone, Star, ShieldCheck,
 } from '../../components/Icons';
+import WebContainer from '../../components/WebContainer';
 
 const PaymentMethodIcon = ({ method, active, C }: { method: string; active: boolean; C: any }) => {
   const color = active ? C.primary : C.muted;
@@ -95,6 +96,7 @@ const AddonsScreen = () => {
       </View>
 
       <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
+        <WebContainer variant="narrow">
         {/* AMC Upsell Banner — only shown to non-AMC customers */}
         {!isPremium && (
           <TouchableOpacity
@@ -222,6 +224,7 @@ const AddonsScreen = () => {
           </Text>
           <ArrowRight size={18} weight="bold" color={C.primaryFg} />
         </TouchableOpacity>
+        </WebContainer>
       </ScrollView>
     </View>
   );

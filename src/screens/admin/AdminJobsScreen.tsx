@@ -7,6 +7,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { adminAPI, jobAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
+import { useResponsive } from '../../utils/responsive';
 import { Wrench, Users, Check, X, Phone, Warning, ArrowsClockwise } from '../../components/Icons';
 
 const FILTERS = ['All', 'Scheduled', 'In Progress', 'Completed', 'Cancelled'];
@@ -14,6 +15,10 @@ const FILTERS = ['All', 'Scheduled', 'In Progress', 'Completed', 'Cancelled'];
 const AdminJobsScreen = () => {
   const C = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
+  const { isLarge } = useResponsive();
+  const webListStyle = isLarge
+    ? { maxWidth: 1100, width: '100%' as const, alignSelf: 'center' as const, padding: 24 }
+    : null;
   const [jobs, setJobs] = useState<any[]>([]);
   const [teams, setTeams] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
@@ -306,7 +311,10 @@ const AdminJobsScreen = () => {
         <FlatList
           data={concerns}
           keyExtractor={(c) => c.id}
-          contentContainerStyle={concerns.length === 0 ? styles.emptyContainer : styles.list}
+          contentContainerStyle={[
+            concerns.length === 0 ? styles.emptyContainer : styles.list,
+            webListStyle,
+          ]}
           refreshControl={Platform.OS !== 'web' ? <RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} tintColor={C.primary} /> : undefined}
           renderItem={({ item: c }) => (
             <View style={[styles.card, styles.concernCard]}>
@@ -353,7 +361,10 @@ const AdminJobsScreen = () => {
         <FlatList
           data={requests}
           keyExtractor={(r) => r.id}
-          contentContainerStyle={requests.length === 0 ? styles.emptyContainer : styles.list}
+          contentContainerStyle={[
+            requests.length === 0 ? styles.emptyContainer : styles.list,
+            webListStyle,
+          ]}
           refreshControl={Platform.OS !== 'web' ? <RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} tintColor={C.primary} /> : undefined}
           renderItem={({ item: r }) => (
             <View style={styles.card}>
@@ -396,7 +407,10 @@ const AdminJobsScreen = () => {
           data={filtered}
           keyExtractor={(j) => j.id}
           renderItem={renderJob}
-          contentContainerStyle={filtered.length === 0 ? styles.emptyContainer : styles.list}
+          contentContainerStyle={[
+            filtered.length === 0 ? styles.emptyContainer : styles.list,
+            webListStyle,
+          ]}
           refreshControl={Platform.OS !== 'web' ? <RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} tintColor={C.primary} /> : undefined}
           ListEmptyComponent={
             <View style={styles.emptyBox}>

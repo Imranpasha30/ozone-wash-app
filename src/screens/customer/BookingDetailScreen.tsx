@@ -11,6 +11,7 @@ import {
   ArrowLeft, ArrowRight, Key, CheckCircle, Hourglass, Trophy,
   ThumbsUp, ThumbsDown, QrCode, ShieldCheck, Warning, Lightning,
 } from '../../components/Icons';
+import WebContainer from '../../components/WebContainer';
 
 const STATUS_STEPS = ['pending', 'confirmed', 'in_progress', 'completed'];
 
@@ -334,6 +335,7 @@ const BookingDetailScreen = () => {
       </View>
 
       <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
+        <WebContainer variant="narrow">
         {/* SLA Breach Alert */}
         {isSlaBreach && (
           <View style={styles.slaBreach}>
@@ -631,6 +633,7 @@ const BookingDetailScreen = () => {
             }
           </TouchableOpacity>
         )}
+        </WebContainer>
       </ScrollView>
     </View>
   );

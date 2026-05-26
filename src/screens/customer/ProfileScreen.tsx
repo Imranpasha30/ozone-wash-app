@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Alert, TextInput, ActivityIndicator,
+  Alert, TextInput, ActivityIndicator, Platform,
 } from 'react-native';
 import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { useNavigation } from '@react-navigation/native';
@@ -14,6 +14,8 @@ import {
   CaretRight, SignOut, Phone, User, Eye, EyeSlash, PencilSimple, Check, X,
   ShieldCheck, Medal, Crown,
 } from '../../components/Icons';
+import WebContainer from '../../components/WebContainer';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 type CertTier = { label: string; sub: string; color: string; bg: string; icon: React.ReactNode };
 
@@ -203,18 +205,12 @@ const ProfileScreen = () => {
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Logout',
-        style: 'destructive',
-        onPress: async () => {
-          await logout();
-          // RootNavigator auto-switches to AuthNavigator
-        },
-      },
-    ]);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const handleLogout = () => setLogoutOpen(true);
+  const confirmLogout = async () => {
+    setLogoutOpen(false);
+    await logout();
+    // RootNavigator auto-switches to AuthNavigator
   };
 
   const initials = user?.name
@@ -231,6 +227,7 @@ const ProfileScreen = () => {
 
   return (
     <ScrollView ref={scrollRef} style={styles.root} contentContainerStyle={styles.container}>
+      <WebContainer variant="narrow">
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.avatarCircle}>
@@ -370,28 +367,6 @@ const ProfileScreen = () => {
         )}
       </View>
 
-      {/* Text Size */}
-      <View style={styles.infoCard}>
-        <Text style={styles.cardTitle}>Text Size</Text>
-        <View style={styles.fontScaleRow}>
-          {FONT_SIZES.map((f) => {
-            const active = fontScale === f.value;
-            return (
-              <TouchableOpacity
-                key={f.value}
-                style={[styles.fontScaleBtn, active && styles.fontScaleBtnActive]}
-                onPress={() => setFontScale(f.value)}
-              >
-                <Text style={[styles.fontScalePreview, { fontSize: 16 * f.value }, active && { color: C.primary }]}>
-                  {f.preview}
-                </Text>
-                <Text style={[styles.fontScaleLabel, active && styles.fontScaleLabelActive]}>{f.label}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-
       {/* Field Team Compliance Badge */}
       {user?.role === 'field_team' && (() => {
         const monthJobs = parseInt(fieldStats?.completed_this_month || '0');
@@ -472,6 +447,17 @@ const ProfileScreen = () => {
       </TouchableOpacity>
 
       <View style={{ height: 32 }} />
+      </WebContainer>
+
+      <ConfirmDialog
+        visible={logoutOpen}
+        title="Logout"
+        message="Are you sure you want to logout?"
+        confirmText="Logout"
+        destructive
+        onConfirm={confirmLogout}
+        onCancel={() => setLogoutOpen(false)}
+      />
     </ScrollView>
   );
 };

@@ -11,11 +11,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Defs, RadialGradient as SvgRadialGradient, LinearGradient as SvgLinearGradient, Stop, Ellipse, Rect, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useResponsive } from '../../utils/responsive';
+import { FAQ_DATA } from '../../utils/faqContent';
 import {
   ArrowRight, Phone, Users, Flask, Certificate,
   Leaf, ShieldCheck, Lightning, Star, Lock,
   MapPin, CheckCircle, Drop, Buildings, Wrench, QrCode,
-  Sparkle, Play, Shield, Trophy, Eye, CaretDown,
+  Sparkle, Play, Shield, Trophy, Eye, CaretDown, X,
 } from '../../components/Icons';
 
 /* ══════════════════════════════════════════════════════════════════
@@ -67,7 +68,6 @@ const FEATURES = [
 ];
 const STATS: { v: number; suffix: string; l: string; lShort?: string; decimal?: boolean }[] = [
   { v: 500,  suffix: '+',     l: 'Tanks Cleaned',         lShort: 'Tanks' },
-  { v: 4.9,  suffix: '★',     l: 'Rated by Customers',    lShort: 'Rating', decimal: true },
   { v: 100,  suffix: '+',     l: 'Households Protected',  lShort: 'Households' },
   { v: 8,    suffix: '-Step', l: 'Hygiene Process',       lShort: 'Process' },
   { v: 1,    suffix: 'st',    l: 'Patent Applied',        lShort: 'Patent' },
@@ -89,7 +89,7 @@ const TESTIMONIALS = [
   { name: 'Neha B.',    area: 'Begumpet',     text: 'Restaurant kitchen audit was a stress event before. With certified hygiene + QR proof, it is paperwork done.', r: 5 },
   { name: 'Vikram J.',  area: 'Miyapur',      text: 'The technician walked me through every step and showed me the ATP reading. Felt like a service, not a chore.', r: 5 },
 ];
-type FaqEntry = { cat: string; q: string; a: string };
+// FaqEntry type lives in ../../utils/faqContent — re-imported alongside FAQ_DATA above.
 // Live demo certificate hosted on Cloudflare R2 - opened from the hero QR card
 const DEMO_CERT_URL = 'https://pub-a27bf503711744b48b2b244e9fae3255.r2.dev/certificate/ozonewash-certificate%20(1).pdf';
 
@@ -113,52 +113,9 @@ const openDemo = () => {
   }
 };
 
-const FAQ_DATA: FaqEntry[] = [
-  // Before You Book
-  { cat: 'Before You Book', q: 'Is Ozone safe for drinking water tanks?', a: 'Yes. Ozone is a stronger oxidiser than chlorine yet leaves no chemical residue. It decomposes back into oxygen within minutes, making it safer for potable water than chemical cleaners. In fact, most bottled mineral water brands use Ozone for purification - the same science we apply to your tanks.' },
-  { cat: 'Before You Book', q: 'How long does a service take?', a: 'Domestic tanks are typically completed within 2 hours. Larger tanks may take longer depending on size and condition, but every service is completed in a single visit - no second trip, no mess.' },
-  { cat: 'Before You Book', q: "What's included in the 8-step process?", a: 'Our patent-applied 8-step hygiene covers pre-check & setup, drain, mechanical scrub & rotary jet, high-pressure rinse, sludge removal, Ozone disinfection, optional UV double-lock, and after-wash testing with QR-signed proof delivery.' },
-  { cat: 'Before You Book', q: 'Do you service my area?', a: 'Yes. We are currently operating across multiple areas in Hyderabad and rapidly expanding. Enter your pincode at booking to see exact availability and pricing.' },
-
-  // Safety & Science
-  { cat: 'Safety & Science', q: 'How does Ozone clean my tank?', a: 'Ozone ruptures bacterial and viral cells, neutralises toxins, and oxidises metals. Unlike chlorine, Ozone leaves no chemical residue - it decomposes back into oxygen within minutes.' },
-  { cat: 'Safety & Science', q: 'How is Ozone better than chemicals?', a: 'Ozone is a stronger oxidiser than chlorine, killing pathogens up to 3,000 times faster. It neutralises chlorine-resistant organisms, penetrates biofilm, and leaves no chemical residue - just pure, residue-free water.' },
-
-  // Compliance & Proof
-  { cat: 'Compliance & Proof', q: 'How do QR certificates work?', a: 'Each service generates a QR-signed hygiene certificate with Ozone readings, ATP hygiene checks, and before/after photos - audit-ready for RWAs, hospitals, and regulators. Share it instantly with tenants, buyers, or inspectors.' },
-  { cat: 'Compliance & Proof', q: 'What does GHMC law say about tank cleaning?', a: 'Under the GHMC Act, 1955 - Public Health & Sanitation Bye-laws, drinking water tanks must be cleaned every 3–6 months. For commercial establishments and institutions, quarterly cleaning (every 3 months) is required to stay compliant.' },
-  { cat: 'Compliance & Proof', q: 'How often should tanks be cleaned?', a: 'Domestic tanks: every 3–6 months. Commercial establishments: every 3 months. RWAs / hospitals: quarterly. AMC packages ensure recurring compliance and cost savings.' },
-  { cat: 'Compliance & Proof', q: 'Why is certified tank hygiene important today?', a: 'Recent outbreaks across India caused thousands of illnesses due to contaminated tanks. Ozone Wash™ ensures proof-based hygiene with QR certificates and EcoScore™ tracking.' },
-
-  // AMC
-  { cat: 'AMC - Annual Maintenance', q: 'What is an AMC plan?', a: 'A subscription plan with fixed cleaning intervals (monthly, quarterly, half-yearly, or yearly) and built-in discounts.' },
-  { cat: 'AMC - Annual Maintenance', q: 'How do AMC discounts work?', a: 'Monthly: 30% · Quarterly: 15% · Half-Yearly: 10% · Yearly: 5%. Multi-tank: 2 tanks 15%, 2+ tanks 30%. All AMC prices are GST-inclusive.' },
-  { cat: 'AMC - Annual Maintenance', q: 'Why choose AMC over one-time cleaning?', a: 'Ensures compliance, cost savings, EcoScore™ tracking, priority scheduling - forgetting is now history.' },
-  { cat: 'AMC - Annual Maintenance', q: 'What if I miss a scheduled AMC service?', a: 'You can reschedule within the same cycle. EcoScore™ tracks delays so you stay on top of compliance.' },
-
-  // Hygiene Upgrades & Add-Ons
-  { cat: 'Upgrades & Add-Ons', q: 'What hygiene upgrades can I add?', a: 'UV Sterilisation, Anti-Algae Spray, Anti-Lime Treatment, Pathogen Testing, Structural Audit, and IoT Sensors.' },
-  { cat: 'Upgrades & Add-Ons', q: 'Are add-ons optional?', a: 'Yes. The base Ozone service already delivers certified hygiene. Add-ons provide extra assurance, compliance proof, and preventive protection - and bundle at discounted rates with AMC.' },
-
-  // Testing & Proof
-  { cat: 'Testing & Proof', q: 'Do you provide testing after cleaning?', a: 'Yes. Every service includes pre and post hygiene checks showing measurable improvement in tank quality.' },
-  { cat: 'Testing & Proof', q: 'What is the lab-based upgrade?', a: 'A 21-parameter certified laboratory report covering pathogens, chemical residues, and water quality - ideal for RWAs, hospitals, and regulators.' },
-  { cat: 'Testing & Proof', q: 'Tank hygiene vs source contamination?', a: 'Testing validates tank hygiene post-service, but the water supply itself may still be contaminated. Both GHMC municipal water, tankers, and borewell sources have reported contamination incidents - source filtration is recommended alongside tank hygiene.' },
-
-  // EcoScore
-  { cat: 'EcoScore™', q: 'What is EcoScore™?', a: 'A gamified hygiene rating (0–100) that converts compliance data into a score, badge, rationale, and improvement tips.' },
-  { cat: 'EcoScore™', q: 'What do the badges mean?', a: 'Platinum (90+), Gold (75–89), Silver (60–74), Bronze (40–59), Unrated (<40). Each badge shows a rationale (e.g., “Timely service, Ozone + UV cycles logged, water test passed, AMC compliant”).' },
-  { cat: 'EcoScore™', q: 'What are EcoPoints and how do I redeem them?', a: 'Your EcoScore % = EcoPoints. Bonus points for badges and streaks. Points accumulate in your wallet (valid 24 months, capped at 1,000) and redeem against AMC renewal discounts, hygiene upgrades, partner benefits, and streak rewards.' },
-
-  // Preparation Guide
-  { cat: 'Preparation', q: 'What preparations are needed before cleaning?', a: 'Ensure clear access to the tank, switch off pumps, inform residents, keep alternate water ready, remove nearby clutter, and provide a 16A power socket for equipment. Send the “Ozone at Work” caution message so residents know the hygiene process is in progress.' },
-  { cat: 'Preparation', q: 'What should I avoid during cleaning?', a: 'Don’t use tank water until the certificate is issued, don’t leave lids open, don’t delay cleaning beyond 6 months, and don’t add chemicals yourself. Keep humans and pets away from the Ozone work zone until the service is certified safe.' },
-
-  // Segment-Specific
-  { cat: 'Segment-Specific', q: 'RWAs - How do we share proof with residents?', a: 'Each service generates a QR-signed certificate and EcoScore™ dashboard, shareable with residents and regulators in one tap.' },
-  { cat: 'Segment-Specific', q: 'Hospitals - Is Ozone safe for patient tanks?', a: 'Yes. Ozone sterilises without residues - natural and safer than chemicals for sensitive environments like hospitals and clinics.' },
-  { cat: 'Segment-Specific', q: 'Restaurants - How do you ensure kitchen hygiene?', a: 'Our Hygiene Wall Wash service disinfects walls and surfaces monthly, leaving them odour-less and sterilised.' },
-];
+// FAQ_DATA imported from shared content module — see ../../utils/faqContent.ts
+// Both LandingScreen (inline accordion) and FaqScreen (dedicated page) use the
+// same source so they never drift apart.
 const COMPARE_BAD = [
   'Chemicals linger in water for days',
   'Chemicals fail to neutralize many toxins - uncertainty remains',
@@ -861,8 +818,14 @@ function HeroVisualNative() {
   const translateY = bob.interpolate({ inputRange: [0, 1], outputRange: [0, -8] });
   const haloOp     = bob.interpolate({ inputRange: [0, 1], outputRange: [0.55, 0.85] });
 
+  const cardShadow = Platform.select({
+    ios:     { shadowColor: 'rgba(2,132,199,0.35)', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 1, shadowRadius: 18 },
+    android: { elevation: 6 },
+    default: {},
+  }) as any;
+
   return (
-    <View style={{ width: '100%', height: 280, alignItems: 'center', justifyContent: 'center', marginTop: 8 }}>
+    <View style={{ width: '100%', height: 360, alignItems: 'center', justifyContent: 'center', marginTop: 16, paddingHorizontal: 8 }}>
       {/* Soft glow halo behind the tank */}
       <Animated.View style={{
         position: 'absolute', width: 240, height: 240, borderRadius: 120,
@@ -872,7 +835,7 @@ function HeroVisualNative() {
 
       {/* Tank illustration - bobs gently */}
       <Animated.View style={{ transform: [{ translateY }] }}>
-        <Svg width={170} height={220} viewBox="0 0 170 220">
+        <Svg width={180} height={230} viewBox="0 0 170 220">
           <Defs>
             <SvgRadialGradient id="ozNativeTankBody" cx="35%" cy="30%" r="80%">
               <Stop offset="0%"   stopColor="#FFFFFF" stopOpacity="1" />
@@ -885,52 +848,118 @@ function HeroVisualNative() {
               <Stop offset="100%" stopColor="#0284C7" stopOpacity="1" />
             </SvgLinearGradient>
           </Defs>
-          {/* Ground shadow */}
           <Ellipse cx={85} cy={210} rx={70} ry={6} fill="rgba(2,132,199,0.25)" />
-          {/* Dome cap */}
           <Ellipse cx={85} cy={28} rx={62} ry={18} fill="url(#ozNativeTankBody)" />
-          {/* Cylinder body */}
           <Rect x={23} y={26} width={124} height={160} rx={10} fill="url(#ozNativeTankBody)" />
-          {/* Ribs */}
           <Rect x={23} y={70}  width={124} height={4} fill="rgba(2,132,199,0.35)" />
           <Rect x={23} y={120} width={124} height={4} fill="rgba(2,132,199,0.35)" />
-          {/* Water inside (front face) */}
           <Path d="M30 100 L140 100 L140 180 Q140 186 134 186 L36 186 Q30 186 30 180 Z" fill="url(#ozNativeWater)" opacity={0.85} />
-          {/* Highlight streak */}
           <Rect x={36} y={32} width={6} height={150} rx={3} fill="rgba(255,255,255,0.45)" />
-          {/* Bottom cap */}
           <Rect x={20} y={184} width={130} height={12} rx={5} fill="#0369A1" />
         </Svg>
       </Animated.View>
 
-      {/* Floating info chips - simple absolute positioned glass pills */}
-      <View style={{
-        position: 'absolute', top: 24, left: 12,
-        flexDirection: 'row', alignItems: 'center', gap: 6,
-        paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
-        backgroundColor: 'rgba(255,255,255,0.92)',
-        borderWidth: 1, borderColor: 'rgba(2,132,199,0.18)',
-        ...Platform.select({
-          ios:     { shadowColor: 'rgba(2,132,199,0.3)', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 1, shadowRadius: 12 },
-          android: { elevation: 4 },
-        }),
-      }}>
-        <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: B.leaf }} />
-        <Text style={{ fontSize: 10.5, fontWeight: '800', color: B.primaryDk, letterSpacing: 0.4 }}>Live cleaning</Text>
+      {/* Top-left: Water Purity meter card */}
+      <View style={[{
+        position: 'absolute', top: 6, left: 4,
+        backgroundColor: '#fff', borderRadius: 14, paddingVertical: 8, paddingHorizontal: 10,
+        borderWidth: 1, borderColor: 'rgba(2,132,199,0.12)',
+        flexDirection: 'row', alignItems: 'center', gap: 8,
+      }, cardShadow]}>
+        <View style={{
+          width: 30, height: 30, borderRadius: 999,
+          backgroundColor: 'rgba(34,197,94,0.15)',
+          borderWidth: 2, borderColor: B.leaf,
+          alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Text style={{ fontSize: 9, fontWeight: '800', color: B.leafDk }}>96%</Text>
+        </View>
+        <View>
+          <Text style={{ fontSize: 8, fontWeight: '800', color: B.muted, letterSpacing: 0.6 }}>WATER PURITY</Text>
+          <Text style={{ fontSize: 11, fontWeight: '800', color: B.ink, lineHeight: 14 }}>Excellent</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 1 }}>
+            <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: B.leaf }} />
+            <Text style={{ fontSize: 8, fontWeight: '700', color: B.leafDk, letterSpacing: 0.2 }}>1.83 ppm O₃</Text>
+          </View>
+        </View>
       </View>
-      <View style={{
-        position: 'absolute', bottom: 36, right: 10,
+
+      {/* Top-right: QR Cert card */}
+      <View style={[{
+        position: 'absolute', top: 4, right: 4,
+        backgroundColor: '#fff', borderRadius: 14, padding: 8,
+        borderWidth: 1, borderColor: 'rgba(2,132,199,0.12)',
+        width: 100,
+      }, cardShadow]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+          <View style={{
+            width: 22, height: 22, borderRadius: 6,
+            backgroundColor: B.leaf, alignItems: 'center', justifyContent: 'center',
+          }}>
+            <ShieldCheck size={12} weight="fill" color="#fff" />
+          </View>
+          <View>
+            <Text style={{ fontSize: 7.5, fontWeight: '800', color: B.muted, letterSpacing: 0.8 }}>CERTIFICATE</Text>
+            <Text style={{ fontSize: 10, fontWeight: '800', color: B.ink, lineHeight: 12 }}>#OW-DEMO</Text>
+          </View>
+        </View>
+        <View style={{
+          aspectRatio: 1, width: '100%',
+          backgroundColor: '#F1F5F9',
+          borderRadius: 6, borderWidth: 1, borderColor: B.line,
+          alignItems: 'center', justifyContent: 'center',
+        }}>
+          <QrCode size={48} weight="regular" color={B.ink} />
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+          <Text style={{ fontSize: 7.5, fontWeight: '700', color: B.primaryDk }}>Scan demo</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+            <View style={{ width: 4, height: 4, borderRadius: 3, backgroundColor: B.leaf }} />
+            <Text style={{ fontSize: 7.5, fontWeight: '800', color: B.leaf, letterSpacing: 0.4 }}>LIVE</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Bottom-left: Crew status card */}
+      <View style={[{
+        position: 'absolute', bottom: 14, left: 8,
+        backgroundColor: '#fff', borderRadius: 14, paddingVertical: 8, paddingHorizontal: 10,
+        borderWidth: 1, borderColor: 'rgba(2,132,199,0.12)',
+        flexDirection: 'row', alignItems: 'center', gap: 8,
+      }, cardShadow]}>
+        <View style={{
+          width: 28, height: 28, borderRadius: 8,
+          backgroundColor: B.aqua,
+          alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Users size={15} weight="fill" color={B.primaryDk} />
+        </View>
+        <View>
+          <Text style={{ fontSize: 8, fontWeight: '800', color: B.muted, letterSpacing: 0.6 }}>CREW #214</Text>
+          <Text style={{ fontSize: 11, fontWeight: '800', color: B.ink, lineHeight: 14 }}>Certify</Text>
+          <View style={{ flexDirection: 'row', gap: 2, marginTop: 3 }}>
+            {[0, 1, 2, 3].map(i => (
+              <View key={i} style={{
+                width: 11, height: 3, borderRadius: 2,
+                backgroundColor: i < 4 ? B.leaf : B.line,
+              }} />
+            ))}
+          </View>
+        </View>
+      </View>
+
+      {/* Bottom-right: EcoScore pill */}
+      <View style={[{
+        position: 'absolute', bottom: 8, right: 4,
+        backgroundColor: B.ink, borderRadius: 999,
+        paddingVertical: 7, paddingHorizontal: 10,
         flexDirection: 'row', alignItems: 'center', gap: 6,
-        paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
-        backgroundColor: 'rgba(255,255,255,0.92)',
-        borderWidth: 1, borderColor: 'rgba(2,132,199,0.18)',
-        ...Platform.select({
-          ios:     { shadowColor: 'rgba(2,132,199,0.3)', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 1, shadowRadius: 12 },
-          android: { elevation: 4 },
-        }),
-      }}>
-        <QrCode size={11} weight="bold" color={B.primaryDk} />
-        <Text style={{ fontSize: 10.5, fontWeight: '800', color: B.primaryDk, letterSpacing: 0.4 }}>QR-Verified Cert</Text>
+      }, cardShadow]}>
+        <Leaf size={11} weight="fill" color={B.leaf} />
+        <View>
+          <Text style={{ fontSize: 7.5, fontWeight: '800', color: 'rgba(255,255,255,0.6)', letterSpacing: 0.6 }}>ECOSCORE</Text>
+          <Text style={{ fontSize: 10.5, fontWeight: '800', color: '#fff' }}>A+ {'·'} zero chemicals</Text>
+        </View>
       </View>
     </View>
   );
@@ -2199,11 +2228,23 @@ const LandingScreen = () => {
   const goToLogin = () => navigation.navigate('PhoneInput');
   const goToFaq   = () => navigation.navigate('Faq');
   const goToAbout = () => navigation.navigate('About');
+  const goToPolicy = (type: 'terms' | 'privacy' | 'refund') => navigation.navigate('Policy', { type });
 
   // Web nav links: only the two separate pages we actually have.
   const NAV_LINKS: { label: string; onPress: () => void }[] = [
     { label: 'About', onPress: goToAbout },
     { label: 'FAQ',   onPress: goToFaq },
+  ];
+
+  // Small-screen hamburger menu (mobile web + native landing)
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = () => setMenuOpen(false);
+  const MENU_ITEMS: { label: string; onPress: () => void; soft?: boolean }[] = [
+    { label: 'About',     onPress: () => { closeMenu(); goToAbout(); } },
+    { label: 'FAQ',       onPress: () => { closeMenu(); goToFaq(); } },
+    { label: 'Privacy',   onPress: () => { closeMenu(); goToPolicy('privacy'); }, soft: true },
+    { label: 'Terms',     onPress: () => { closeMenu(); goToPolicy('terms');   }, soft: true },
+    { label: 'Refund',    onPress: () => { closeMenu(); goToPolicy('refund');  }, soft: true },
   ];
 
   const pad   = isLarge ? 40 : 20;
@@ -2255,14 +2296,28 @@ const LandingScreen = () => {
               ))}
             </View>
           )}
-          <TouchableOpacity
-            onPress={goToLogin}
-            style={[s.navBtn, { backgroundColor: B.ink }]}
-            activeOpacity={0.85}
-          >
-            <Text style={s.navBtnText}>{isLarge ? 'Book Your Clean' : 'Book'}</Text>
-            <ArrowRight size={14} weight="bold" color="#fff" />
-          </TouchableOpacity>
+          <View style={s.navCtaRow}>
+            {!isLarge && (
+              <TouchableOpacity
+                onPress={() => setMenuOpen(true)}
+                style={[s.navMenuBtn, { backgroundColor: 'rgba(2,132,199,0.1)', borderColor: 'rgba(2,132,199,0.25)' }]}
+                activeOpacity={0.85}
+                accessibilityLabel="Open menu"
+              >
+                <View style={[s.navMenuLine, { backgroundColor: B.primaryDk }]} />
+                <View style={[s.navMenuLine, { backgroundColor: B.primaryDk }]} />
+                <View style={[s.navMenuLine, { backgroundColor: B.primaryDk }]} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              onPress={goToLogin}
+              style={[s.navBtn, { backgroundColor: B.ink }]}
+              activeOpacity={0.85}
+            >
+              <Text style={s.navBtnText}>{isLarge ? 'Book Your Clean' : 'Book'}</Text>
+              <ArrowRight size={14} weight="bold" color="#fff" />
+            </TouchableOpacity>
+          </View>
         </View>
       </Animated.View>
 
@@ -2305,20 +2360,34 @@ const LandingScreen = () => {
                 ))}
               </View>
             )}
-            <TouchableOpacity
-              onPress={goToLogin}
-              style={[
-                s.navBtn,
-                { backgroundColor: isLarge ? '#fff' : 'rgba(255,255,255,0.22)' },
-              ]}
-              activeOpacity={0.85}
-            >
-              <Text style={[
-                s.navBtnText,
-                isLarge && { color: B.primaryDk },
-              ]}>{isLarge ? 'Book Your Clean' : 'Book'}</Text>
-              <ArrowRight size={14} weight="bold" color={isLarge ? B.primaryDk : '#fff'} />
-            </TouchableOpacity>
+            <View style={s.navCtaRow}>
+              {!isLarge && (
+                <TouchableOpacity
+                  onPress={() => setMenuOpen(true)}
+                  style={[s.navMenuBtn, { backgroundColor: 'rgba(255,255,255,0.16)', borderColor: 'rgba(255,255,255,0.32)' }]}
+                  activeOpacity={0.85}
+                  accessibilityLabel="Open menu"
+                >
+                  <View style={[s.navMenuLine, { backgroundColor: '#fff' }]} />
+                  <View style={[s.navMenuLine, { backgroundColor: '#fff' }]} />
+                  <View style={[s.navMenuLine, { backgroundColor: '#fff' }]} />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                onPress={goToLogin}
+                style={[
+                  s.navBtn,
+                  { backgroundColor: isLarge ? '#fff' : 'rgba(255,255,255,0.22)' },
+                ]}
+                activeOpacity={0.85}
+              >
+                <Text style={[
+                  s.navBtnText,
+                  isLarge && { color: B.primaryDk },
+                ]}>{isLarge ? 'Book Your Clean' : 'Book'}</Text>
+                <ArrowRight size={14} weight="bold" color={isLarge ? B.primaryDk : '#fff'} />
+              </TouchableOpacity>
+            </View>
           </View>
           <BubblesEffect count={isLarge ? 26 : 18} seed={isLarge ? 5 : 3} />
           {Platform.OS === 'web' && (
@@ -3256,6 +3325,60 @@ const LandingScreen = () => {
           >Download App</Text>
         </TouchableOpacity>
       )}
+
+      {/* Hamburger menu overlay (small screens only) */}
+      {menuOpen && (
+        <View style={s.menuOverlay} pointerEvents="auto">
+          <TouchableOpacity
+            style={s.menuBackdrop}
+            onPress={closeMenu}
+            activeOpacity={1}
+            accessibilityLabel="Close menu"
+          />
+          <View style={[s.menuPanel, { paddingTop: insets.top + 14 }]}>
+            <View style={s.menuHeader}>
+              <View style={s.navLeft}>
+                <View style={s.navLogo}>
+                  <Image source={require('../../../assets/logo.png')} style={s.navLogoImg} resizeMode="contain" />
+                </View>
+                <View>
+                  <Text style={[s.navBrand, { color: B.ink }]}>Ozone Wash<TM size={8.5} /></Text>
+                  <Text style={[s.navTagline, { color: B.muted }]}>Hygiene you can see. Health you can feel.</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={closeMenu} style={s.menuCloseBtn} activeOpacity={0.8} accessibilityLabel="Close menu">
+                <X size={20} weight="bold" color={B.ink} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={s.menuList}>
+              {MENU_ITEMS.map((item, i) => (
+                <TouchableOpacity
+                  key={i}
+                  onPress={item.onPress}
+                  style={[s.menuItem, item.soft && s.menuItemSoft]}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[s.menuItemText, item.soft && { color: B.muted, fontSize: 14 }]}>{item.label}</Text>
+                  <ArrowRight size={item.soft ? 14 : 16} weight="bold" color={item.soft ? B.muted : B.primaryDk} />
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={s.menuFooter}>
+              <TouchableOpacity
+                onPress={() => { closeMenu(); goToLogin(); }}
+                style={s.menuBookBtn}
+                activeOpacity={0.85}
+              >
+                <Text style={s.menuBookText}>Book Your Clean</Text>
+                <ArrowRight size={16} weight="bold" color="#fff" />
+              </TouchableOpacity>
+              <Text style={s.menuFooterMeta}>+91 81 79 69 59 59 {'·'} hello@ozonewash.in</Text>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -3334,6 +3457,15 @@ const s = StyleSheet.create({
   },
   navBtnText: { color: '#fff', fontSize: 13, fontWeight: '800' },
   navCtaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  navMenuBtn: {
+    width: 40, height: 40, borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center', gap: 4,
+    paddingVertical: 11, paddingHorizontal: 10,
+  },
+  navMenuLine: {
+    width: 18, height: 2, borderRadius: 2,
+  },
   navDownloadBtn: {
     backgroundColor: 'rgba(34,197,94,0.14)',
     borderWidth: 1, borderColor: 'rgba(34,197,94,0.4)',
@@ -3932,6 +4064,67 @@ const s = StyleSheet.create({
     flexShrink: 0,
   },
   fabText: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 0.2 },
+
+  /* Mobile hamburger menu overlay */
+  menuOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    zIndex: 10000,
+    ...Platform.select({ web: { position: 'fixed' } as any }),
+  },
+  menuBackdrop: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(11,31,51,0.45)',
+  },
+  menuPanel: {
+    position: 'absolute', top: 0, left: 0, right: 0,
+    backgroundColor: '#fff',
+    paddingHorizontal: 18,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    ...Platform.select({
+      ios: { shadowColor: 'rgba(0,0,0,0.18)', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 1, shadowRadius: 28 },
+      android: { elevation: 14 },
+      default: { boxShadow: '0 16px 40px rgba(0,0,0,0.18)' } as any,
+    }),
+  },
+  menuHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    marginBottom: 10,
+  },
+  menuCloseBtn: {
+    width: 38, height: 38, borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  menuList: { gap: 4, paddingTop: 6 },
+  menuItem: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 14, paddingHorizontal: 14, borderRadius: 12,
+  },
+  menuItemSoft: {
+    paddingVertical: 11,
+  },
+  menuItemText: {
+    fontSize: 16, fontWeight: '700', color: '#0B1F33', letterSpacing: 0.1,
+  },
+  menuFooter: {
+    marginTop: 16, paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    gap: 10, alignItems: 'center',
+  },
+  menuBookBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    width: '100%', justifyContent: 'center',
+    paddingVertical: 14, borderRadius: 12,
+    backgroundColor: '#0B1F33',
+  },
+  menuBookText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+  menuFooterMeta: { fontSize: 11, color: '#64748B', letterSpacing: 0.2 },
 });
 
 export default LandingScreen;

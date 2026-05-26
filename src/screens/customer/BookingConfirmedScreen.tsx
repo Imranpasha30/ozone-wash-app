@@ -24,6 +24,11 @@ const makeStyles = (C: any) => StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: C.border,
+    // Web: cap the card width so it reads as a centered modal-style card
+    // instead of a full-width banner on a 1900-px viewport.
+    maxWidth: 520,
+    width: '100%',
+    alignSelf: 'center',
   },
   iconCircle: {
     width: 80,

@@ -31,21 +31,27 @@ import LiveWatchScreen from '../screens/customer/LiveWatchScreen';
 import AddressPickerScreen from '../screens/customer/AddressPickerScreen';
 import PolicyScreen from '../screens/shared/PolicyScreen';
 import EcoScoreDetailScreen from '../screens/customer/EcoScoreDetailScreen';
+import AutoWashBookingScreen from '../screens/customer/AutoWashBookingScreen';
+import AddVehicleScreen from '../screens/customer/AddVehicleScreen';
+import AutoWashBookingDetailScreen from '../screens/customer/AutoWashBookingDetailScreen';
+import AutoWashCertificateScreen from '../screens/customer/AutoWashCertificateScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
 const CustomerTabs = () => {
   const C = useTheme();
-  const { isLarge } = useResponsive();
+  const { isLarge, SIDEBAR_WIDTH } = useResponsive();
 
   return (
     <Tab.Navigator
       tabBar={(props) =>
         isLarge ? <WebSidebarBar {...props} /> : <BottomTabBar {...props} />
       }
-      sceneContainerStyle={isLarge ? { marginLeft: SIDEBAR_WIDTH } : undefined}
       screenOptions={{
+        // v7: tabBarPosition is a per-screen option, NOT a top-level Tab.Navigator
+        // prop. Setting it via screenOptions makes it the default for every tab.
+        tabBarPosition: isLarge ? 'left' : 'bottom',
         headerShown: false,
         tabBarActiveTintColor: C.primary,
         tabBarInactiveTintColor: C.muted,
@@ -175,6 +181,11 @@ const CustomerNavigator = () => (
     />
     <Stack.Screen name="Policy" component={PolicyScreen} />
     <Stack.Screen name="EcoScoreDetail" component={EcoScoreDetailScreen} />
+    {/* Auto Wash (Phase 3) */}
+    <Stack.Screen name="AutoWashBooking" component={AutoWashBookingScreen} options={BOOKING_FLOW_OPTIONS} />
+    <Stack.Screen name="AddVehicle" component={AddVehicleScreen} options={BOOKING_FLOW_OPTIONS} />
+    <Stack.Screen name="AutoWashBookingDetail" component={AutoWashBookingDetailScreen} />
+    <Stack.Screen name="AutoWashCertificate" component={AutoWashCertificateScreen} />
   </Stack.Navigator>
 );
 

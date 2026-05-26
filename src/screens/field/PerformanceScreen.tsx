@@ -9,6 +9,7 @@ import { useTheme } from '../../hooks/useTheme';
 import {
   CheckCircle, ArrowsClockwise, Hourglass, ChartBar, Fire,
 } from '../../components/Icons';
+import WebContainer from '../../components/WebContainer';
 
 const PERIODS = ['This Week', 'This Month', 'All Time'] as const;
 
@@ -59,6 +60,7 @@ const PerformanceScreen = () => {
       </View>
 
       <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
+        <WebContainer>
         {/* Period Selector */}
         <View style={styles.periodRow}>
           {PERIODS.map(p => (
@@ -177,6 +179,7 @@ const PerformanceScreen = () => {
             </View>
           )}
         </View>
+        </WebContainer>
       </ScrollView>
     </View>
   );

@@ -39,6 +39,7 @@ import {
   Crown, Medal, Trophy, Star, CurrencyInr, Lightning, TrendUp, Wallet,
   Sparkle, Leaf, Confetti, ArrowsClockwise, Diamond,
 } from '../../components/Icons';
+import WebContainer from '../../components/WebContainer';
 
 type LegacyTier = 'platinum' | 'gold' | 'silver' | 'bronze';
 type CreditTier = 'platinum' | 'gold' | 'silver' | 'bronze' | 'unrated';
@@ -376,6 +377,7 @@ const IncentiveScreen: React.FC = () => {
           ) : undefined
         }
       >
+        <WebContainer>
         {/* ═══════════════════════════════════════════════════════════════
             NEW: Credit-based dashboard (PDF tier system)
             ═══════════════════════════════════════════════════════════════ */}
@@ -732,6 +734,7 @@ const IncentiveScreen: React.FC = () => {
         >
           <Text style={{ color: C.primary, fontWeight: '600', fontSize: 13 }}>Refresh ledger</Text>
         </TouchableOpacity>
+        </WebContainer>
       </ScrollView>
     </View>
   );

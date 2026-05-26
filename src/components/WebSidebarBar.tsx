@@ -1,6 +1,7 @@
 /**
- * WebSidebarBar — replaces the bottom tab bar on web large screens.
- * Rendered via the `tabBar` prop of each Tab.Navigator.
+ * WebSidebarBar — left rail navigation on web (>=768 px) replacing the
+ * mobile bottom tab bar. Supports an expanded mode (240px, icon + label) and
+ * a collapsed mode (68px, icon-only) toggled via the sidebar store.
  */
 import React from 'react';
 import {
@@ -8,28 +9,49 @@ import {
 } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { COLORS } from '../utils/constants';
-import { SIDEBAR_WIDTH } from '../utils/responsive';
+import useSidebarStore, {
+  SIDEBAR_WIDTH_EXPANDED, SIDEBAR_WIDTH_COLLAPSED,
+} from '../store/sidebar.store';
+import { CaretLeft, CaretRight } from './Icons';
 
 const WebSidebarBar = ({ state, descriptors, navigation }: BottomTabBarProps) => {
+  const collapsed = useSidebarStore((s) => s.collapsed);
+  const toggle    = useSidebarStore((s) => s.toggle);
+  const width = collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED;
+
   return (
-    <View style={s.sidebar}>
+    <View style={[s.sidebar, { width }]}>
+      {/* Toggle button (top-right of sidebar) */}
+      <TouchableOpacity
+        onPress={toggle}
+        style={[s.toggleBtn, collapsed && { right: 14, left: undefined }]}
+        activeOpacity={0.7}
+        accessibilityLabel={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      >
+        {collapsed
+          ? <CaretRight size={14} weight="bold" color={COLORS.muted} />
+          : <CaretLeft  size={14} weight="bold" color={COLORS.muted} />}
+      </TouchableOpacity>
+
       {/* Brand */}
-      <View style={s.brandRow}>
+      <View style={[s.brandRow, collapsed && { paddingHorizontal: 10, justifyContent: 'center' }]}>
         <Image
           source={require('../../assets/logo.png')}
           style={s.logo}
           resizeMode="contain"
         />
-        <View>
-          <Text style={s.brandName}>OZONE WASH</Text>
-          <Text style={s.brandSub}>Tank Hygiene</Text>
-        </View>
+        {!collapsed && (
+          <View>
+            <Text style={s.brandName}>OZONE WASH</Text>
+            <Text style={s.brandSub}>Tank Hygiene</Text>
+          </View>
+        )}
       </View>
 
       <View style={s.divider} />
 
       {/* Nav items */}
-      <View style={s.nav}>
+      <View style={[s.nav, collapsed && { paddingHorizontal: 6 }]}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
@@ -57,34 +79,49 @@ const WebSidebarBar = ({ state, descriptors, navigation }: BottomTabBarProps) =>
             <TouchableOpacity
               key={route.key}
               onPress={onPress}
-              style={[s.navItem, isFocused && s.navItemActive]}
+              style={[
+                s.navItem,
+                isFocused && s.navItemActive,
+                collapsed && { paddingHorizontal: 0, justifyContent: 'center' },
+              ]}
               activeOpacity={0.75}
+              // Native HTML title tooltip on web → shows label when collapsed
+              {...(Platform.OS === 'web' && collapsed
+                ? ({ title: label } as any)
+                : {})}
             >
               <View style={[s.navIconWrap, isFocused && s.navIconActive]}>
                 {icon}
               </View>
-              <Text style={[s.navLabel, isFocused && s.navLabelActive]}>
-                {label}
-              </Text>
+              {!collapsed && (
+                <Text style={[s.navLabel, isFocused && s.navLabelActive]}>
+                  {label}
+                </Text>
+              )}
             </TouchableOpacity>
           );
         })}
       </View>
 
       {/* Footer */}
-      <View style={s.sidebarFooter}>
-        <Text style={s.sidebarFooterText}>VijRam Health Sense</Text>
-        <Text style={s.sidebarFooterSub}>Hyderabad, Telangana</Text>
-      </View>
+      {!collapsed && (
+        <View style={s.sidebarFooter}>
+          <Text style={s.sidebarFooterText}>VijRam Health Sense</Text>
+          <Text style={s.sidebarFooterSub}>Hyderabad, Telangana</Text>
+        </View>
+      )}
     </View>
   );
 };
 
 const s = StyleSheet.create({
   sidebar: {
-    position: 'fixed' as any,
-    left: 0, top: 0, bottom: 0,
-    width: SIDEBAR_WIDTH,
+    // Inline flex layout — tabBarPosition='left' on the Tab.Navigator lays out
+    // the bar as a sibling flex item next to the scene container. Stays put
+    // during page scroll because the parent layout itself does not scroll
+    // (only the inner ScrollViews inside each screen do).
+    flexShrink: 0,
+    height: '100%',
     backgroundColor: COLORS.surface,
     borderRightWidth: 1,
     borderRightColor: COLORS.border,
@@ -92,6 +129,21 @@ const s = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 16,
     flexDirection: 'column',
+    ...(Platform.OS === 'web' ? ({ transition: 'width 0.2s ease-out' } as any) : {}),
+  },
+  toggleBtn: {
+    position: 'absolute' as any,
+    top: 16, right: -12,
+    width: 24, height: 24, borderRadius: 999,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1, borderColor: COLORS.border,
+    alignItems: 'center', justifyContent: 'center',
+    zIndex: 101,
+    ...Platform.select({
+      web: { boxShadow: '0 2px 6px rgba(0,0,0,0.08)', cursor: 'pointer' } as any,
+      ios: { shadowColor: 'rgba(0,0,0,0.15)', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 4 },
+      android: { elevation: 2 },
+    }),
   },
   brandRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,

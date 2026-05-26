@@ -19,6 +19,7 @@ import {
   ArrowLeft, CheckCircle, CreditCard, Wallet, CurrencyInr,
   Phone, X, House, Wrench, Drop, Receipt, ShieldCheck,
 } from '../../components/Icons';
+import WebContainer from '../../components/WebContainer';
 
 const makeStyles = (C: any) => StyleSheet.create({
   root: { flex: 1, backgroundColor: C.background },
@@ -393,6 +394,7 @@ const PaymentScreen = () => {
       </View>
 
       <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
+        <WebContainer variant="narrow">
         {/* Booking Summary */}
         <Text style={styles.sectionTitle}>Booking Summary</Text>
         <View style={styles.summaryCard}>
@@ -476,6 +478,7 @@ const PaymentScreen = () => {
             By confirming, you agree to our terms of service. Cancellations must be made 24 hours in advance.
           </Text>
         </View>
+        </WebContainer>
       </ScrollView>
 
       {/* Razorpay WebView Checkout Modal — native only */}

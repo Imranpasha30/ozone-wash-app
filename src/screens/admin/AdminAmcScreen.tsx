@@ -8,6 +8,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { adminAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { ArrowsClockwise, CheckCircle, XCircle, Crown, Warning } from '../../components/Icons';
+import ScreenHeader from '../../components/ScreenHeader';
+import { useResponsive } from '../../utils/responsive';
 
 const FILTERS = ['All', 'Active', 'Pending', 'Expired', 'Cancelled'];
 
@@ -15,6 +17,11 @@ const AdminAmcScreen = () => {
   const C = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
   const scrollRef = useWebScrollFix();
+  const { isLarge } = useResponsive();
+  const numColumns = isLarge ? 2 : 1;
+  const webListStyle = isLarge
+    ? { maxWidth: 1100, width: '100%' as const, alignSelf: 'center' as const, padding: 24 }
+    : null;
   const [contracts, setContracts] = useState<any[]>([]);
   const [expiring, setExpiring] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +82,7 @@ const AdminAmcScreen = () => {
     new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
   const renderItem = ({ item }: { item: any }) => (
-    <View style={styles.card}>
+    <View style={[styles.card, isLarge && { flex: 1, marginBottom: 0, borderWidth: 1, borderColor: C.border }]}>
       <View style={styles.cardTop}>
         <View style={styles.iconBox}>
           <Crown size={22} weight="fill" color={C.primary} />
@@ -119,10 +126,11 @@ const AdminAmcScreen = () => {
     <View style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor={C.background} />
 
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>AMC Contracts</Text>
-        <Text style={styles.headerCount}>{filtered.length} contract{filtered.length !== 1 ? 's' : ''}</Text>
-      </View>
+      <ScreenHeader
+        title="AMC Contracts"
+        subtitle={`${filtered.length} contract${filtered.length !== 1 ? 's' : ''}`}
+        fallbackRoute="AdminDashboard"
+      />
 
       {/* Expiring Soon Alert */}
       {expiring.length > 0 && (
@@ -156,10 +164,16 @@ const AdminAmcScreen = () => {
         </View>
       ) : (
         <FlatList
+          key={`cols-${numColumns}`}
           data={filtered}
           keyExtractor={(c) => c.id}
           renderItem={renderItem}
-          contentContainerStyle={filtered.length === 0 ? styles.emptyContainer : styles.list}
+          numColumns={numColumns}
+          columnWrapperStyle={numColumns > 1 ? { gap: 16, marginBottom: 16 } : undefined}
+          contentContainerStyle={[
+            filtered.length === 0 ? styles.emptyContainer : styles.list,
+            webListStyle,
+          ]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} tintColor={C.primary} />
           }

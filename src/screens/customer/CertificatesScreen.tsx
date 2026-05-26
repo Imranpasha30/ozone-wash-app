@@ -6,6 +6,7 @@ import {
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { bookingAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
+import { useResponsive } from '../../utils/responsive';
 import { Trophy, Info, ArrowRight } from '../../components/Icons';
 
 const makeStyles = (C: any) => StyleSheet.create({
@@ -90,6 +91,10 @@ const makeStyles = (C: any) => StyleSheet.create({
 const CertificatesScreen = () => {
   const C = useTheme();
   const styles = React.useMemo(() => makeStyles(C), [C]);
+  const { isLarge } = useResponsive();
+  const webListStyle = isLarge
+    ? { maxWidth: 900, width: '100%' as const, alignSelf: 'center' as const, padding: 24 }
+    : null;
 
   const navigation = useNavigation<any>();
   const [bookings, setBookings] = useState<any[]>([]);
@@ -168,7 +173,10 @@ const CertificatesScreen = () => {
           data={bookings}
           keyExtractor={(b) => b.id}
           renderItem={renderItem}
-          contentContainerStyle={bookings.length === 0 ? styles.emptyContainer : styles.list}
+          contentContainerStyle={[
+            bookings.length === 0 ? styles.emptyContainer : styles.list,
+            webListStyle,
+          ]}
           refreshControl={
             Platform.OS !== 'web'
               ? <RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} tintColor={C.primary} />

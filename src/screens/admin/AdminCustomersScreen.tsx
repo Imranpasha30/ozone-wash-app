@@ -1,28 +1,52 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Platform, StatusBar, Linking,
+  View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView,
+  ActivityIndicator, RefreshControl, Platform, StatusBar, Linking, TextInput,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { adminAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
-import { UserCircle, Phone, ChatCircle } from '../../components/Icons';
+import { UserCircle, Phone, ChatCircle, ArrowRight, Trophy, MagnifyingGlass, X } from '../../components/Icons';
+import ScreenHeader from '../../components/ScreenHeader';
+import { useResponsive } from '../../utils/responsive';
 
 const AdminCustomersScreen = () => {
   const C = useTheme();
+  const navigation = useNavigation<any>();
   const styles = useMemo(() => makeStyles(C), [C]);
+  const { isLarge } = useResponsive();
+  const numColumns = isLarge ? 2 : 1;
+  const webListStyle = isLarge
+    ? { maxWidth: 1100, width: '100%' as const, alignSelf: 'center' as const, padding: 24 }
+    : null;
   const [customers, setCustomers] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [topCustomers, setTopCustomers] = useState<any[]>([]);
+  const [search, setSearch] = useState('');
+
+  // Filter customers by name OR phone substring. Empty query = show all.
+  const filteredCustomers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return customers;
+    return customers.filter((c) =>
+      (c.phone || '').toLowerCase().includes(q) ||
+      (c.name || '').toLowerCase().includes(q)
+    );
+  }, [customers, search]);
 
   const fetchCustomers = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     try {
-      const res = await adminAPI.getAllUsers({ role: 'customer', limit: 100 }) as any;
-      setCustomers(res.data?.users || []);
-      setTotal(res.data?.total || 0);
+      const [usersRes, topRes] = await Promise.all([
+        adminAPI.getAllUsers({ role: 'customer', limit: 100 }) as any,
+        adminAPI.getTopCustomers(8) as any,
+      ]);
+      setCustomers(usersRes.data?.users || []);
+      setTotal(usersRes.data?.total || 0);
+      setTopCustomers(topRes.data?.top || []);
     } catch (_) {} finally {
       setLoading(false);
       setRefreshing(false);
@@ -38,7 +62,11 @@ const AdminCustomersScreen = () => {
   const whatsApp = (phone: string) => Linking.openURL(`https://wa.me/91${phone}`);
 
   const renderItem = ({ item }: { item: any }) => (
-    <View style={styles.card}>
+    <TouchableOpacity
+      style={[styles.card, isLarge && { flex: 1, marginBottom: 0, borderWidth: 1, borderColor: C.border }]}
+      onPress={() => navigation.navigate('AdminCustomerDetail', { id: item.id })}
+      activeOpacity={0.85}
+    >
       <View style={styles.cardTop}>
         <View style={styles.avatar}>
           <UserCircle size={36} weight="fill" color={C.primary} />
@@ -47,6 +75,10 @@ const AdminCustomersScreen = () => {
           <Text style={styles.name}>{item.name || 'Customer'}</Text>
           <Text style={styles.phone}>{item.phone}</Text>
           <Text style={styles.date}>Joined: {formatDate(item.created_at)}</Text>
+        </View>
+        <View style={styles.viewBadge}>
+          <Text style={styles.viewBadgeText}>View</Text>
+          <ArrowRight size={14} weight="bold" color={C.primary} />
         </View>
       </View>
 
@@ -60,17 +92,18 @@ const AdminCustomersScreen = () => {
           <Text style={styles.waText}>WhatsApp</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
     <View style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor={C.background} />
 
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Customers</Text>
-        <Text style={styles.headerCount}>{total} total</Text>
-      </View>
+      <ScreenHeader
+        title="Customers"
+        subtitle={`${total} total`}
+        fallbackRoute="AdminDashboard"
+      />
 
       {loading ? (
         <View style={styles.center}>
@@ -78,10 +111,79 @@ const AdminCustomersScreen = () => {
         </View>
       ) : (
         <FlatList
-          data={customers}
+          key={`cols-${numColumns}`}
+          data={filteredCustomers}
           keyExtractor={(c) => c.id}
           renderItem={renderItem}
-          contentContainerStyle={customers.length === 0 ? styles.emptyContainer : styles.list}
+          numColumns={numColumns}
+          columnWrapperStyle={numColumns > 1 ? { gap: 16, marginBottom: 16 } : undefined}
+          ListHeaderComponent={(
+            <View>
+              {/* Search bar — filters by phone or name as you type. */}
+              <View style={styles.searchWrap}>
+                <MagnifyingGlass size={16} weight="bold" color={C.muted} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search by phone or name"
+                  placeholderTextColor={C.muted}
+                  value={search}
+                  onChangeText={setSearch}
+                  keyboardType="default"
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                />
+                {search.length > 0 ? (
+                  <TouchableOpacity onPress={() => setSearch('')} hitSlop={8}>
+                    <X size={14} weight="bold" color={C.muted} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+              {topCustomers.length > 0 && search.trim().length === 0 ? (
+            <View style={styles.topWrap}>
+              <View style={styles.topHead}>
+                <Trophy size={18} weight="fill" color={C.warning} />
+                <Text style={styles.topTitle}>Top customers</Text>
+                <Text style={styles.topSub}>by lifetime value</Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingVertical: 4, gap: 12, paddingRight: 16 }}
+              >
+                {topCustomers.map((t) => (
+                  <TouchableOpacity
+                    key={t.id}
+                    style={styles.topCard}
+                    onPress={() => navigation.navigate('AdminCustomerDetail', { id: t.id })}
+                    activeOpacity={0.85}
+                  >
+                    <View style={styles.topAvatar}>
+                      <UserCircle size={30} weight="fill" color={C.primary} />
+                    </View>
+                    <Text style={styles.topName} numberOfLines={1}>{t.name || t.phone}</Text>
+                    <Text style={styles.topSpend}>
+                      ₹{(Number(t.lifetime_paise) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                    </Text>
+                    <Text style={styles.topMeta}>{t.total_completed} services</Text>
+                    <View style={styles.tagRow}>
+                      {(t.tags || []).slice(0, 3).map((tag: any, i: number) => (
+                        <View key={i} style={[styles.tag, { backgroundColor: tag.color + '22', borderColor: tag.color }]}>
+                          <Text style={[styles.tagText, { color: tag.color }]}>{tag.label}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <Text style={styles.allLabel}>ALL CUSTOMERS</Text>
+            </View>
+              ) : null}
+            </View>
+          )}
+          contentContainerStyle={[
+            customers.length === 0 ? styles.emptyContainer : styles.list,
+            webListStyle,
+          ]}
           refreshControl={
             Platform.OS !== 'web' ? <RefreshControl refreshing={refreshing} onRefresh={() => fetchCustomers(true)} tintColor={C.primary} /> : undefined
           }
@@ -122,6 +224,12 @@ const makeStyles = (C: any) => StyleSheet.create({
   cardTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   avatar: { marginRight: 12 },
   cardInfo: { flex: 1 },
+  viewBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
+    backgroundColor: C.primaryBg, borderWidth: 1, borderColor: C.primary,
+  },
+  viewBadgeText: { fontSize: 11, fontWeight: '700', color: C.primary },
   name: { fontSize: 15, fontWeight: '700', color: C.foreground },
   phone: { fontSize: 13, color: C.muted, marginTop: 2 },
   date: { fontSize: 11, color: C.muted, marginTop: 2 },
@@ -138,6 +246,52 @@ const makeStyles = (C: any) => StyleSheet.create({
   waText: { fontSize: 13, fontWeight: '700', color: C.success },
   emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, gap: 12 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: C.foreground },
+
+  // ── Search bar ───────────────────────────────────────────────────────
+  searchWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: C.surface, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 10, marginBottom: 14,
+    borderWidth: 1, borderColor: C.border,
+  },
+  searchInput: {
+    flex: 1, fontSize: 14, color: C.foreground,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+  },
+
+  // ── Top-customers strip ──────────────────────────────────────────────
+  topWrap: { marginBottom: 12 },
+  topHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  topTitle: { fontSize: 16, fontWeight: '700', color: C.foreground },
+  topSub: { fontSize: 11, color: C.muted, marginTop: 1 },
+  topCard: {
+    width: 200, padding: 14, borderRadius: 14,
+    backgroundColor: C.surface,
+    borderWidth: 1, borderColor: C.border,
+    gap: 4,
+    ...Platform.select({
+      default: { boxShadow: '0 4px 12px rgba(0,0,0,0.06)' } as any,
+      android: { elevation: 2 },
+    }),
+  },
+  topAvatar: {
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: C.primaryBg,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 4,
+  },
+  topName: { fontSize: 13, fontWeight: '700', color: C.foreground },
+  topSpend: { fontSize: 18, fontWeight: '800', color: C.foreground },
+  topMeta: { fontSize: 11, color: C.muted },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 6 },
+  tag: {
+    paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
+    borderWidth: 1,
+  },
+  tagText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
+  allLabel: {
+    fontSize: 11, fontWeight: '800', letterSpacing: 1.4, color: C.muted,
+    marginTop: 16, marginBottom: 4,
+  },
 });
 
 export default AdminCustomersScreen;

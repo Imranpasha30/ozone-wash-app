@@ -7,10 +7,18 @@ import { useFocusEffect } from '@react-navigation/native';
 import { adminAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { Users, Phone, ChatCircle, MapPin } from '../../components/Icons';
+import { useResponsive } from '../../utils/responsive';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const AdminTeamsScreen = () => {
   const C = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
+  const { isLarge } = useResponsive();
+  // Web: 2-column grid capped at 1100px, single column on mobile.
+  const numColumns = isLarge ? 2 : 1;
+  const webListStyle = isLarge
+    ? { maxWidth: 1100, width: '100%' as const, alignSelf: 'center' as const, padding: 24 }
+    : null;
   const [teams, setTeams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -41,7 +49,7 @@ const AdminTeamsScreen = () => {
   const whatsApp = (phone: string) => Linking.openURL(`https://wa.me/91${phone}`);
 
   const renderItem = ({ item }: { item: any }) => (
-    <View style={styles.card}>
+    <View style={[styles.card, isLarge && { flex: 1, marginBottom: 0 }]}>
       <View style={styles.cardTop}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{getInitials(item.name || item.phone)}</Text>
@@ -90,10 +98,11 @@ const AdminTeamsScreen = () => {
     <View style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor={C.background} />
 
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Field Agents</Text>
-        <Text style={styles.headerCount}>{teams.length} agent{teams.length !== 1 ? 's' : ''}</Text>
-      </View>
+      <ScreenHeader
+        title="Field Agents"
+        subtitle={`${teams.length} agent${teams.length !== 1 ? 's' : ''} on roster`}
+        fallbackRoute="AdminDashboard"
+      />
 
       {loading ? (
         <View style={styles.center}>
@@ -101,10 +110,16 @@ const AdminTeamsScreen = () => {
         </View>
       ) : (
         <FlatList
+          key={`cols-${numColumns}`}
           data={teams}
           keyExtractor={(t) => t.id}
           renderItem={renderItem}
-          contentContainerStyle={teams.length === 0 ? styles.emptyContainer : styles.list}
+          numColumns={numColumns}
+          columnWrapperStyle={numColumns > 1 ? { gap: 16, marginBottom: 16 } : undefined}
+          contentContainerStyle={[
+            teams.length === 0 ? styles.emptyContainer : styles.list,
+            webListStyle,
+          ]}
           refreshControl={
             Platform.OS !== 'web' ? <RefreshControl refreshing={refreshing} onRefresh={() => fetchTeams(true)} tintColor={C.primary} /> : undefined
           }

@@ -29,19 +29,25 @@ import AdminPricingScreen from '../screens/admin/AdminPricingScreen';
 import AdminPayoutsScreen from '../screens/admin/AdminPayoutsScreen';
 import AdminAgentCreditsScreen from '../screens/admin/AdminAgentCreditsScreen';
 import AdminEcoScoreScreen from '../screens/admin/AdminEcoScoreScreen';
+import AdminAutoWashScreen from '../screens/admin/AdminAutoWashScreen';
+import AdminCreateAccountScreen from '../screens/admin/AdminCreateAccountScreen';
+import AdminFieldTeamsScreen from '../screens/admin/AdminFieldTeamsScreen';
+import AdminFieldTeamDetailScreen from '../screens/admin/AdminFieldTeamDetailScreen';
+import EarningsStatsScreen from '../screens/shared/EarningsStatsScreen';
+import AdminCustomerDetailScreen from '../screens/admin/AdminCustomerDetailScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
 const AdminTabs = () => {
-  const { isLarge } = useResponsive();
+  const { isLarge, SIDEBAR_WIDTH } = useResponsive();
   return (
   <Tab.Navigator
     tabBar={(props) =>
       isLarge ? <WebSidebarBar {...props} /> : <BottomTabBar {...props} />
     }
-    sceneContainerStyle={isLarge ? { marginLeft: SIDEBAR_WIDTH } : undefined}
     screenOptions={{
+      tabBarPosition: isLarge ? 'left' : 'bottom',
       headerShown: false,
       tabBarActiveTintColor: COLORS.primary,
       tabBarInactiveTintColor: COLORS.muted,
@@ -137,6 +143,17 @@ const AdminNavigator = () => (
     <Stack.Screen name="AdminPayouts" component={AdminPayoutsScreen} />
     <Stack.Screen name="AdminAgentCredits" component={AdminAgentCreditsScreen} />
     <Stack.Screen name="AdminEcoScore" component={AdminEcoScoreScreen} />
+    {/* Auto Wash (Phase 3) — admin dashboard */}
+    <Stack.Screen name="AdminAutoWash" component={AdminAutoWashScreen} />
+    {/* Admin account management — super_admin only (gated client + server side) */}
+    <Stack.Screen name="AdminCreateAccount" component={AdminCreateAccountScreen} />
+    {/* Field-team management — create teams of agents, assign leader, manage shares */}
+    <Stack.Screen name="AdminFieldTeams" component={AdminFieldTeamsScreen} />
+    <Stack.Screen name="AdminFieldTeamDetail" component={AdminFieldTeamDetailScreen} />
+    {/* Detailed agent earnings dashboard — admin drill-in */}
+    <Stack.Screen name="EarningsStats" component={EarningsStatsScreen} />
+    {/* Customer profile drill-in — lifetime stats, AMC, services, recent activity */}
+    <Stack.Screen name="AdminCustomerDetail" component={AdminCustomerDetailScreen} />
   </Stack.Navigator>
 );
 
