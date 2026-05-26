@@ -3237,8 +3237,31 @@ const LandingScreen = () => {
 
               {isLarge && (
                 <>
-                  <FooterCol title="Product" items={['Overhead tanks', 'Underground sumps', 'Syntex / plastic', 'EcoScore']} />
-                  <FooterCol title="Company" items={['About', 'Careers', 'Press', 'Contact']} />
+                  {/* Only keep items that map to a real screen / action. */}
+                  <FooterCol
+                    title="Services"
+                    items={['Tank cleaning', 'Car wash', 'EcoScore']}
+                    onPress={[
+                      goToLogin,
+                      () => navigation.navigate('CarWashLanding'),
+                      goToFaq,
+                    ]}
+                  />
+                  <FooterCol
+                    title="Company"
+                    items={['About', 'FAQ', 'Contact']}
+                    onPress={[
+                      goToAbout,
+                      goToFaq,
+                      () => {
+                        if (Platform.OS === 'web') {
+                          window.location.href = 'mailto:support@ozonewash.in';
+                        } else {
+                          Linking.openURL('mailto:support@ozonewash.in');
+                        }
+                      },
+                    ]}
+                  />
                   <FooterCol
                     title="Legal"
                     items={['Terms', 'Privacy', 'Refund policy']}
