@@ -16,6 +16,7 @@ import {
 import KpiTile from '../../components/charts/KpiTile';
 import Donut from '../../components/charts/Donut';
 import Bars from '../../components/charts/Bars';
+import WebContainer from '../../components/WebContainer';
 import { ChartBar, ShieldCheck, Wrench, Warning } from '../../components/Icons';
 import { MisOperational } from '../../types/mis';
 
@@ -77,6 +78,7 @@ const MisOperationalScreen: React.FC = () => {
           ) : undefined
         }
       >
+        <WebContainer variant="default">
         <DateRangeFilter range={range} from={from} to={to} onChange={onRangeChange} />
 
         {loading ? (
@@ -176,6 +178,7 @@ const MisOperationalScreen: React.FC = () => {
             />
           </>
         ) : null}
+        </WebContainer>
       </ScrollView>
     </View>
   );

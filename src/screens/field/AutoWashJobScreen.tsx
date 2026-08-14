@@ -16,12 +16,13 @@ import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   Platform, ActivityIndicator, TextInput, Alert,
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { capturePhoto } from '../../services/cameraCapture';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { autoWashAPI, uploadAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
+import WebContainer from '../../components/WebContainer';
 import {
   ArrowLeft, Camera, CheckCircle, Warning, Drop, Sparkle, Flask,
   Lightning, Wrench, Eye, ShieldCheck, Car,
@@ -240,27 +241,14 @@ export default function AutoWashJobScreen() {
 
   const pickAndUpload = async (kind: 'inspection' | 'step') => {
     try {
-      // Permission check (Camera and Library both needed on iOS / Android 13+).
-      const cam = await ImagePicker.requestCameraPermissionsAsync();
-      if (!cam.granted && Platform.OS !== 'web') {
-        Alert.alert('Camera permission needed', 'Enable camera access to capture inspection photos.');
-        return;
-      }
-      // Try camera first (preferred for field), fall back to library on web.
-      const launcher = Platform.OS === 'web'
-        ? ImagePicker.launchImageLibraryAsync
-        : ImagePicker.launchCameraAsync;
-      const result = await launcher({
-        quality: 0.7,
-        allowsEditing: false,
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      });
-      if (result.canceled || !result.assets?.[0]) return;
+      // Live camera on every platform (web opens the webcam modal).
+      const uri = await capturePhoto();
+      if (!uri) return; // cancelled
       setUploadingPhoto(true);
       const folder = kind === 'inspection'
         ? `auto-wash/${jobId}/pre-inspection`
         : `auto-wash/${jobId}/step-${activeStepN ?? 0}`;
-      const res: any = await uploadAPI.uploadPhoto(result.assets[0].uri, folder);
+      const res: any = await uploadAPI.uploadPhoto(uri, folder);
       const url = res?.data?.url || res?.url;
       if (!url) throw new Error('Upload returned no URL');
       if (kind === 'inspection') setPreInspectionPhotos((p) => [...p, url]);
@@ -444,7 +432,7 @@ export default function AutoWashJobScreen() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={[C.primary, C.primaryDk || '#0369A1']} style={[styles.header, { paddingTop: insets.top + 12 }]}>
+      <LinearGradient colors={[C.primary, C.primary]} style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.85}>
             <ArrowLeft size={20} color="#fff" weight="bold" />
@@ -473,6 +461,7 @@ export default function AutoWashJobScreen() {
       </LinearGradient>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.body}>
+        <WebContainer variant="narrow">
         {/* ── Pre-inspection phase ───────────────────────────────────────── */}
         {phase === 'pre_inspection' && (
           <View style={{ gap: 14 }}>
@@ -525,11 +514,11 @@ export default function AutoWashJobScreen() {
               return (
                 <View key={step.n} style={[styles.stepCard, isActive && styles.stepCardActive, isDone && styles.stepCardDone]}>
                   <View style={styles.stepHeader}>
-                    <View style={[styles.stepIconBox, isDone && { backgroundColor: (C.leaf as any) || '#22C55E' }]}>
+                    <View style={[styles.stepIconBox, isDone && { backgroundColor: C.success }]}>
                       {isDone ? (
                         <CheckCircle size={20} weight="fill" color="#fff" />
                       ) : (
-                        <step.Icon size={20} weight="duotone" color={C.primaryDk || '#0369A1'} />
+                        <step.Icon size={20} weight="duotone" color={C.primary} />
                       )}
                     </View>
                     <View style={{ flex: 1 }}>
@@ -675,11 +664,11 @@ export default function AutoWashJobScreen() {
                   ]}
                 >
                   <View style={styles.stepHeader}>
-                    <View style={[styles.stepIconBox, isDone && { backgroundColor: (C.leaf as any) || '#22C55E' }]}>
+                    <View style={[styles.stepIconBox, isDone && { backgroundColor: C.success }]}>
                       {isDone ? (
                         <CheckCircle size={20} weight="fill" color="#fff" />
                       ) : (
-                        <Sparkle size={20} weight="duotone" color={C.primaryDk || '#0369A1'} />
+                        <Sparkle size={20} weight="duotone" color={C.primary} />
                       )}
                     </View>
                     <View style={{ flex: 1 }}>
@@ -851,6 +840,7 @@ export default function AutoWashJobScreen() {
             </TouchableOpacity>
           </View>
         )}
+        </WebContainer>
       </ScrollView>
     </View>
   );
@@ -908,7 +898,7 @@ const makeStyles = (C: any) => StyleSheet.create({
     padding: 14,
   },
   stepCardActive: { borderColor: C.primary, backgroundColor: (C.primaryBg as any) || '#E0F2FE' },
-  stepCardDone: { borderColor: (C.leaf as any) || '#22C55E', opacity: 0.85 },
+  stepCardDone: { borderColor: C.success, opacity: 0.85 },
   stepHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   stepIconBox: {
     width: 38, height: 38, borderRadius: 10,
@@ -918,7 +908,7 @@ const makeStyles = (C: any) => StyleSheet.create({
   stepLabel: { fontSize: 14, fontWeight: '800', color: C.foreground },
   stepHint: { fontSize: 12, color: C.muted, marginTop: 2 },
   stepBody: { marginTop: 12, gap: 12 },
-  doneNote: { marginTop: 8, fontSize: 12, color: (C.leaf as any) || '#22C55E', fontWeight: '600' },
+  doneNote: { marginTop: 8, fontSize: 12, color: C.success, fontWeight: '600' },
 
   inputRow: { gap: 6 },
   inputLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 1, color: C.muted },
@@ -932,7 +922,7 @@ const makeStyles = (C: any) => StyleSheet.create({
   formRow: { gap: 6, marginBottom: 4 },
 
   timerBox: {
-    backgroundColor: C.ink || '#0B1F33', borderRadius: 12,
+    backgroundColor: C.foreground, borderRadius: 12,
     padding: 16, alignItems: 'center',
   },
   timerLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: '800', letterSpacing: 1.4 },
@@ -961,7 +951,7 @@ const makeStyles = (C: any) => StyleSheet.create({
   startBtn: {
     marginTop: 10,
     paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10,
-    backgroundColor: C.ink || '#0B1F33', alignSelf: 'flex-start',
+    backgroundColor: C.foreground, alignSelf: 'flex-start',
   },
   startBtnText: { color: '#fff', fontWeight: '800', fontSize: 13 },
 });

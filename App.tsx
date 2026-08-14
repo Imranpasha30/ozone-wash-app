@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import RootNavigator from './src/navigation/RootNavigator';
 import { navigationRef } from './src/navigation/navigationRef';
 import DialogHost from './src/components/DialogHost';
+import { CameraCaptureHost } from './src/services/cameraCapture';
 import AppPromoBanner from './src/components/AppPromoBanner';
 
 // Initialise Sentry as early as possible (no-op in dev so it doesn't spam local testing).
@@ -286,6 +287,7 @@ function App() {
           <AppPromoBanner />
           <RootNavigator />
           <DialogHost />
+          <CameraCaptureHost />
         </GestureHandlerRootView>
       </SafeAreaProvider>
     </ErrorBoundary>

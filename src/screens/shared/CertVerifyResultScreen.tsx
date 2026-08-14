@@ -6,6 +6,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { certificateAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
+import WebContainer from '../../components/WebContainer';
 import {
   ShieldCheck, XCircle, Warning, ArrowLeft, Trophy,
   Medal, Star, Shield, Calendar, MapPin, Drop,
@@ -90,6 +91,7 @@ const CertVerifyResultScreen = () => {
       </View>
 
       <View style={styles.body}>
+        <WebContainer variant="narrow">
         {error ? (
           /* Error State */
           <View style={styles.resultCard}>
@@ -172,6 +174,7 @@ const CertVerifyResultScreen = () => {
             </TouchableOpacity>
           </View>
         )}
+        </WebContainer>
       </View>
     </View>
   );

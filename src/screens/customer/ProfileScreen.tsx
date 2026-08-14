@@ -10,7 +10,7 @@ import useSettingsStore, { FontScale } from '../../store/settings.store';
 import { useTheme } from '../../hooks/useTheme';
 import { authAPI, jobAPI } from '../../services/api';
 import {
-  ClipboardText, Trophy, FileText, Wrench,
+  ClipboardText, Trophy, FileText, Wrench, MapPin,
   CaretRight, SignOut, Phone, User, Eye, EyeSlash, PencilSimple, Check, X,
   ShieldCheck, Medal, Crown,
 } from '../../components/Icons';
@@ -221,6 +221,7 @@ const ProfileScreen = () => {
     { icon: <ClipboardText size={20} weight="regular" color={C.primary} />, label: 'My Bookings', onPress: () => navigation.navigate('MyBookings') },
     { icon: <Trophy size={20} weight="regular" color={C.primary} />, label: 'Certificates', onPress: () => navigation.navigate('Certificates') },
     { icon: <FileText size={20} weight="regular" color={C.primary} />, label: 'AMC Plans', onPress: () => navigation.navigate('AmcPlans') },
+    { icon: <MapPin size={20} weight="regular" color={C.primary} />, label: 'My Addresses', onPress: () => navigation.navigate('MyAddresses') },
   ] : user?.role === 'field_team' ? [
     { icon: <Wrench size={20} weight="regular" color={C.primary} />, label: 'My Jobs', onPress: () => navigation.navigate('Jobs') },
   ] : [];

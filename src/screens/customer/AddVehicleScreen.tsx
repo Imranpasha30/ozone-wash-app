@@ -19,12 +19,14 @@ import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { ArrowLeft, Car, CheckCircle } from '../../components/Icons';
 import WebContainer from '../../components/WebContainer';
 
-const VEHICLE_TYPES: { code: 'hatchback' | 'sedan' | 'suv_muv' | 'luxury' | 'two_wheeler'; label: string }[] = [
+// TF1 — Two-wheeler featured first with ★ Popular badge per PDF Section 2.
+// Right-thumb position on phone, drives 2W cross-sell strategy.
+const VEHICLE_TYPES: { code: 'hatchback' | 'sedan' | 'suv_muv' | 'luxury' | 'two_wheeler'; label: string; popular?: boolean }[] = [
+  { code: 'two_wheeler', label: '2-Wheeler', popular: true },
   { code: 'hatchback',   label: 'Hatchback' },
   { code: 'sedan',       label: 'Sedan' },
   { code: 'suv_muv',     label: 'SUV / MUV' },
   { code: 'luxury',      label: 'Luxury' },
-  { code: 'two_wheeler', label: '2-Wheeler' },
 ];
 
 export default function AddVehicleScreen() {
@@ -70,7 +72,7 @@ export default function AddVehicleScreen() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={[C.primary, C.primaryDk || '#0369A1']} style={[styles.header, { paddingTop: insets.top + 12 }]}>
+      <LinearGradient colors={[C.primary, C.primary]} style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.85}>
             <ArrowLeft size={20} color="#fff" weight="bold" />
@@ -96,6 +98,12 @@ export default function AddVehicleScreen() {
                 style={[styles.typeChip, active && styles.typeChipActive]}
                 activeOpacity={0.85}
               >
+                {t.popular && (
+                  <View style={styles.popularBadge}>
+                    <Text style={styles.popularStar}>★</Text>
+                    <Text style={styles.popularText}>POPULAR</Text>
+                  </View>
+                )}
                 <Text style={[styles.typeChipText, active && { color: '#fff' }]}>{t.label}</Text>
               </TouchableOpacity>
             );
@@ -236,9 +244,20 @@ const makeStyles = (C: any) => StyleSheet.create({
   typeChip: {
     paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999,
     borderWidth: 1, borderColor: C.border, backgroundColor: C.surface,
+    position: 'relative',
   },
   typeChipActive: { backgroundColor: C.primary, borderColor: C.primary },
   typeChipText: { fontSize: 13, fontWeight: '700', color: C.foreground },
+  // TF1 — ★ Popular ribbon on the two-wheeler chip
+  popularBadge: {
+    position: 'absolute', top: -8, right: -4,
+    flexDirection: 'row', alignItems: 'center', gap: 2,
+    paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999,
+    backgroundColor: '#16A34A',
+    zIndex: 2,
+  },
+  popularStar: { fontSize: 9, color: '#FBBF24', fontWeight: '900' },
+  popularText: { fontSize: 8, color: '#fff', fontWeight: '800', letterSpacing: 0.5 },
 
   inputBox: {
     flexDirection: 'row', alignItems: 'center', gap: 10,

@@ -18,6 +18,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { ecoScoreAPI } from '../../services/api';
 import { MisHeader } from '../../components/charts/MisScaffold';
+import WebContainer from '../../components/WebContainer';
 import Bars, { Bar } from '../../components/charts/Bars';
 import {
   ArrowsClockwise, PencilSimple, Crown, Trophy, Medal, ShieldCheck,
@@ -149,6 +150,7 @@ const AdminEcoScoreScreen: React.FC = () => {
             : undefined
         }
       >
+        <WebContainer variant="default">
         {/* Recalculate */}
         <TouchableOpacity
           activeOpacity={0.85}
@@ -203,6 +205,7 @@ const AdminEcoScoreScreen: React.FC = () => {
             <Text style={styles.emptyText}>No customers below threshold.</Text>
           ) : bottom.map((u) => <CustomerRowItem key={u.user_id} u={u} C={C} />)}
         </View>
+        </WebContainer>
       </ScrollView>
 
       {/* Edit-weights modal */}

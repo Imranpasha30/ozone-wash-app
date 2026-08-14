@@ -8,7 +8,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet, Image, Platform,
 } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { COLORS } from '../utils/constants';
+import { useTheme } from '../hooks/useTheme';
 import useSidebarStore, {
   SIDEBAR_WIDTH_EXPANDED, SIDEBAR_WIDTH_COLLAPSED,
 } from '../store/sidebar.store';
@@ -16,9 +16,11 @@ import { CaretLeft, CaretRight } from './Icons';
 import GooglePlayColorLogo from './GooglePlayColorLogo';
 
 const WebSidebarBar = ({ state, descriptors, navigation }: BottomTabBarProps) => {
+  const COLORS = useTheme();
   const collapsed = useSidebarStore((s) => s.collapsed);
   const toggle    = useSidebarStore((s) => s.toggle);
   const width = collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED;
+  const s = makeStyles(COLORS);
 
   return (
     <View style={[s.sidebar, { width }]}>
@@ -135,7 +137,7 @@ const WebSidebarBar = ({ state, descriptors, navigation }: BottomTabBarProps) =>
   );
 };
 
-const s = StyleSheet.create({
+const makeStyles = (COLORS: ReturnType<typeof useTheme>) => StyleSheet.create({
   sidebar: {
     // Inline flex layout — tabBarPosition='left' on the Tab.Navigator lays out
     // the bar as a sibling flex item next to the scene container. Stays put
@@ -204,6 +206,7 @@ const s = StyleSheet.create({
     borderRadius: 8,
     marginHorizontal: 16, marginTop: 8, marginBottom: 12,
     backgroundColor: '#0B0B0B',
+    borderWidth: 1, borderColor: COLORS.border,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   storeBadgeKicker: { fontSize: 8, color: '#fff', letterSpacing: 1.2, fontWeight: '600' },

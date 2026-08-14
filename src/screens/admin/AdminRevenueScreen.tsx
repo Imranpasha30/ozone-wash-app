@@ -11,6 +11,7 @@ import {
   CurrencyInr, TrendUp, CheckCircle, ClipboardText, Receipt,
 } from '../../components/Icons';
 import ScreenHeader from '../../components/ScreenHeader';
+import WebContainer from '../../components/WebContainer';
 
 const AdminRevenueScreen = () => {
   const C = useTheme();
@@ -75,6 +76,7 @@ const AdminRevenueScreen = () => {
 
       <ScreenHeader title="Revenue" subtitle="Overview" fallbackRoute="AdminDashboard" />
 
+      <WebContainer variant="default">
       {/* Total Revenue Card */}
       <View style={styles.totalCard}>
         <View style={styles.totalIconBox}>
@@ -152,6 +154,7 @@ const AdminRevenueScreen = () => {
           ))}
         </>
       )}
+      </WebContainer>
     </ScrollView>
   );
 };

@@ -4,6 +4,7 @@ import {
   ActivityIndicator, Alert, Platform,
 } from 'react-native';
 import { useWebScrollFix } from '../../utils/useWebScrollFix';
+import WebContainer from '../../components/WebContainer';
 let documentDirectory: string | null = null;
 let downloadAsync: any = null;
 let Sharing: any = null;
@@ -209,6 +210,7 @@ const CertificateScreen = () => {
       </View>
 
       <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
+        <WebContainer variant="narrow">
         {/* Certificate Card */}
         <View style={[styles.certCard, { borderColor: BADGE_COLORS[badge] }]}>
           {/* Header */}
@@ -307,6 +309,7 @@ const CertificateScreen = () => {
           <ShieldCheck size={20} weight="regular" color={C.primary} />
           <Text style={styles.verifyText}>Verify Certificate</Text>
         </TouchableOpacity>
+        </WebContainer>
       </ScrollView>
     </View>
   );

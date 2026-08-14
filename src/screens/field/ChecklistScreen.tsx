@@ -8,6 +8,7 @@ import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/nativ
 import { complianceAPI, jobAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { COMPLIANCE_STEPS } from '../../utils/constants';
+import WebContainer from '../../components/WebContainer';
 import {
   ArrowLeft, Check, Lock, CheckCircle, ArrowRight, Confetti,
 } from '../../components/Icons';
@@ -108,6 +109,7 @@ const ChecklistScreen = () => {
       </View>
 
       <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
+        <WebContainer variant="narrow">
         {steps.map((step: any, i: number) => {
           const isCompleted = step.completed;
           const isLocked = i > 0 && !steps[i - 1].completed;
@@ -167,7 +169,9 @@ const ChecklistScreen = () => {
                     </>
                   ) : (
                     <Text style={styles.stepFields}>
-                      {isLocked ? 'Complete previous step first' : `Required: ${step.required_fields?.join(', ') || 'photo, GPS'}`}
+                      {isLocked
+                        ? 'Complete previous step first'
+                        : `${step.required_fields?.length || 2} checks · photo & GPS required`}
                     </Text>
                   )}
                 </View>
@@ -204,6 +208,7 @@ const ChecklistScreen = () => {
             </View>
           )}
         </TouchableOpacity>
+        </WebContainer>
       </ScrollView>
     </View>
   );

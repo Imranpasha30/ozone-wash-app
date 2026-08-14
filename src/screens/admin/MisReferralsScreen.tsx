@@ -16,6 +16,7 @@ import {
 import KpiTile from '../../components/charts/KpiTile';
 import Donut from '../../components/charts/Donut';
 import Bars from '../../components/charts/Bars';
+import WebContainer from '../../components/WebContainer';
 import { Buildings, TrendUp, CurrencyInr, Star } from '../../components/Icons';
 import { MisReferrals, ReferralSourceType } from '../../types/mis';
 
@@ -81,6 +82,7 @@ const MisReferralsScreen: React.FC = () => {
           ) : undefined
         }
       >
+        <WebContainer variant="default">
         <DateRangeFilter
           range={range}
           from={from}
@@ -214,6 +216,7 @@ const MisReferralsScreen: React.FC = () => {
             />
           </>
         ) : null}
+        </WebContainer>
       </ScrollView>
     </View>
   );

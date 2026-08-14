@@ -231,8 +231,8 @@ export default function AutoWashBookingScreen() {
     return false;
   };
 
-  const next = () => { if (canAdvance()) setStep((s) => Math.min(6, (s + 1) as StepIdx)); };
-  const back = () => { setStep((s) => Math.max(0, (s - 1) as StepIdx)); };
+  const next = () => { if (canAdvance()) setStep((s) => Math.min(6, s + 1) as StepIdx); };
+  const back = () => { setStep((s) => Math.max(0, s - 1) as StepIdx); };
 
   /* Capture the device's current coordinates + reverse-geocode into a human
    * address (best-effort). User can still edit the address text afterwards. */
@@ -338,7 +338,7 @@ export default function AutoWashBookingScreen() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={[C.primary, C.primaryDk || '#0369A1']} style={[styles.header, { paddingTop: insets.top + 12 }]}>
+      <LinearGradient colors={[C.primary, C.primary]} style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => step === 0 ? navigation.goBack() : back()} style={styles.backBtn} activeOpacity={0.85}>
             <ArrowLeft size={20} color="#fff" weight="bold" />
@@ -378,7 +378,7 @@ export default function AutoWashBookingScreen() {
             vehicle={currentVehicle}
             addons={addons}
             selected={selectedAddons}
-            onToggle={(code) => {
+            onToggle={(code: string) => {
               const s = new Set(selectedAddons);
               if (s.has(code)) s.delete(code); else s.add(code);
               setSelectedAddons(s);
@@ -411,7 +411,7 @@ export default function AutoWashBookingScreen() {
           <Step4Subscription
             plans={plans}
             selected={selectedPlan}
-            onSelect={(code) => setSelectedPlan(selectedPlan === code ? null : code)}
+            onSelect={(code: string) => setSelectedPlan(selectedPlan === code ? null : code)}
             C={C}
           />
         )}
@@ -500,7 +500,7 @@ function Step0Vehicle({ vehicles, selected, onSelect, onAddNew, C }: any) {
                 {v.vehicle_type.replace('_', ' ').toUpperCase()} · {v.registration_number}
               </Text>
             </View>
-            {active && <CheckCircle size={22} weight="fill" color={C.leaf || '#22C55E'} />}
+            {active && <CheckCircle size={22} weight="fill" color={C.success} />}
           </TouchableOpacity>
         );
       })}
@@ -536,7 +536,7 @@ function Step1Package({ vehicle, packages, selected, onSelect, C }: any) {
             style={[styles.card, active && styles.cardSelected]}
           >
             <View style={styles.pkgIcon}>
-              <Sparkle size={22} weight="fill" color={C.primaryDk || '#0369A1'} />
+              <Sparkle size={22} weight="fill" color={C.primary} />
             </View>
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -552,7 +552,7 @@ function Step1Package({ vehicle, packages, selected, onSelect, C }: any) {
                 </View>
               )}
             </View>
-            {active && <CheckCircle size={22} weight="fill" color={C.leaf || '#22C55E'} />}
+            {active && <CheckCircle size={22} weight="fill" color={C.success} />}
           </TouchableOpacity>
         );
       })}
@@ -789,7 +789,7 @@ function Step4Subscription({ plans, selected, onSelect, C }: any) {
           <Text style={styles.cardTitle}>One-time booking</Text>
           <Text style={styles.cardSub}>No subscription. Pay as you go.</Text>
         </View>
-        {!selected && <CheckCircle size={22} weight="fill" color={C.leaf || '#22C55E'} />}
+        {!selected && <CheckCircle size={22} weight="fill" color={C.success} />}
       </TouchableOpacity>
       {plans.filter((p: Plan) => p.washes_per_cycle > 0).map((p: Plan) => {
         const active = p.code === selected;
@@ -809,13 +809,13 @@ function Step4Subscription({ plans, selected, onSelect, C }: any) {
               </View>
               <Text style={styles.cardSub}>{p.cadence_label}</Text>
               {p.addon_discount_pct > 0 && (
-                <Text style={[styles.cardSub, { color: C.leaf || '#22C55E', fontWeight: '700' }]}>
+                <Text style={[styles.cardSub, { color: C.success, fontWeight: '700' }]}>
                   {p.addon_discount_pct}% off any add-on
                 </Text>
               )}
               {p.notes && <Text style={[styles.cardSub, { fontStyle: 'italic' }]}>{p.notes}</Text>}
             </View>
-            {active && <CheckCircle size={22} weight="fill" color={C.leaf || '#22C55E'} />}
+            {active && <CheckCircle size={22} weight="fill" color={C.success} />}
           </TouchableOpacity>
         );
       })}
@@ -871,8 +871,8 @@ function Step5Review({ vehicle, packageCode, packages, quote, dateStr, slot, sub
           ))}
           {quote.discount_paise > 0 && (
             <View style={styles.lineRow}>
-              <Text style={[styles.lineLabel, { color: C.leaf || '#22C55E' }]}>Subscription discount</Text>
-              <Text style={[styles.lineValue, { color: C.leaf || '#22C55E' }]}>− {rupees(quote.discount_paise)}</Text>
+              <Text style={[styles.lineLabel, { color: C.success }]}>Subscription discount</Text>
+              <Text style={[styles.lineValue, { color: C.success }]}>− {rupees(quote.discount_paise)}</Text>
             </View>
           )}
           <View style={[styles.lineRow, styles.totalRow]}>
@@ -880,7 +880,7 @@ function Step5Review({ vehicle, packageCode, packages, quote, dateStr, slot, sub
             <Text style={styles.totalValue}>{rupees(quote.total_paise)}</Text>
           </View>
           <View style={styles.ecoNote}>
-            <Drop size={14} weight="fill" color={C.leaf || '#22C55E'} />
+            <Drop size={14} weight="fill" color={C.success} />
             <Text style={styles.ecoNoteText}>
               You'll save ~{quote.ecoscore_preview_water_saved_litres} L vs traditional car wash.
             </Text>
@@ -898,9 +898,9 @@ function Step6Payment({ quote, submitting, submitted, onConfirm, C }: any) {
     <View style={{ gap: 16 }}>
       <Text style={styles.sectionTitle}>Payment</Text>
       <Text style={styles.sectionSub}>Choose how you'd like to pay. Booking is held while payment processes.</Text>
-      <View style={[styles.card, { backgroundColor: (C.aqua as any) || '#E0F2FE' }]}>
+      <View style={[styles.card, { backgroundColor: C.primaryBg }]}>
         <Text style={styles.cardLabel}>AMOUNT DUE</Text>
-        <Text style={[styles.totalValue, { fontSize: 28, color: C.primaryDk || '#0369A1' }]}>
+        <Text style={[styles.totalValue, { fontSize: 28, color: C.primary }]}>
           {quote ? rupees(quote.total_paise) : '—'}
         </Text>
       </View>
@@ -913,8 +913,8 @@ function Step6Payment({ quote, submitting, submitted, onConfirm, C }: any) {
             style={[styles.card, { paddingVertical: 18, opacity: locked ? 0.5 : 1 }]}
             activeOpacity={0.85}
           >
-            <Text style={[styles.cardTitle, { color: C.primaryDk || '#0369A1' }]}>Pay with {m}</Text>
-            <ArrowRight size={18} color={C.primaryDk || '#0369A1'} weight="bold" />
+            <Text style={[styles.cardTitle, { color: C.primary }]}>Pay with {m}</Text>
+            <ArrowRight size={18} color={C.primary} weight="bold" />
           </TouchableOpacity>
         ))}
       </View>
@@ -968,7 +968,7 @@ const makeStyles = (C: any) => StyleSheet.create({
     borderWidth: 1, borderColor: C.border,
   },
   cardSelected: { borderColor: C.primary, backgroundColor: (C.primaryBg as any) || '#E0F2FE' },
-  cardHighlight: { borderColor: (C.leaf as any) || '#22C55E' },
+  cardHighlight: { borderColor: C.success },
   cardDashed: { borderStyle: 'dashed' as any, backgroundColor: 'transparent' },
 
   cardLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 1.4, color: C.muted, marginBottom: 4 },
@@ -990,7 +990,7 @@ const makeStyles = (C: any) => StyleSheet.create({
     backgroundColor: (C.primaryBg as any) || '#E0F2FE',
     alignItems: 'center', justifyContent: 'center',
   },
-  pkgPrice: { fontSize: 16, fontWeight: '800', color: C.primaryDk || '#0369A1' },
+  pkgPrice: { fontSize: 16, fontWeight: '800', color: C.primary },
   featureLine: { fontSize: 12, color: C.muted, lineHeight: 18 },
 
   checkboxBox: {
@@ -1018,7 +1018,7 @@ const makeStyles = (C: any) => StyleSheet.create({
   lineValue: { fontSize: 13, color: C.foreground, fontWeight: '600' },
   totalRow: { borderTopWidth: 1, borderTopColor: C.border, marginTop: 8, paddingTop: 12 },
   totalLabel: { fontSize: 14, fontWeight: '800', color: C.foreground },
-  totalValue: { fontSize: 18, fontWeight: '800', color: C.primaryDk || '#0369A1' },
+  totalValue: { fontSize: 18, fontWeight: '800', color: C.primary },
 
   ecoNote: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -1033,7 +1033,7 @@ const makeStyles = (C: any) => StyleSheet.create({
   },
   runningTotal: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   runningTotalLabel: { fontSize: 12, color: C.muted, fontWeight: '600' },
-  runningTotalValue: { fontSize: 18, fontWeight: '800', color: C.primaryDk || '#0369A1' },
+  runningTotalValue: { fontSize: 18, fontWeight: '800', color: C.primary },
   nextBtn: {
     height: 52, borderRadius: 14, backgroundColor: C.primary,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,

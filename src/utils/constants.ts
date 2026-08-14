@@ -26,7 +26,22 @@ export const TANK_TYPES = [
   { label: 'Overhead Tank', value: 'overhead' },
   { label: 'Underground Tank', value: 'underground' },
   { label: 'Sump', value: 'sump' },
+  { label: 'Sintex / Plastic', value: 'sintex' },
 ];
+
+// 8-band size matrix per pricing master (PDF spec Section 8).
+// `mid` is the litres value sent to /bookings/price — backend resolves
+// to the matching pricing_tier row.
+export const TANK_SIZE_BANDS = [
+  { label: '500 – 1,000 L',         mid: 1000,    minL: 500,    maxL: 1000,    basePrice: 3500 },
+  { label: '1,001 – 10,000 L',      mid: 5000,    minL: 1001,   maxL: 10000,   basePrice: 3500 },
+  { label: '10,001 – 20,000 L',     mid: 15000,   minL: 10001,  maxL: 20000,   basePrice: 7000 },
+  { label: '20,001 – 30,000 L',     mid: 25000,   minL: 20001,  maxL: 30000,   basePrice: 9000 },
+  { label: '30,001 – 40,000 L',     mid: 35000,   minL: 30001,  maxL: 40000,   basePrice: 12000 },
+  { label: '40,001 – 50,000 L',     mid: 45000,   minL: 40001,  maxL: 50000,   basePrice: 14000 },
+  { label: '50,001 – 1,00,000 L',   mid: 75000,   minL: 50001,  maxL: 100000,  basePrice: 21000 },
+  { label: '1,00,000+ L',           mid: 150000,  minL: 100001, maxL: null,    basePrice: 25000 },
+] as const;
 
 export const PAYMENT_METHODS = [
   { label: 'UPI', value: 'upi' },
@@ -44,11 +59,27 @@ export const AMC_PLANS = [
   { label: 'Yearly', value: 'yearly', price: 11000 },
 ];
 
+// App-facing add-ons ("Add On for APP" sheet). Prices depend on tank size
+// buckets and come from GET /bookings/addons — the `price` here is only the
+// small-bucket fallback shown before the API responds.
 export const ADDONS = [
-  { label: 'Lime Treatment', value: 'lime_treatment', price: 500 },
-  { label: 'Structure Health Check', value: 'structure_health_check', price: 800 },
-  { label: 'Advanced Testing', value: 'advanced_testing', price: 1200 },
+  { label: 'UV Sterilization Pass', value: 'uv_sterilization', price: 500 },
+  { label: 'Anti-Algae Spray/Coating', value: 'anti_algae', price: 400 },
+  { label: 'Anti-Lime / Descaling', value: 'anti_lime', price: 600 },
+  { label: 'Pathogen Testing & Lab Report', value: 'pathogen_testing', price: 1500 },
+  { label: 'Structural Safety Audit', value: 'structural_audit', price: 1500 },
+  { label: 'IoT Sensor Installation', value: 'iot_sensor', price: 15000, comingSoon: true },
 ];
+
+// Service frequency plans (spec §4). Yearly = one-time (same price). Bigger
+// commitment = bigger per-service discount. Non-one_time = an AMC: billed as
+// an annual contract of N services.
+export const SERVICE_PLANS = [
+  { label: 'One-time',    value: 'one_time',    visitsPerYear: 1,  discountPct: 0,  tagline: 'Single service' },
+  { label: 'Half-yearly', value: 'half_yearly', visitsPerYear: 2,  discountPct: 10, tagline: '2 visits/yr · 10% off' },
+  { label: 'Quarterly',   value: 'quarterly',   visitsPerYear: 4,  discountPct: 15, tagline: '4 visits/yr · 15% off' },
+  { label: 'Monthly',     value: 'monthly',     visitsPerYear: 12, discountPct: 30, tagline: '12 visits/yr · 30% off' },
+] as const;
 
 // 9-phase service SOP from FA Check List PDF.
 // Stage 0 is the pre-service PPE/safety gate. Steps 1-8 are the numbered

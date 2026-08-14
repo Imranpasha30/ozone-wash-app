@@ -11,12 +11,14 @@ import { bookingAPI, amcAPI, ecoScoreAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { useResponsive } from '../../utils/responsive';
+import CustomerAlertsBanner from '../../components/CustomerAlertsBanner';
+import NotificationBell from '../../components/NotificationBell';
 import { flush as flushPendingUploads } from '../../utils/pendingUploads';
 import { GOLD_GRADIENT, GOLD_GRADIENT_HORIZONTAL } from '../../utils/constants';
 import { Booking, AmcContract } from '../../types';
 import {
   Bell, Drop, ArrowRight, ClipboardText, Trophy, UserCircle, Car, Leaf,
-  ShieldCheck, FileText, Calendar, Crown, Star, Warning,
+  ShieldCheck, FileText, Calendar, Crown, Star, Warning, Shield,
 } from '../../components/Icons';
 
 const makeStyles = (C: any) => StyleSheet.create({
@@ -295,15 +297,15 @@ const BookingHomeScreen = () => {
       <StatusBar barStyle={usePremiumStore.getState().isPremium ? 'light-content' : 'dark-content'} />
 
       <View style={innerWidthStyle}>
+      {/* Live job alerts — OTP requested / crew departed (tap → booking) */}
+      <CustomerAlertsBanner />
       {/* Header */}
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Hello, {user?.name || 'there'}</Text>
           <Text style={styles.subGreeting}>Hygiene you can see. Health you can feel.</Text>
         </View>
-        <TouchableOpacity style={styles.bellBtn} onPress={() => navigation.navigate('Notifications')}>
-          <Bell size={22} weight="regular" color={C.foreground} />
-        </TouchableOpacity>
+        <NotificationBell />
       </View>
 
       {/* EcoScore — Top */}
@@ -335,36 +337,61 @@ const BookingHomeScreen = () => {
       )}
 
       {/* Hero CTAs — Book a Cleaning + Book Car Wash. On wide screens, render
-          side-by-side; on phones, stack vertically. */}
-      <View style={isLarge ? { flexDirection: 'row', gap: 14 } : undefined}>
+          side-by-side with equal heights (alignItems:stretch + flex:1 on inner
+          gradient so both cards fill the row's tallest height). */}
+      <View style={isLarge ? { flexDirection: 'row', gap: 14, alignItems: 'stretch' } : undefined}>
       <TouchableOpacity onPress={() => navigation.navigate('TankDetails')} activeOpacity={0.85} style={isLarge ? { flex: 1 } : undefined}>
         {usePremiumStore.getState().isPremium ? (
           <LinearGradient
             colors={[...GOLD_GRADIENT]}
             {...GOLD_GRADIENT_HORIZONTAL}
-            style={styles.heroCta}
+            style={[styles.heroCta, isLarge && { flex: 1, marginHorizontal: 0, marginTop: 16 }]}
           >
-            <View style={[styles.heroIconWrap, { backgroundColor: 'rgba(0,0,0,0.15)' }]}>
+            <View style={[styles.heroIconWrap, { backgroundColor: 'rgba(0,0,0,0.15)', flexShrink: 0 }]}>
               <Drop size={28} weight="fill" color="#0B0B0B" />
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.heroTitle, { color: '#0B0B0B' }]}>Book a Cleaning</Text>
-              <Text style={[styles.heroSub, { color: 'rgba(0,0,0,0.6)' }]}>Tank & sump hygiene service</Text>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              {/* Kicker pill — matches the Car Wash card so both stay vertically aligned */}
+              <View style={{
+                alignSelf: 'flex-start',
+                paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
+                backgroundColor: 'rgba(0,0,0,0.12)',
+                flexDirection: 'row', alignItems: 'center', gap: 3,
+                marginBottom: 4, maxWidth: '100%',
+              }}>
+                <Text numberOfLines={1} style={{ fontSize: 9, fontWeight: '800', letterSpacing: 0.8, color: '#0B0B0B' }}>
+                  PREMIUM · AMC
+                </Text>
+              </View>
+              <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.heroTitle, { color: '#0B0B0B' }]}>Book Tank Hygiene</Text>
+              <Text numberOfLines={2} style={[styles.heroSub, { color: 'rgba(0,0,0,0.6)' }]}>8-step ozone clean · Digital cert</Text>
             </View>
-            <View style={[styles.heroArrow, { backgroundColor: 'rgba(0,0,0,0.1)' }]}>
+            <View style={[styles.heroArrow, { backgroundColor: 'rgba(0,0,0,0.1)', flexShrink: 0 }]}>
               <ArrowRight size={20} weight="bold" color="#0B0B0B" />
             </View>
           </LinearGradient>
         ) : (
-          <View style={styles.heroCta}>
-            <View style={styles.heroIconWrap}>
+          <View style={[styles.heroCta, isLarge && { flex: 1, marginHorizontal: 0, marginTop: 16 }]}>
+            <View style={[styles.heroIconWrap, { flexShrink: 0 }]}>
               <Drop size={28} weight="fill" color={C.primaryFg} />
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.heroTitle}>Book a Cleaning</Text>
-              <Text style={styles.heroSub}>Tank & sump hygiene service</Text>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              {/* Kicker pill — matches Car Wash card so heights stay uniform */}
+              <View style={{
+                alignSelf: 'flex-start',
+                paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
+                backgroundColor: 'rgba(255,255,255,0.18)',
+                flexDirection: 'row', alignItems: 'center', gap: 3,
+                marginBottom: 4, maxWidth: '100%',
+              }}>
+                <Text numberOfLines={1} style={{ fontSize: 9, fontWeight: '800', letterSpacing: 0.8, color: '#fff' }}>
+                  TANK · SUMP
+                </Text>
+              </View>
+              <Text numberOfLines={1} ellipsizeMode="tail" style={styles.heroTitle}>Book Tank Hygiene</Text>
+              <Text numberOfLines={2} style={styles.heroSub}>8-step ozone clean · Digital cert</Text>
             </View>
-            <View style={styles.heroArrow}>
+            <View style={[styles.heroArrow, { flexShrink: 0 }]}>
               <ArrowRight size={20} weight="bold" color={C.primaryFg} />
             </View>
           </View>
@@ -381,27 +408,90 @@ const BookingHomeScreen = () => {
           colors={['#0F172A', '#0369A1']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.heroCta}
+          style={[styles.heroCta, isLarge && { flex: 1, marginHorizontal: 0, marginTop: 16 }]}
         >
-          <View style={[styles.heroIconWrap, { backgroundColor: 'rgba(34,197,94,0.22)' }]}>
+          <View style={[styles.heroIconWrap, { backgroundColor: 'rgba(34,197,94,0.22)', flexShrink: 0 }]}>
             <Car size={28} weight="fill" color="#fff" />
           </View>
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-              <Text style={[styles.heroTitle, { color: '#fff' }]}>Book Car Wash</Text>
-              <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: 'rgba(34,197,94,0.22)', flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                <Leaf size={9} weight="fill" color="#86EFAC" />
-                <Text style={{ fontSize: 9, fontWeight: '800', letterSpacing: 0.8, color: '#86EFAC' }}>EV · ZERO EMISSIONS</Text>
-              </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            {/* Kicker pill — sits above the title so it can't squeeze it on narrow widths */}
+            <View style={{
+              alignSelf: 'flex-start',
+              paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
+              backgroundColor: 'rgba(34,197,94,0.22)',
+              flexDirection: 'row', alignItems: 'center', gap: 3,
+              marginBottom: 4, maxWidth: '100%',
+            }}>
+              <Leaf size={9} weight="fill" color="#86EFAC" />
+              <Text
+                numberOfLines={1}
+                style={{ fontSize: 9, fontWeight: '800', letterSpacing: 0.8, color: '#86EFAC' }}
+              >
+                EV · ZERO EMISSIONS
+              </Text>
             </View>
-            <Text style={[styles.heroSub, { color: 'rgba(255,255,255,0.78)' }]}>Doorstep ozone car hygiene · from ₹399</Text>
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={[styles.heroTitle, { color: '#fff' }]}
+            >
+              Ozone Wash Auto
+            </Text>
+            <Text
+              numberOfLines={2}
+              style={[styles.heroSub, { color: 'rgba(255,255,255,0.78)' }]}
+            >
+              Doorstep Car & Two-Wheeler hygiene · from ₹299
+            </Text>
           </View>
-          <View style={[styles.heroArrow, { backgroundColor: 'rgba(255,255,255,0.18)' }]}>
+          <View style={[styles.heroArrow, { backgroundColor: 'rgba(255,255,255,0.18)', flexShrink: 0 }]}>
             <ArrowRight size={20} weight="bold" color="#fff" />
           </View>
         </LinearGradient>
       </TouchableOpacity>
       </View>
+
+      {/* Ozone Guard 24×7 — COMING SOON product card (waitlist capture) */}
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={() => navigation.navigate('GuardWaitlist')}
+        style={{ marginTop: 12 }}
+      >
+        <View style={[styles.heroCta, {
+          backgroundColor: '#0F1A14',
+          borderWidth: 1,
+          borderColor: 'rgba(251,191,36,0.35)',
+        }]}>
+          <View style={[styles.heroIconWrap, {
+            backgroundColor: 'rgba(251,191,36,0.18)',
+            flexShrink: 0,
+          }]}>
+            <Shield size={28} weight="fill" color="#FBBF24" />
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <View style={{
+              alignSelf: 'flex-start',
+              paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
+              backgroundColor: 'rgba(251,191,36,0.22)',
+              flexDirection: 'row', alignItems: 'center', gap: 3,
+              marginBottom: 4, maxWidth: '100%',
+            }}>
+              <Text numberOfLines={1} style={{ fontSize: 9, fontWeight: '800', letterSpacing: 0.8, color: '#FBBF24' }}>
+                COMING SOON · IN-TANK
+              </Text>
+            </View>
+            <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.heroTitle, { color: '#fff' }]}>
+              Ozone Guard 24×7
+            </Text>
+            <Text numberOfLines={2} style={[styles.heroSub, { color: 'rgba(255,255,255,0.78)' }]}>
+              IoT monitoring · Always-on · Notify Me →
+            </Text>
+          </View>
+          <View style={[styles.heroArrow, { backgroundColor: 'rgba(251,191,36,0.18)', flexShrink: 0 }]}>
+            <ArrowRight size={20} weight="bold" color="#FBBF24" />
+          </View>
+        </View>
+      </TouchableOpacity>
 
       {/* AMC Status */}
       <View style={styles.section}>
@@ -416,7 +506,7 @@ const BookingHomeScreen = () => {
               style={styles.premiumGradientStrip}
             >
               <Crown size={20} weight="fill" color="#0B0B0B" />
-              <Text style={styles.premiumGradientTag}>AMC MEMBER</Text>
+              <Text style={styles.premiumGradientTag}>TANK HYGIENE AMC · MEMBER</Text>
             </LinearGradient>
 
             <View style={{ padding: 20, paddingTop: 16 }}>
@@ -476,8 +566,8 @@ const BookingHomeScreen = () => {
           </View>
         ) : (
           <View style={styles.upsellCard}>
-            <Text style={styles.upsellTitle}>No active AMC plan</Text>
-            <Text style={styles.upsellSub}>Save up to 25% on every cleaning with an annual plan. Base service included free.</Text>
+            <Text style={styles.upsellTitle}>Tank Hygiene AMC</Text>
+            <Text style={styles.upsellSub}>Save up to 30% on every cleaning with an annual plan. Priority scheduling, scheduled visits and member discounts included.</Text>
             <TouchableOpacity style={styles.upsellBtn} onPress={() => navigation.navigate('AmcPlans')}>
               <Text style={styles.upsellBtnText}>View Plans</Text>
               <ArrowRight size={14} weight="bold" color={C.primary} />

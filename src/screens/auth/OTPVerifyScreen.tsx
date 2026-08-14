@@ -28,6 +28,38 @@ const OTPVerifyScreen = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // ── Android SMS Retriever auto-fill ─────────────────────────────────────
+  // Bank-app-style silent OTP read. Requires:
+  //   • a custom dev / production build (not Expo Go)
+  //   • the OTP SMS body to end with the app's 11-char hash signature
+  // Listener is started on mount, parses the first 6-digit sequence out of
+  // the matched SMS, fans it across the boxes, and auto-verifies.
+  // Falls back silently if the native module isn't linked (Expo Go).
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    let RNOtpVerify: any = null;
+    try { RNOtpVerify = require('react-native-otp-verify').default; } catch (_) { return; }
+    if (!RNOtpVerify?.getOtp || !RNOtpVerify?.addListener) return;
+
+    let mounted = true;
+    RNOtpVerify.getOtp()
+      .then(() => RNOtpVerify.addListener((message: string) => {
+        if (!mounted || !message) return;
+        const match = String(message).match(/(\d{4,6})/);
+        if (!match) return;
+        const code = match[1].padStart(6, '0').slice(-6);
+        // Re-use the multi-char paste handler so all 6 boxes fill at once.
+        handleOtpChange(code, 0);
+      }))
+      .catch(() => {});
+
+    return () => {
+      mounted = false;
+      try { RNOtpVerify.removeListener?.(); } catch (_) {}
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleOtpChange = (value: string, index: number) => {
     // Strip anything non-digit (handles iOS autofill which can include spaces).
     const cleaned = value.replace(/\D/g, '');
@@ -129,9 +161,14 @@ const OTPVerifyScreen = () => {
             importantForAutofill={i === 0 ? 'yes' : 'no'}
             autoFocus={i === 0}
             selectTextOnFocus
+            contextMenuHidden={false}
           />
         ))}
       </View>
+
+      <Text style={styles.pasteHint}>
+        Tip: copy the OTP from your SMS and long-press the first box to paste — it auto-fills all six.
+      </Text>
 
       <View style={styles.timerRow}>
         {timer > 0 ? (
@@ -263,6 +300,11 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
 
+  pasteHint: {
+    fontSize: 11, color: COLORS.muted, fontStyle: 'italic',
+    textAlign: 'center', marginTop: 12, marginBottom: 8,
+    paddingHorizontal: 24, lineHeight: 15,
+  },
   timerRow:  { alignItems: 'center', marginBottom: 32 },
   timerText: { fontSize: 14, color: COLORS.muted },
   timerBold: { fontWeight: '700', color: COLORS.foreground },

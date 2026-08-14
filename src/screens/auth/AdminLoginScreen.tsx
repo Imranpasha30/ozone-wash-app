@@ -129,7 +129,7 @@ export default function AdminLoginScreen() {
   // Hero panel — left side on desktop, top on mobile.
   const HeroPanel = (
     <LinearGradient
-      colors={[C.ink || '#0B1F33', C.primaryDk || '#0369A1']}
+      colors={['#0B1F33', C.primary || '#0369A1']}
       style={[
         styles.hero,
         isLarge

@@ -7,6 +7,7 @@ import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { jobAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
+import WebContainer from '../../components/WebContainer';
 import { ArrowLeft, Check, ArrowsClockwise } from '../../components/Icons';
 
 const REASONS = [
@@ -91,6 +92,7 @@ const JobTransferScreen = () => {
       </View>
 
       <ScrollView ref={scrollRef} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+        <WebContainer variant="narrow">
         {/* Reason */}
         <View style={styles.labelRow}>
           <ArrowsClockwise size={16} weight="regular" color={C.foreground} />
@@ -160,6 +162,7 @@ const JobTransferScreen = () => {
             <Text style={styles.submitText}>Confirm Transfer</Text>
           )}
         </TouchableOpacity>
+        </WebContainer>
       </ScrollView>
     </View>
   );

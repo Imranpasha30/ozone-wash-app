@@ -1,19 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  ActivityIndicator, Alert, Linking,
+  ActivityIndicator, Alert, Linking, Image, TextInput,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { bookingAPI, complianceAPI, certificateAPI, jobAPI } from '../../services/api';
+import { bookingAPI, complianceAPI, certificateAPI, jobAPI, fieldAPI, ratingAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import {
   ArrowLeft, ArrowRight, Key, CheckCircle, Hourglass, Trophy,
-  ThumbsUp, ThumbsDown, QrCode, ShieldCheck, Warning, Lightning,
+  ThumbsUp, ThumbsDown, QrCode, ShieldCheck, Warning, Lightning, Star,
 } from '../../components/Icons';
 import WebContainer from '../../components/WebContainer';
 
 const STATUS_STEPS = ['pending', 'confirmed', 'in_progress', 'completed'];
+
+// Params shown in the before/after table. goodWhen: which delta direction is an
+// improvement (turbidity/TDS should DROP, ORP should RISE). null = neutral.
+const COMPARE_PARAMS: { key: string; label: string; goodWhen: 'up' | 'down' | null }[] = [
+  { key: 'pH', label: 'pH', goodWhen: null },
+  { key: 'TDS', label: 'TDS', goodWhen: 'down' },
+  { key: 'ORP', label: 'ORP', goodWhen: 'up' },
+  { key: 'turbidity', label: 'Turbidity', goodWhen: 'down' },
+  { key: 'dissolved_o3', label: 'Dissolved O₃', goodWhen: 'up' },
+];
 
 const makeStyles = (C: any) => StyleSheet.create({
   root: { flex: 1, backgroundColor: C.background },
@@ -164,6 +174,98 @@ const makeStyles = (C: any) => StyleSheet.create({
   cancelBtnDisabled: { borderColor: C.muted },
   cancelText: { color: C.danger, fontWeight: 'bold', fontSize: 16 },
   link: { color: C.primary, fontWeight: '600', marginTop: 8 },
+  compareCard: {
+    backgroundColor: C.surface,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  compareRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingBottom: 10,
+    marginBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  compareRowLast: { borderBottomWidth: 0, marginBottom: 0, paddingBottom: 0 },
+  compareParam: { width: 86, fontSize: 12, color: C.muted, fontWeight: '600' },
+  compareValues: { flex: 1, fontSize: 13, color: C.foreground, fontWeight: '600' },
+  compareDelta: { fontSize: 12, fontWeight: '700', marginLeft: 6 },
+  bisBadge: {
+    backgroundColor: C.successBg,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 6,
+  },
+  bisBadgeText: { fontSize: 9, fontWeight: 'bold', color: C.success },
+  effectiveText: {
+    fontSize: 13,
+    color: C.success,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginTop: 12,
+  },
+  photoPairScroll: { marginTop: 12 },
+  photoPairCard: {
+    backgroundColor: C.surface,
+    borderRadius: 16,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: C.border,
+    marginRight: 12,
+    width: 260,
+  },
+  photoStepName: { fontSize: 12, fontWeight: '700', color: C.foreground, marginBottom: 8 },
+  photoPairRow: { flexDirection: 'row', gap: 8 },
+  photoCol: { flex: 1 },
+  pairImg: {
+    width: '100%',
+    height: 140,
+    borderRadius: 10,
+    backgroundColor: C.surfaceHighlight,
+  },
+  pairLabel: {
+    fontSize: 11,
+    color: C.muted,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  // Rate this service
+  rateCard: {
+    backgroundColor: C.surface,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  rateStarsRow: { flexDirection: 'row', justifyContent: 'center', gap: 6 },
+  rateStarBtn: { padding: 4 },
+  rateInput: {
+    backgroundColor: C.surfaceHighlight,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    color: C.foreground,
+    minHeight: 60,
+    marginTop: 14,
+    textAlignVertical: 'top',
+  },
+  rateSubmitBtn: {
+    backgroundColor: C.primary,
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  rateSubmitDisabled: { backgroundColor: C.muted },
+  rateSubmitText: { color: C.primaryFg, fontWeight: '700', fontSize: 14 },
+  rateThanksRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  rateThanksText: { fontSize: 14, fontWeight: '700', color: C.success, flex: 1 },
+  rateStarsSmall: { flexDirection: 'row', gap: 2 },
 });
 
 const BookingDetailScreen = () => {
@@ -173,15 +275,23 @@ const BookingDetailScreen = () => {
 
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const bookingId = route.params?.booking_id;
+  const bookingId = route.params?.booking_id ?? route.params?.id;
 
   const [booking, setBooking] = useState<any>(null);
   const [job, setJob] = useState<any>(null);
   const [compliance, setCompliance] = useState<any>(null);
   const [certificate, setCertificate] = useState<any>(null);
+  const [comparison, setComparison] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
   const [requestingOtp, setRequestingOtp] = useState(false);
+
+  // Service rating — feeds agent KPIs server-side
+  const [myRating, setMyRating] = useState(0);
+  const [ratingComment, setRatingComment] = useState('');
+  const [ratingSubmitting, setRatingSubmitting] = useState(false);
+  const [ratedDone, setRatedDone] = useState(false);
+  const [ratingChecked, setRatingChecked] = useState(false);
 
   const InfoRow = ({ label, value }: { label: string; value: string }) => (
     <View style={styles.infoRow}>
@@ -209,6 +319,61 @@ const BookingDetailScreen = () => {
     const interval = setInterval(fetchAll, 10000);
     return () => clearInterval(interval);
   }, [job?.status, job?.start_otp_verified, job?.end_otp_verified]);
+
+  // Before/after comparison — only once the job is completed. 403/404 → hide.
+  useEffect(() => {
+    const js = job?.status || booking?.job_status;
+    const done = js === 'completed' || booking?.status === 'completed';
+    if (!booking?.job_id || !done) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fieldAPI.getComparison(booking.job_id) as any;
+        if (!cancelled) setComparison(res?.data || null);
+      } catch (_) {
+        if (!cancelled) setComparison(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [booking?.job_id, booking?.job_status, booking?.status, job?.status]);
+
+  // Existing rating check — once the job is completed, see if this job was
+  // already rated so the card shows the thanks state instead of the form.
+  useEffect(() => {
+    const js = job?.status || booking?.job_status;
+    const done = js === 'completed' || booking?.status === 'completed';
+    if (!booking?.job_id || !done || ratingChecked) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await ratingAPI.getForJob(booking.job_id) as any;
+        const r = res?.data?.rating;
+        if (!cancelled && r) {
+          setRatedDone(true);
+          setMyRating(Number(r.rating) || 0);
+        }
+      } catch (_) { /* not rated yet */ }
+      if (!cancelled) setRatingChecked(true);
+    })();
+    return () => { cancelled = true; };
+  }, [booking?.job_id, booking?.job_status, booking?.status, job?.status]);
+
+  const handleSubmitRating = async () => {
+    if (!booking?.job_id || myRating < 1) {
+      Alert.alert('Pick a Rating', 'Tap a star (1-5) first.');
+      return;
+    }
+    setRatingSubmitting(true);
+    try {
+      await ratingAPI.submit(booking.job_id, myRating, ratingComment.trim() || undefined);
+      setRatedDone(true);
+    } catch (e: any) {
+      const d = e?.response?.data || e || {};
+      Alert.alert('Error', d.message || 'Could not submit rating');
+    } finally {
+      setRatingSubmitting(false);
+    }
+  };
 
   const fetchAll = async () => {
     setLoading(true);
@@ -618,6 +783,170 @@ const BookingDetailScreen = () => {
             </TouchableOpacity>
           </>
         )}
+
+        {/* Before / After Results — read-only, shown once the job is completed */}
+        {comparison && (() => {
+          const readings = comparison.readings || {};
+          const rows = COMPARE_PARAMS.filter((p) => readings[p.key]?.before || readings[p.key]?.after);
+          const pairs = (comparison.step_photos || []).filter(
+            (s: any) => s.photo_before_url && s.photo_after_url
+          );
+          if (rows.length === 0 && pairs.length === 0) return null;
+
+          const fmtVal = (r: any) => {
+            if (!r) return '—';
+            const n = Number(r.value);
+            const v = isNaN(n) ? String(r.value) : String(Math.round(n * 100) / 100);
+            return r.unit ? `${v} ${r.unit}` : v;
+          };
+          const orpAfter = Number(readings.ORP?.after?.value);
+
+          return (
+            <>
+              <Text style={styles.sectionTitle}>Before / After Results</Text>
+              {rows.length > 0 && (
+                <View style={styles.compareCard}>
+                  {rows.map((p, i) => {
+                    const r = readings[p.key];
+                    const rawDelta = r.delta ?? (r.before && r.after
+                      ? Number(r.after.value) - Number(r.before.value)
+                      : null);
+                    const delta = rawDelta == null || isNaN(Number(rawDelta)) ? null : Number(rawDelta);
+                    let deltaColor = C.muted;
+                    if (delta != null && delta !== 0 && p.goodWhen) {
+                      const improved = p.goodWhen === 'up' ? delta > 0 : delta < 0;
+                      deltaColor = improved ? C.success : C.danger;
+                    }
+                    return (
+                      <View
+                        key={p.key}
+                        style={[styles.compareRow, i === rows.length - 1 && styles.compareRowLast]}
+                      >
+                        <Text style={styles.compareParam}>{p.label}</Text>
+                        <Text style={styles.compareValues}>
+                          {fmtVal(r.before)}
+                          <Text style={{ color: C.muted, fontWeight: '400' }}>  →  </Text>
+                          {fmtVal(r.after)}
+                        </Text>
+                        {delta != null && delta !== 0 && (
+                          <Text style={[styles.compareDelta, { color: deltaColor }]}>
+                            {delta > 0 ? '↑' : '↓'} {Math.round(Math.abs(delta) * 100) / 100}
+                          </Text>
+                        )}
+                        {r.after?.bis_compliant === true && (
+                          <View style={styles.bisBadge}>
+                            <Text style={styles.bisBadgeText}>BIS PASS</Text>
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })}
+                  {!isNaN(orpAfter) && orpAfter >= 650 && (
+                    <Text style={styles.effectiveText}>Ozone effectiveness confirmed ✓</Text>
+                  )}
+                </View>
+              )}
+
+              {pairs.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.photoPairScroll}
+                >
+                  {pairs.map((s: any) => (
+                    <View key={s.step_number} style={styles.photoPairCard}>
+                      <Text style={styles.photoStepName} numberOfLines={1}>{s.step_name}</Text>
+                      <View style={styles.photoPairRow}>
+                        <View style={styles.photoCol}>
+                          <Image
+                            source={{ uri: s.photo_before_url }}
+                            style={styles.pairImg}
+                            resizeMode="cover"
+                          />
+                          <Text style={styles.pairLabel}>Before</Text>
+                        </View>
+                        <View style={styles.photoCol}>
+                          <Image
+                            source={{ uri: s.photo_after_url }}
+                            style={styles.pairImg}
+                            resizeMode="cover"
+                          />
+                          <Text style={styles.pairLabel}>After</Text>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
+            </>
+          );
+        })()}
+
+        {/* Rate this service — completed jobs, once per job */}
+        {(() => {
+          const js = job?.status || booking.job_status;
+          const done = js === 'completed' || booking.status === 'completed';
+          if (!done || !booking.job_id) return null;
+          return (
+            <>
+              <Text style={styles.sectionTitle}>Rate this service</Text>
+              <View style={styles.rateCard}>
+                {ratedDone ? (
+                  <View style={styles.rateThanksRow}>
+                    <CheckCircle size={20} weight="fill" color={C.success} />
+                    <Text style={styles.rateThanksText}>Thanks for rating ✓</Text>
+                    {myRating > 0 && (
+                      <View style={styles.rateStarsSmall}>
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Star key={n} size={14} weight={n <= myRating ? 'fill' : 'regular'} color={C.gold} />
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                ) : (
+                  <>
+                    <View style={styles.rateStarsRow}>
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <TouchableOpacity
+                          key={n}
+                          style={styles.rateStarBtn}
+                          onPress={() => setMyRating(n)}
+                          activeOpacity={0.7}
+                        >
+                          <Star
+                            size={32}
+                            weight={n <= myRating ? 'fill' : 'regular'}
+                            color={n <= myRating ? C.gold : C.muted}
+                          />
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                    <TextInput
+                      style={styles.rateInput}
+                      placeholder="Add a comment (optional)"
+                      placeholderTextColor={C.muted}
+                      value={ratingComment}
+                      onChangeText={setRatingComment}
+                      multiline
+                    />
+                    <TouchableOpacity
+                      style={[styles.rateSubmitBtn, (ratingSubmitting || myRating < 1) && styles.rateSubmitDisabled]}
+                      onPress={handleSubmitRating}
+                      disabled={ratingSubmitting || myRating < 1}
+                      activeOpacity={0.8}
+                    >
+                      {ratingSubmitting ? (
+                        <ActivityIndicator color={C.primaryFg} />
+                      ) : (
+                        <Text style={styles.rateSubmitText}>Submit Rating</Text>
+                      )}
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            </>
+          );
+        })()}
 
         {/* Cancel Button — hide once job has started (start OTP verified) */}
         {(booking.status === 'pending' || booking.status === 'confirmed') &&

@@ -21,6 +21,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { autoWashAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
+import WebContainer from '../../components/WebContainer';
 import {
   ArrowLeft, Car, Drop, Lightning, Leaf, Trophy, Wrench,
 } from '../../components/Icons';
@@ -45,7 +46,7 @@ export default function AdminAutoWashScreen() {
   const load = useCallback(async () => {
     try {
       const [d, j, a, e]: any[] = await Promise.all([
-        autoWashAPI.getActiveSubscription ? Promise.resolve(null) : Promise.resolve(null), // placeholder; not used here
+        Promise.resolve(null), // placeholder; not used here
         // Use raw fetch via apiAdmin endpoints
         (await import('../../services/api')).default.get('/auto-wash/admin/dashboard'),
         (await import('../../services/api')).default.get('/auto-wash/admin/jobs?limit=10'),
@@ -103,7 +104,7 @@ export default function AdminAutoWashScreen() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={[C.primary, C.primaryDk || '#0369A1']} style={[styles.header, { paddingTop: insets.top + 12 }]}>
+      <LinearGradient colors={[C.primary, C.primary || '#0369A1']} style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.85}>
             <ArrowLeft size={20} color="#fff" weight="bold" />
@@ -120,6 +121,7 @@ export default function AdminAutoWashScreen() {
         contentContainerStyle={styles.body}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={reload} />}
       >
+        <WebContainer variant="default">
         {/* KPI grid */}
         <View style={styles.kpiGrid}>
           <KpiCard label="Washes today" value={`${(today.scheduled || 0) + (today.in_progress || 0) + (today.completed || 0)}`} sub={`${today.completed || 0} done`} Icon={Car} C={C} />
@@ -137,7 +139,7 @@ export default function AdminAutoWashScreen() {
           {jobs.map((j) => (
             <View key={j.id} style={styles.jobCard}>
               <View style={[styles.statusDot, {
-                backgroundColor: j.status === 'completed' ? (C.leaf || '#22C55E') :
+                backgroundColor: j.status === 'completed' ? (C.success || '#22C55E') :
                                  j.status === 'in_progress' ? C.primary :
                                  j.status === 'cancelled' ? '#EF4444' : C.muted
               }]} />
@@ -176,18 +178,19 @@ export default function AdminAutoWashScreen() {
           {evUnits.length === 0 && <Text style={styles.empty}>No EV units registered yet. Add via /admin/ev-units.</Text>}
           {evUnits.map((u) => (
             <View key={u.id} style={styles.evCard}>
-              <View style={[styles.evStatus, { backgroundColor: u.status === 'active' ? (C.leaf || '#22C55E') : u.status === 'charging' ? '#F59E0B' : C.muted }]} />
+              <View style={[styles.evStatus, { backgroundColor: u.status === 'active' ? (C.success || '#22C55E') : u.status === 'charging' ? '#F59E0B' : C.muted }]} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.evCode}>{u.unit_code}</Text>
                 <Text style={styles.evMeta}>{u.model.replace('_', ' ')} · {u.registration_number}</Text>
                 {u.hub_location && <Text style={styles.evSub}>{u.hub_location}</Text>}
               </View>
-              <Text style={[styles.evStatusText, { color: u.status === 'active' ? (C.leaf || '#22C55E') : C.muted }]}>
+              <Text style={[styles.evStatusText, { color: u.status === 'active' ? (C.success || '#22C55E') : C.muted }]}>
                 {u.status.toUpperCase()}
               </Text>
             </View>
           ))}
         </View>
+        </WebContainer>
       </ScrollView>
     </View>
   );
@@ -196,9 +199,9 @@ export default function AdminAutoWashScreen() {
 function KpiCard({ label, value, sub, Icon, C, accent }: any) {
   const styles = makeStyles(C);
   return (
-    <View style={[styles.kpiCard, accent === 'green' && { borderColor: C.leaf || '#22C55E' }]}>
+    <View style={[styles.kpiCard, accent === 'green' && { borderColor: C.success || '#22C55E' }]}>
       <View style={[styles.kpiIcon, accent === 'green' && { backgroundColor: 'rgba(34,197,94,0.12)' }]}>
-        <Icon size={18} weight="duotone" color={accent === 'green' ? (C.leaf || '#16A34A') : C.primaryDk || '#0369A1'} />
+        <Icon size={18} weight="duotone" color={accent === 'green' ? (C.success || '#16A34A') : C.primary || '#0369A1'} />
       </View>
       <Text style={styles.kpiValue}>{value}</Text>
       <Text style={styles.kpiLabel}>{label}</Text>
@@ -249,7 +252,7 @@ const makeStyles = (C: any) => StyleSheet.create({
   jobCustomer: { fontSize: 14, fontWeight: '700', color: C.foreground },
   jobMeta: { fontSize: 12, color: C.muted, marginTop: 2 },
   jobSub: { fontSize: 11, color: C.muted, marginTop: 2 },
-  jobPrice: { fontSize: 14, fontWeight: '800', color: C.primaryDk || '#0369A1' },
+  jobPrice: { fontSize: 14, fontWeight: '800', color: C.primary || '#0369A1' },
 
   analyticsRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
@@ -258,7 +261,7 @@ const makeStyles = (C: any) => StyleSheet.create({
     borderWidth: 1, borderColor: C.border,
   },
   analyticsName: { fontSize: 13, color: C.foreground, fontWeight: '600', textTransform: 'capitalize' },
-  analyticsCount: { fontSize: 13, fontWeight: '800', color: C.primaryDk || '#0369A1' },
+  analyticsCount: { fontSize: 13, fontWeight: '800', color: C.primary || '#0369A1' },
 
   evCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,

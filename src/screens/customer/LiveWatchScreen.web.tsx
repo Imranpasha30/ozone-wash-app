@@ -21,7 +21,7 @@ export default function LiveWatchScreen() {
 
 const s = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: COLORS.background },
-  title: { fontSize: 20, fontWeight: '700', color: COLORS.text, marginBottom: 12 },
+  title: { fontSize: 20, fontWeight: '700', color: COLORS.foreground, marginBottom: 12 },
   body: { fontSize: 15, color: COLORS.muted, textAlign: 'center', marginBottom: 24, lineHeight: 22 },
   btn: { backgroundColor: COLORS.primary, borderRadius: 12, paddingHorizontal: 28, paddingVertical: 13 },
   btnText: { color: '#fff', fontWeight: '600', fontSize: 15 },

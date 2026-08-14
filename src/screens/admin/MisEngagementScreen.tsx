@@ -16,6 +16,7 @@ import {
 import KpiTile from '../../components/charts/KpiTile';
 import Donut from '../../components/charts/Donut';
 import Bars from '../../components/charts/Bars';
+import WebContainer from '../../components/WebContainer';
 import { Wallet, Sparkle, ArrowsClockwise, Users } from '../../components/Icons';
 import { MisEngagement } from '../../types/mis';
 
@@ -73,6 +74,7 @@ const MisEngagementScreen: React.FC = () => {
           ) : undefined
         }
       >
+        <WebContainer variant="default">
         <DateRangeFilter
           range={range}
           from={from}
@@ -172,6 +174,7 @@ const MisEngagementScreen: React.FC = () => {
             />
           </>
         ) : null}
+        </WebContainer>
       </ScrollView>
     </View>
   );

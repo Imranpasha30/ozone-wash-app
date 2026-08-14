@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import WebContainer from '../../components/WebContainer';
 import { useTheme } from '../../hooks/useTheme';
 import { ArrowLeft } from '../../components/Icons';
 
@@ -286,6 +287,7 @@ const PolicyScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <WebContainer variant="narrow">
         <View style={styles.companyBadge}>
           <Text style={styles.companyName}>VijRam Health Sense Pvt. Ltd.</Text>
           <Text style={styles.companyCity}>Hyderabad, Telangana, India</Text>
@@ -301,6 +303,7 @@ const PolicyScreen = () => {
             <Text style={styles.footerLink}>81 79 69 59 59</Text>
           </Text>
         </View>
+        </WebContainer>
       </ScrollView>
     </View>
   );

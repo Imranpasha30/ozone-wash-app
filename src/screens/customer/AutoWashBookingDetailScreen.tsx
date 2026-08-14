@@ -17,7 +17,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { autoWashAPI } from '../../services/api';
+import { autoWashAPI, jobAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import {
@@ -59,6 +59,21 @@ export default function AutoWashBookingDetailScreen() {
   const [steps, setSteps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const pollRef = useRef<any>(null);
+  // Start OTP the customer shares with the technician (spec G-2)
+  const [startOtp, setStartOtp] = useState<string | null>(null);
+  const [otpHint, setOtpHint] = useState<string | null>(null);
+
+  const fetchStartOtp = async () => {
+    try {
+      const r: any = await jobAPI.customerRequestOtp(jobId);
+      const otp = r.data?.otp || r.otp;
+      if (otp) { setStartOtp(String(otp)); setOtpHint(null); }
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || e?.message || '';
+      // "No technician assigned yet" etc. — show the reason instead of digits
+      setOtpHint(msg || null);
+    }
+  };
 
   const refresh = async () => {
     try {
@@ -76,6 +91,11 @@ export default function AutoWashBookingDetailScreen() {
     refresh();
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [jobId]);
+
+  // Surface the Start OTP while the job is awaiting the technician
+  useEffect(() => {
+    if (job?.status === 'scheduled') fetchStartOtp();
+  }, [job?.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Poll while job is active
   useEffect(() => {
@@ -116,7 +136,7 @@ export default function AutoWashBookingDetailScreen() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={[C.primary, C.primaryDk || '#0369A1']} style={[styles.header, { paddingTop: insets.top + 12 }]}>
+      <LinearGradient colors={[C.primary, '#0369A1']} style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.85}>
             <ArrowLeft size={20} color="#fff" weight="bold" />
@@ -142,6 +162,38 @@ export default function AutoWashBookingDetailScreen() {
 
       <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={styles.body}>
         <WebContainer variant="narrow">
+        {/* Start OTP — shown while scheduled so the customer can hand it to
+            the technician at the door (G-2). */}
+        {job.status === 'scheduled' && (
+          <View style={[styles.card, { marginTop: 12, borderWidth: 1.5, borderColor: C.primary }]}>
+            <Text style={styles.cardLabel}>START OTP</Text>
+            {startOtp ? (
+              <>
+                <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8, marginVertical: 10 }}>
+                  {startOtp.split('').map((d, i) => (
+                    <View key={i} style={{
+                      width: 40, height: 48, borderRadius: 10,
+                      backgroundColor: C.primaryBg, borderWidth: 1.5, borderColor: C.primary,
+                      alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <Text style={{ fontSize: 22, fontWeight: '800', color: C.primary }}>{d}</Text>
+                    </View>
+                  ))}
+                </View>
+                <Text style={{ fontSize: 12, color: C.muted, textAlign: 'center' }}>
+                  Share this OTP with the technician when they arrive — the wash starts only after they verify it.
+                </Text>
+              </>
+            ) : (
+              <TouchableOpacity onPress={fetchStartOtp} style={{ paddingVertical: 10 }}>
+                <Text style={{ fontSize: 13, color: C.muted, textAlign: 'center' }}>
+                  {otpHint || 'Tap to load your Start OTP'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
         {/* Ozone safety alert during step 6 */}
         {isInProgress && stepStarted(6) && !stepDone(6) && (
           <View style={styles.warningBox}>
@@ -173,7 +225,7 @@ export default function AutoWashBookingDetailScreen() {
                 <View key={s.n} style={styles.stepRow}>
                   <View style={[
                     styles.stepDot,
-                    done && { backgroundColor: C.leaf || '#22C55E' },
+                    done && { backgroundColor: C.success || '#22C55E' },
                     active && { backgroundColor: C.primary, borderColor: C.primary },
                   ]}>
                     {done ? <CheckCircle size={12} weight="fill" color="#fff" /> :
@@ -184,7 +236,7 @@ export default function AutoWashBookingDetailScreen() {
                     <Text style={[styles.stepName, (done || active) && { color: C.foreground }]}>{s.name}</Text>
                     {active && <Text style={[styles.stepSub, { color: C.primary }]}>In progress…</Text>}
                     {done && (
-                      <Text style={[styles.stepSub, { color: C.leaf || '#22C55E' }]}>
+                      <Text style={[styles.stepSub, { color: C.success || '#22C55E' }]}>
                         ✓ Complete
                       </Text>
                     )}
@@ -226,7 +278,7 @@ export default function AutoWashBookingDetailScreen() {
           <TouchableOpacity
             onPress={() => navigation.navigate('AutoWashCertificate', { id: jobId })}
             activeOpacity={0.85}
-            style={[styles.card, { backgroundColor: C.ink || '#0B1F33', borderColor: 'transparent' }]}
+            style={[styles.card, { backgroundColor: '#0B1F33', borderColor: 'transparent' }]}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <View style={styles.certIconBox}>
@@ -266,7 +318,7 @@ const makeStyles = (C: any) => StyleSheet.create({
   headerTitle: { color: '#fff', fontWeight: '800', fontSize: 18 },
   headerSub: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 2 },
   statusPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
-  statusPillText: { color: C.ink || '#0B1F33', fontWeight: '800', fontSize: 9.5, letterSpacing: 0.8 },
+  statusPillText: { color: C.foreground, fontWeight: '800', fontSize: 9.5, letterSpacing: 0.8 },
   headerMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
   headerMetaText: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
 
@@ -313,7 +365,7 @@ const makeStyles = (C: any) => StyleSheet.create({
   priceValue: { fontSize: 13, color: C.foreground, fontWeight: '600' },
   priceTotal: { borderTopWidth: 1, borderTopColor: C.border, marginTop: 6, paddingTop: 12 },
   priceTotalLabel: { fontSize: 14, fontWeight: '800', color: C.foreground },
-  priceTotalValue: { fontSize: 18, fontWeight: '800', color: C.primaryDk || '#0369A1' },
+  priceTotalValue: { fontSize: 18, fontWeight: '800', color: C.primary },
 
   certIconBox: {
     width: 44, height: 44, borderRadius: 12,

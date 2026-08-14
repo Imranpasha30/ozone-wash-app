@@ -7,6 +7,7 @@ import {
 import * as Location from 'expo-location';
 import axios from 'axios';
 import { useTheme } from '../../hooks/useTheme';
+import WebContainer from '../../components/WebContainer';
 import {
   ArrowLeft, ArrowRight, MapPin, NavigationArrow, MagnifyingGlass, X,
 } from '../../components/Icons';
@@ -45,7 +46,7 @@ const AddressPickerScreen = ({ navigation, route }: any) => {
   const C = useTheme();
   const styles = React.useMemo(() => makeStyles(C), [C]);
 
-  const { pickingFor, initialAddress, initialLat, initialLng } = route.params ?? {};
+  const { pickingFor, initialAddress, initialLat, initialLng, returnScreen } = route.params ?? {};
 
   const mapRef = useRef<any>(null);
   const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -235,13 +236,13 @@ const AddressPickerScreen = ({ navigation, route }: any) => {
   // ── Confirm selection → navigate back ──────────────────────────
   const handleConfirm = useCallback(() => {
     if (!confirmedAddress.trim()) return;
-    navigation.navigate('TankDetails', {
+    navigation.navigate(returnScreen || 'TankDetails', {
       pickedAddress: confirmedAddress.trim(),
       pickedLat: region.latitude,
       pickedLng: region.longitude,
       pickedFor: pickingFor,
     });
-  }, [confirmedAddress, region, navigation, pickingFor]);
+  }, [confirmedAddress, region, navigation, pickingFor, returnScreen]);
 
   // ── Pin animation interpolations ───────────────────────────────
   const pinTranslateY = pinAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -12] });
@@ -266,6 +267,7 @@ const AddressPickerScreen = ({ navigation, route }: any) => {
 
       {/* ── Body: search + map stacked; suggestions overlays both ── */}
       <View style={styles.body}>
+        <WebContainer variant="narrow" noPadding style={{ flex: 1 }}>
 
         {/* Search bar */}
         <View style={styles.searchWrap}>
@@ -274,7 +276,7 @@ const AddressPickerScreen = ({ navigation, route }: any) => {
             <TextInput
               style={styles.searchInput}
               placeholder="Search area, street, landmark..."
-              placeholderTextColor={C.gray}
+              placeholderTextColor={C.muted}
               value={searchText}
               onChangeText={handleSearchChange}
               onFocus={() => { if (searchText.length >= 2) setShowSuggestions(true); }}
@@ -365,7 +367,7 @@ const AddressPickerScreen = ({ navigation, route }: any) => {
             <TextInput
               style={styles.manualInput}
               placeholder="Type your full address"
-              placeholderTextColor={C.gray}
+              placeholderTextColor={C.muted}
               value={confirmedAddress}
               onChangeText={(t) => { setConfirmedAddress(t); setSearchText(t); }}
               multiline
@@ -438,10 +440,12 @@ const AddressPickerScreen = ({ navigation, route }: any) => {
         </View>
       )}
 
+        </WebContainer>
       </View>{/* end body */}
 
       {/* ── Bottom confirm card ── */}
       <View style={styles.confirmCard}>
+        <WebContainer variant="narrow" noPadding style={{ gap: 14 }}>
         <View style={styles.addressRow}>
           <View style={styles.addressIconWrap}>
             <MapPin size={22} weight="fill" color={C.primary} />
@@ -475,6 +479,7 @@ const AddressPickerScreen = ({ navigation, route }: any) => {
           <Text style={styles.confirmBtnText}>Confirm this location</Text>
           <ArrowRight size={18} weight="bold" color="#FFFFFF" />
         </TouchableOpacity>
+        </WebContainer>
       </View>
     </View>
   );

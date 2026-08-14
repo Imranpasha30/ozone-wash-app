@@ -26,6 +26,8 @@ import LiveStreamScreen from '../screens/field/LiveStreamScreen';
 import IncentiveScreen from '../screens/field/IncentiveScreen';
 import AutoWashJobScreen from '../screens/field/AutoWashJobScreen';
 import EarningsStatsScreen from '../screens/shared/EarningsStatsScreen';
+import VanCheckScreen from '../screens/field/VanCheckScreen';
+import CloseoutScreen from '../screens/field/CloseoutScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -134,6 +136,10 @@ const FieldNavigator = () => (
     <Stack.Screen name="AutoWashJob" component={AutoWashJobScreen} />
     {/* Detailed earnings dashboard — accessed from IncentiveScreen */}
     <Stack.Screen name="EarningsStats" component={EarningsStatsScreen} />
+    {/* SOP v2 — Phase 0 shift van check (gate G-0) */}
+    <Stack.Screen name="VanCheck" component={VanCheckScreen} />
+    {/* SOP v2 — Phase 7 closure: payment collection + AMC interest + review */}
+    <Stack.Screen name="Closeout" component={CloseoutScreen} />
   </Stack.Navigator>
 );
 

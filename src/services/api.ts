@@ -1,4 +1,5 @@
 import axios, { AxiosRequestConfig } from 'axios';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../utils/constants';
 
@@ -188,6 +189,22 @@ export const bookingAPI = {
   getMatrixPrice: (tank_size_litres: number, tank_count: number, plan: 'one_time' | 'monthly' | 'quarterly' | 'half_yearly') =>
     cachedGet('/bookings/price', { params: { tank_size_litres, tank_count, plan } }),
 
+  // Billing v2: full invoice quote (spec master formula) — per-tank sizes,
+  // frequency plan, add-ons. Returns annual invoice for AMC plans.
+  getQuote: (tankSizes: number[], plan: string, addons: string[] = []) =>
+    cachedGet('/bookings/price', {
+      params: {
+        plan,
+        tank_size_litres: tankSizes[0],
+        tank_sizes: tankSizes.join(','),
+        addons: addons.join(','),
+      },
+    }),
+
+  // Add-on catalogue priced for a tank size (bucket-based prices)
+  getAddons: (tank_size_litres: number) =>
+    cachedGet('/bookings/addons', { params: { tank_size_litres } }),
+
   createBooking: (data: any) => {
     invalidateCache('/bookings');
     return api.post('/bookings', data);
@@ -243,9 +260,10 @@ export const jobAPI = {
     return api.post(`/jobs/${jobId}/generate-start-otp`);
   },
 
-  verifyStartOtp: (jobId: string, otp: string) => {
+  // gps feeds the server-side 200m geofence (gate G-1)
+  verifyStartOtp: (jobId: string, otp: string, gps?: { gps_lat?: number; gps_lng?: number }) => {
     invalidateCache('/jobs');
-    return api.post(`/jobs/${jobId}/verify-start-otp`, { otp });
+    return api.post(`/jobs/${jobId}/verify-start-otp`, { otp, ...(gps || {}) });
   },
 
   generateEndOtp: (jobId: string) => {
@@ -256,6 +274,20 @@ export const jobAPI = {
   verifyEndOtp: (jobId: string, otp: string) => {
     invalidateCache('/jobs');
     return api.post(`/jobs/${jobId}/verify-end-otp`, { otp });
+  },
+
+  // Live in-app alert banners: OTP requested / crew departed (customer role)
+  customerAlerts: () => api.get('/jobs/customer-alerts'),
+
+  // Server-backed notification inbox (unread only; read = removed from list)
+  notifications: () => api.get('/notifications'),
+  markNotificationRead: (id: string) => {
+    invalidateCache('/notifications');
+    return api.put(`/notifications/${id}/read`);
+  },
+  markAllNotificationsRead: () => {
+    invalidateCache('/notifications');
+    return api.put('/notifications/read-all');
   },
 
   // Customer requests start OTP
@@ -592,6 +624,9 @@ export const incidentAPI = {
 };
 
 // ── Payments ──────────────────────────────────────────────────────────────────
+// createOrder responses carry a `gateway` discriminator ('razorpay'|'easebuzz'):
+//   razorpay → { order_id, key_id }            → open Razorpay checkout modal
+//   easebuzz → { order_id, payment_url }       → open payment_url in a WebView
 export const paymentAPI = {
   createOrder: (booking_id: string) =>
     api.post('/payments/create-order', { booking_id }),
@@ -606,11 +641,108 @@ export const paymentAPI = {
     api.post('/payments/amc/verify', data),
 };
 
+// ── Saved Addresses (Zomato-style address book) ──────────────────────────────
+export const addressAPI = {
+  list: () => cachedGet('/addresses'),
+
+  create: (data: { label: string; address: string; lat?: number | null; lng?: number | null; is_default?: boolean }) => {
+    invalidateCache('/addresses');
+    return api.post('/addresses', data);
+  },
+
+  update: (id: string, data: { label?: string; address?: string; lat?: number | null; lng?: number | null }) => {
+    invalidateCache('/addresses');
+    return api.put(`/addresses/${id}`, data);
+  },
+
+  setDefault: (id: string) => {
+    invalidateCache('/addresses');
+    return api.patch(`/addresses/${id}/default`);
+  },
+
+  remove: (id: string) => {
+    invalidateCache('/addresses');
+    return api.delete(`/addresses/${id}`);
+  },
+};
+
+// ── Field Ops (SOP v2 — field_team role only) ────────────────────────────────
+// Safety gates return HTTP 423 with { message, retry_after_minutes? } — screens
+// surface the message and retry timer instead of treating it as a crash.
+export const fieldAPI = {
+  // Phase 0 — van checks (gate G-0)
+  getVanCheck: () => api.get('/field/van-check/today'),
+  saveVanCheck: (data: {
+    equipment_checklist?: Record<string, boolean>;
+    calibration_dates?: Record<string, string>;
+    ppe_photo_url?: string;
+    o2_pressure_bar?: number;
+    water_tank_litres?: number;
+  }) => api.post('/field/van-check', data),
+  logPostJobO2: (o2_pressure_bar: number) => api.post('/field/van-check/post-job-o2', { o2_pressure_bar }),
+
+  // Arrival — en-route + confined-space gas check (G-3) + damage log
+  markEnRoute: (jobId: string) => api.patch(`/jobs/${jobId}/en-route`),
+  submitGasCheck: (jobId: string, data: { gas_o2_pct: number; gas_o3_ppm: number; gas_h2s_ppm: number; gas_co_ppm: number }) =>
+    api.post(`/field/jobs/${jobId}/gas-check`, data),
+  logPreDamage: (jobId: string, data: { level: 'none' | 'minor' | 'major'; notes?: string; photo_url?: string }) =>
+    api.post(`/field/jobs/${jobId}/pre-damage`, data),
+
+  // Water readings (Phases 2 & 5 — G-4/G-9/G-10)
+  submitReading: (jobId: string, data: { param: string; timing: 'before' | 'after'; value: number; photo_url?: string; gps_lat?: number; gps_lng?: number }) =>
+    api.post(`/field/jobs/${jobId}/readings`, data),
+  getReadings: (jobId: string) => api.get(`/field/jobs/${jobId}/readings`),
+
+  // Ozone sessions (Phase 4 — G-5..G-8)
+  preOzoneChecklist: (jobId: string, checklist: { respirators: boolean; monitors: boolean; bystanders_clear: boolean; customer_notified: boolean }) =>
+    api.post(`/field/jobs/${jobId}/pre-ozone-checklist`, { checklist }),
+  startOzone: (jobId: string, data?: { tank_size_litres?: number; setup_photo_url?: string }) =>
+    api.post(`/field/jobs/${jobId}/ozone/start`, data || {}),
+  extendOzone: (jobId: string, extra_minutes: number, reason: string) =>
+    api.post(`/field/jobs/${jobId}/ozone/extend`, { extra_minutes, reason }),
+  stopOzone: (jobId: string) => api.post(`/field/jobs/${jobId}/ozone/stop`),
+  confirmFan: (jobId: string) => api.post(`/field/jobs/${jobId}/ozone/fan`),
+  ozoneSafetyReading: (jobId: string, kind: 'ambient' | 'dissolved', value: number) =>
+    api.post(`/field/jobs/${jobId}/ozone/safety-reading`, { kind, value }),
+  getOzoneSession: (jobId: string) => api.get(`/field/jobs/${jobId}/ozone`),
+
+  // Closure (Phase 7 & 8)
+  collectPayment: (jobId: string, method: 'upi' | 'cash', amount_paise: number) =>
+    api.post(`/field/jobs/${jobId}/collect-payment`, { method, amount_paise }),
+  closeout: (jobId: string, amc_interest: 'signed_up' | 'interested' | 'not_interested', review_requested: boolean) =>
+    api.post(`/field/jobs/${jobId}/closeout`, { amc_interest, review_requested }),
+  submitDailyMis: () => api.post('/field/daily-mis'),
+
+  // Comparison view (field + customer + admin)
+  getComparison: (jobId: string) => api.get(`/field/jobs/${jobId}/comparison`),
+};
+
+// ── Booking funnel (abandoned-checkout tracking) ─────────────────────────────
+export const funnelAPI = {
+  // Fire-and-forget from booking steps — never block the UI on this.
+  track: (step: number, draft?: any) =>
+    api.post('/funnel/track', { step, draft }).catch(() => {}),
+
+  // Admin: list abandoned checkouts + workflow status updates
+  getAbandoned: (params?: { status?: 'pending' | 'ongoing' | 'solved'; limit?: number }) =>
+    api.get('/funnel/abandoned', { params }),
+
+  updateLead: (id: string, status: 'pending' | 'ongoing' | 'solved', note?: string) =>
+    api.patch(`/funnel/${id}/status`, { status, note }),
+};
+
 // ── Upload ────────────────────────────────────────────────────────────────────
 export const uploadAPI = {
   uploadPhoto: async (uri: string, folder: string = 'compliance') => {
     const formData = new FormData();
-    formData.append('file', { uri, type: 'image/jpeg', name: `photo_${Date.now()}.jpg` } as any);
+    if (Platform.OS === 'web') {
+      // Web: the native {uri,type,name} FormData trick silently sends nothing —
+      // convert the picker's blob/data URI into a real Blob first.
+      const blob = await (await fetch(uri)).blob();
+      formData.append('file', blob, `photo_${Date.now()}.jpg`);
+    } else {
+      formData.append('file', { uri, type: 'image/jpeg', name: `photo_${Date.now()}.jpg` } as any);
+    }
     formData.append('folder', folder);
     const token = await AsyncStorage.getItem('token');
     // Use raw axios (not the api instance) so the interceptor doesn't double-unwrap

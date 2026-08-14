@@ -93,7 +93,7 @@ const CertificatesScreen = () => {
   const styles = React.useMemo(() => makeStyles(C), [C]);
   const { isLarge } = useResponsive();
   const webListStyle = isLarge
-    ? { maxWidth: 900, width: '100%' as const, alignSelf: 'center' as const, padding: 24 }
+    ? { maxWidth: 720, width: '100%' as const, alignSelf: 'center' as const, padding: 24 }
     : null;
 
   const navigation = useNavigation<any>();

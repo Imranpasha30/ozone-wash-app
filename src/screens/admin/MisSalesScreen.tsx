@@ -17,6 +17,7 @@ import KpiTile from '../../components/charts/KpiTile';
 import Donut from '../../components/charts/Donut';
 import Bars from '../../components/charts/Bars';
 import Spark from '../../components/charts/Spark';
+import WebContainer from '../../components/WebContainer';
 import { TrendUp, CurrencyInr, Users } from '../../components/Icons';
 import { MisSales } from '../../types/mis';
 
@@ -74,6 +75,7 @@ const MisSalesScreen: React.FC = () => {
           ) : undefined
         }
       >
+        <WebContainer variant="default">
         <DateRangeFilter
           range={range}
           from={from}
@@ -217,6 +219,7 @@ const MisSalesScreen: React.FC = () => {
             />
           </>
         ) : null}
+        </WebContainer>
       </ScrollView>
     </View>
   );

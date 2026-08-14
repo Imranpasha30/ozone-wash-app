@@ -65,6 +65,7 @@ export interface Job {
   start_otp_verified?: boolean;
   end_otp_verified?: boolean;
   amc_plan?: string;
+  addons?: string[];  // booking add-on codes (e.g. uv_sterilization)
 }
 
 // ── Compliance ────────────────────────────────────────────────────────────

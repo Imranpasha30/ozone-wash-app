@@ -25,6 +25,9 @@ const AdminCustomersScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [topCustomers, setTopCustomers] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  // Role filter — lets admin find field_team users to demote back to customer.
+  // 'all' shows both roles so the demote workflow is reachable from one screen.
+  const [roleFilter, setRoleFilter] = useState<'customer' | 'field_team' | 'all'>('customer');
 
   // Filter customers by name OR phone substring. Empty query = show all.
   const filteredCustomers = useMemo(() => {
@@ -40,12 +43,30 @@ const AdminCustomersScreen = () => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     try {
-      const [usersRes, topRes] = await Promise.all([
-        adminAPI.getAllUsers({ role: 'customer', limit: 100 }) as any,
+      // 'all' makes two calls and merges, so admin can find both customers
+      // and field_team users in one list to switch roles between them.
+      const userCalls = roleFilter === 'all'
+        ? [
+            adminAPI.getAllUsers({ role: 'customer',   limit: 100 }) as any,
+            adminAPI.getAllUsers({ role: 'field_team', limit: 100 }) as any,
+          ]
+        : [adminAPI.getAllUsers({ role: roleFilter, limit: 100 }) as any];
+      const [usersResults, topRes] = await Promise.all([
+        Promise.all(userCalls),
         adminAPI.getTopCustomers(8) as any,
       ]);
-      setCustomers(usersRes.data?.users || []);
-      setTotal(usersRes.data?.total || 0);
+      const merged: any[] = [];
+      let totalSum = 0;
+      usersResults.forEach((r: any) => {
+        merged.push(...(r.data?.users || []));
+        totalSum += r.data?.total || 0;
+      });
+      // Newest first when merged
+      merged.sort((a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      setCustomers(merged);
+      setTotal(totalSum);
       setTopCustomers(topRes.data?.top || []);
     } catch (_) {} finally {
       setLoading(false);
@@ -53,7 +74,7 @@ const AdminCustomersScreen = () => {
     }
   };
 
-  useFocusEffect(useCallback(() => { fetchCustomers(); }, []));
+  useFocusEffect(useCallback(() => { fetchCustomers(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [roleFilter]));
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -61,7 +82,9 @@ const AdminCustomersScreen = () => {
   const callPhone = (phone: string) => Linking.openURL(`tel:${phone}`);
   const whatsApp = (phone: string) => Linking.openURL(`https://wa.me/91${phone}`);
 
-  const renderItem = ({ item }: { item: any }) => (
+  const renderItem = ({ item }: { item: any }) => {
+    const isField = item.role === 'field_team';
+    return (
     <TouchableOpacity
       style={[styles.card, isLarge && { flex: 1, marginBottom: 0, borderWidth: 1, borderColor: C.border }]}
       onPress={() => navigation.navigate('AdminCustomerDetail', { id: item.id })}
@@ -69,10 +92,17 @@ const AdminCustomersScreen = () => {
     >
       <View style={styles.cardTop}>
         <View style={styles.avatar}>
-          <UserCircle size={36} weight="fill" color={C.primary} />
+          <UserCircle size={36} weight="fill" color={isField ? C.warning : C.primary} />
         </View>
         <View style={styles.cardInfo}>
-          <Text style={styles.name}>{item.name || 'Customer'}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+            <Text style={styles.name}>{item.name || (isField ? 'Field agent' : 'Customer')}</Text>
+            {isField ? (
+              <View style={[styles.rolePill, { backgroundColor: C.warningBg || '#FEF3C7', borderColor: C.warning }]}>
+                <Text style={[styles.rolePillText, { color: C.warning }]}>FIELD AGENT</Text>
+              </View>
+            ) : null}
+          </View>
           <Text style={styles.phone}>{item.phone}</Text>
           <Text style={styles.date}>Joined: {formatDate(item.created_at)}</Text>
         </View>
@@ -93,14 +123,21 @@ const AdminCustomersScreen = () => {
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
-  );
+    );
+  };
+
+  const titleByRole = {
+    customer:   'Customers',
+    field_team: 'Field agents',
+    all:        'All users',
+  } as const;
 
   return (
     <View style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor={C.background} />
 
       <ScreenHeader
-        title="Customers"
+        title={titleByRole[roleFilter]}
         subtitle={`${total} total`}
         fallbackRoute="AdminDashboard"
       />
@@ -119,6 +156,30 @@ const AdminCustomersScreen = () => {
           columnWrapperStyle={numColumns > 1 ? { gap: 16, marginBottom: 16 } : undefined}
           ListHeaderComponent={(
             <View>
+              {/* Role filter — Customers / Field agents / All. Lets admin
+                  surface field_team users to demote them back to customer. */}
+              <View style={styles.roleTabs}>
+                {([
+                  { key: 'customer',   label: 'Customers' },
+                  { key: 'field_team', label: 'Field agents' },
+                  { key: 'all',        label: 'All' },
+                ] as const).map((r) => {
+                  const active = roleFilter === r.key;
+                  return (
+                    <TouchableOpacity
+                      key={r.key}
+                      style={[styles.roleTab, active && styles.roleTabActive]}
+                      onPress={() => setRoleFilter(r.key)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.roleTabText, active && styles.roleTabTextActive]}>
+                        {r.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
               {/* Search bar — filters by phone or name as you type. */}
               <View style={styles.searchWrap}>
                 <MagnifyingGlass size={16} weight="bold" color={C.muted} />
@@ -246,6 +307,26 @@ const makeStyles = (C: any) => StyleSheet.create({
   waText: { fontSize: 13, fontWeight: '700', color: C.success },
   emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, gap: 12 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: C.foreground },
+
+  // ── Role badge on each card ──────────────────────────────────────────
+  rolePill: {
+    paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
+    borderWidth: 1,
+  },
+  rolePillText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
+
+  // ── Role filter tabs (Customers / Field agents / All) ───────────────
+  roleTabs: {
+    flexDirection: 'row', gap: 8, marginBottom: 12,
+  },
+  roleTab: {
+    flex: 1, paddingVertical: 9, paddingHorizontal: 10,
+    borderRadius: 10, borderWidth: 1, borderColor: C.border,
+    backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center',
+  },
+  roleTabActive: { backgroundColor: C.primary, borderColor: C.primary },
+  roleTabText: { fontSize: 12, fontWeight: '600', color: C.muted },
+  roleTabTextActive: { color: C.primaryFg },
 
   // ── Search bar ───────────────────────────────────────────────────────
   searchWrap: {

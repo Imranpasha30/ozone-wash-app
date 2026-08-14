@@ -5,11 +5,28 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import useBookingStore from '../../store/booking.store';
-import { bookingAPI } from '../../services/api';
+import api from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { useWebScrollFix } from '../../utils/useWebScrollFix';
-import { ArrowLeft, ArrowRight, Calendar, Clock, HandPalm, Info } from '../../components/Icons';
+import { ArrowLeft, ArrowRight, Calendar, Clock, HandPalm, Hourglass, Info } from '../../components/Icons';
 import WebContainer from '../../components/WebContainer';
+
+// v2 slot payload — present when the backend returns duration-aware slots
+interface SlotV2 {
+  time: string;          // '08:00'
+  end_time?: string;     // '12:15'
+  available: boolean;
+  vans_free?: number;
+}
+
+interface SlotMeta {
+  duration_min: number;
+  clean_min: number;
+  travel_min: number;
+  locations: number;
+  vans_total: number;
+  per_tank: { litres: number; minutes: number }[];
+}
 
 const DateTimeScreen = () => {
   const C = useTheme();
@@ -17,11 +34,14 @@ const DateTimeScreen = () => {
   const scrollRef = useWebScrollFix();
 
   const navigation = useNavigation<any>();
-  const { setStep2 } = useBookingStore();
+  const { setStep2, draft } = useBookingStore();
 
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedSlot, setSelectedSlot] = useState('');
   const [slots, setSlots] = useState<string[]>([]);
+  // v2 duration-aware response (falls back to legacy `slots` when absent)
+  const [v2Slots, setV2Slots] = useState<SlotV2[]>([]);
+  const [meta, setMeta] = useState<SlotMeta | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Build next 14 days
@@ -45,17 +65,43 @@ const DateTimeScreen = () => {
   const fetchSlots = async (dateStr: string) => {
     setLoading(true);
     setSlots([]);
+    setV2Slots([]);
+    setMeta(null);
     setSelectedSlot('');
     try {
-      const res = await bookingAPI.getSlots(dateStr) as any;
-      // Backend returns { slots: [{time: '08:00', available: true}, ...] }
-      const rawSlots: { time: string; available: boolean }[] = res.data?.slots || [];
-      const available = rawSlots
-        .filter((s) => s.available)
-        .map((s) => `${dateStr}T${s.time}:00`);
-      setSlots(available);
-    } catch (_) {
-      Alert.alert('Error', 'Could not fetch slots. Try another date.');
+      // Duration-aware slots: pass the draft's tank sizes + number of distinct
+      // service locations so the backend sizes the service window correctly.
+      const tankSizes = draft.tanks.map((t) => t.tank_size_litres);
+      const locations = 1 + draft.tanks.filter((t, i) => i > 0 && t.address).length;
+      const res: any = await api.get('/bookings/slots', {
+        params: { date: dateStr, tank_sizes: tankSizes.join(','), locations },
+      });
+      // Backend returns { slots: [{time:'08:00', end_time:'12:15', available, vans_free}, ...],
+      //                   duration_min, clean_min, travel_min, locations, per_tank, vans_total }
+      const payload = res.data || {};
+      const rawSlots: SlotV2[] = payload.slots || [];
+      if (payload.duration_min != null) {
+        // v2 — keep every slot (unavailable ones render disabled) + meta card
+        setMeta({
+          duration_min: Number(payload.duration_min) || 0,
+          clean_min: Number(payload.clean_min) || 0,
+          travel_min: Number(payload.travel_min) || 0,
+          locations: Number(payload.locations) || 1,
+          vans_total: Number(payload.vans_total) || 0,
+          per_tank: payload.per_tank || [],
+        });
+        setV2Slots(rawSlots);
+      } else {
+        // legacy — flat list of available times only
+        const available = rawSlots
+          .filter((s) => s.available)
+          .map((s) => `${dateStr}T${s.time}:00`);
+        setSlots(available);
+      }
+    } catch (e: any) {
+      const d = e?.response?.data || e || {};
+      const msg = d?.message;
+      Alert.alert('Error', msg || 'Could not fetch slots. Try another date.');
     } finally {
       setLoading(false);
     }
@@ -79,6 +125,17 @@ const DateTimeScreen = () => {
     return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
   };
 
+  // 135 → "2h 15m", 60 → "1h", 45 → "45m"
+  const fmtMin = (min: number) => {
+    const h = Math.floor(min / 60);
+    const m = Math.round(min % 60);
+    if (h <= 0) return `${m}m`;
+    if (m === 0) return `${h}h`;
+    return `${h}h ${m}m`;
+  };
+
+  const tankCount = meta?.per_tank?.length || draft.tanks.length;
+
   return (
     <View style={styles.root}>
       {/* Header */}
@@ -97,6 +154,19 @@ const DateTimeScreen = () => {
 
       <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
         <WebContainer variant="narrow">
+
+        {/* SLA arrival block — G3/G4. Sets expectations + reinforces auto-refund safety net. */}
+        <View style={styles.slaCard}>
+          <View style={styles.slaHeader}>
+            <Clock size={18} weight="fill" color={C.success} />
+            <Text style={styles.slaTitle}>Arrival SLA</Text>
+          </View>
+          <Text style={styles.slaText}>
+            Guaranteed arrival within <Text style={styles.slaTextBold}>30 minutes</Text> of your slot.
+            If we breach this SLA, your booking auto-refunds — no calls, no questions.
+          </Text>
+        </View>
+
         {/* Date Picker */}
         <View style={styles.labelRow}>
           <Calendar size={16} weight="regular" color={C.primary} />
@@ -132,6 +202,61 @@ const DateTimeScreen = () => {
           </View>
         ) : loading ? (
           <ActivityIndicator size="large" color={C.primary} style={{ marginTop: 20 }} />
+        ) : meta ? (
+          <>
+            {/* v2 — duration breakdown card above the slot grid */}
+            <View style={styles.durationCard}>
+              <View style={styles.durationHeader}>
+                <Hourglass size={16} weight="fill" color={C.primary} />
+                <Text style={styles.durationTitle}>
+                  Service duration: ~{fmtMin(meta.duration_min)}
+                </Text>
+              </View>
+              <Text style={styles.durationLine}>
+                Cleaning: {fmtMin(meta.clean_min)} ({tankCount} tank{tankCount === 1 ? '' : 's'})
+              </Text>
+              {meta.travel_min > 0 && (
+                <Text style={styles.durationLine}>
+                  + Travel between locations: {fmtMin(meta.travel_min)}
+                </Text>
+              )}
+              <Text style={styles.durationLine}>Crews available: {meta.vans_total}</Text>
+            </View>
+
+            {v2Slots.length === 0 ? (
+              <View style={styles.hintBox}>
+                <Info size={24} weight="regular" color={C.muted} />
+                <Text style={styles.hintText}>No slots available for this date</Text>
+                <Text style={styles.hintSub}>Try another date</Text>
+              </View>
+            ) : (
+              <View style={styles.slotGrid}>
+                {v2Slots.map((s) => {
+                  const iso = `${selectedDate}T${s.time}:00`;
+                  const active = selectedSlot === iso;
+                  return (
+                    <TouchableOpacity
+                      key={s.time}
+                      style={[
+                        styles.slotBtn,
+                        active && styles.slotBtnActive,
+                        !s.available && styles.slotBtnDisabled,
+                      ]}
+                      onPress={() => setSelectedSlot(iso)}
+                      disabled={!s.available}
+                    >
+                      <Text style={[styles.slotText, active && styles.slotTextActive]}>
+                        {s.time}
+                      </Text>
+                      {active && s.end_time ? (
+                        <Text style={styles.slotTillText}>till {s.end_time}</Text>
+                      ) : null}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </>
         ) : slots.length === 0 ? (
           <View style={styles.hintBox}>
             <Info size={24} weight="regular" color={C.muted} />
@@ -247,8 +372,22 @@ const makeStyles = (C: any) => StyleSheet.create({
     borderColor: C.border,
   },
   slotBtnActive: { borderColor: C.primary, backgroundColor: C.primaryBg },
+  slotBtnDisabled: { opacity: 0.35 },
   slotText: { fontSize: 14, color: C.muted, fontWeight: '600' },
   slotTextActive: { color: C.primary },
+  slotTillText: { fontSize: 10, color: C.primary, fontWeight: '700', marginTop: 2, textAlign: 'center' },
+  // v2 duration breakdown card (shown when backend returns duration_min)
+  durationCard: {
+    backgroundColor: C.primaryBg,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: C.borderActive,
+    marginBottom: 12,
+  },
+  durationHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
+  durationTitle: { fontSize: 13.5, fontWeight: '800', color: C.primary },
+  durationLine: { fontSize: 12.5, color: C.foreground, lineHeight: 19, marginTop: 2 },
   summaryBox: {
     backgroundColor: C.surface,
     borderRadius: 16,
@@ -275,6 +414,15 @@ const makeStyles = (C: any) => StyleSheet.create({
   },
   nextBtnDisabled: { backgroundColor: C.surfaceElevated, borderWidth: 1, borderColor: C.border },
   nextText: { color: C.primaryFg, fontWeight: 'bold', fontSize: 16 },
+  // SLA arrival block — G3/G4
+  slaCard: {
+    backgroundColor: C.successBg, borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: 'rgba(22,163,74,0.25)', marginBottom: 6,
+  },
+  slaHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
+  slaTitle: { fontSize: 13, fontWeight: '800', color: C.success, letterSpacing: 0.3 },
+  slaText: { fontSize: 12.5, color: C.foreground, lineHeight: 19 },
+  slaTextBold: { fontWeight: '800', color: C.success },
 });
 
 export default DateTimeScreen;

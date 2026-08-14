@@ -7,6 +7,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { bookingAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { useResponsive } from '../../utils/responsive';
+import CustomerAlertsBanner from '../../components/CustomerAlertsBanner';
 import { Booking } from '../../types';
 import { Drop, ClipboardText, ArrowRight, Key } from '../../components/Icons';
 
@@ -99,7 +100,7 @@ const MyBookingsScreen = () => {
   const styles = useMemo(() => makeStyles(C), [C]);
   const { isLarge } = useResponsive();
   const webListStyle = isLarge
-    ? { maxWidth: 900, width: '100%' as const, alignSelf: 'center' as const, padding: 24 }
+    ? { maxWidth: 720, width: '100%' as const, alignSelf: 'center' as const, padding: 24 }
     : null;
 
   const navigation = useNavigation<any>();
@@ -207,6 +208,9 @@ const MyBookingsScreen = () => {
         <Text style={styles.headerTitle}>My Bookings</Text>
         <Text style={styles.headerCount}>{bookings.length} booking{bookings.length !== 1 ? 's' : ''}</Text>
       </View>
+
+      {/* Live job alerts — OTP requested / crew departed */}
+      <CustomerAlertsBanner />
 
       {loading ? (
         <View style={styles.center}>

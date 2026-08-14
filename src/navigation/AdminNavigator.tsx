@@ -35,6 +35,8 @@ import AdminFieldTeamsScreen from '../screens/admin/AdminFieldTeamsScreen';
 import AdminFieldTeamDetailScreen from '../screens/admin/AdminFieldTeamDetailScreen';
 import EarningsStatsScreen from '../screens/shared/EarningsStatsScreen';
 import AdminCustomerDetailScreen from '../screens/admin/AdminCustomerDetailScreen';
+import AdminAbandonedScreen from '../screens/admin/AdminAbandonedScreen';
+import AdminSchedulingScreen from '../screens/admin/AdminSchedulingScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -154,6 +156,10 @@ const AdminNavigator = () => (
     <Stack.Screen name="EarningsStats" component={EarningsStatsScreen} />
     {/* Customer profile drill-in — lifetime stats, AMC, services, recent activity */}
     <Stack.Screen name="AdminCustomerDetail" component={AdminCustomerDetailScreen} />
+    {/* Lost leads — abandoned checkouts with follow-up workflow */}
+    <Stack.Screen name="AdminAbandoned" component={AdminAbandonedScreen} />
+    {/* Scheduling settings — vans, workday, slot step, cleaning minutes */}
+    <Stack.Screen name="AdminScheduling" component={AdminSchedulingScreen} />
   </Stack.Navigator>
 );
 

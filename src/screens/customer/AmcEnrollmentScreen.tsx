@@ -7,6 +7,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { amcAPI, paymentAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { useWebScrollFix } from '../../utils/useWebScrollFix';
+import WebContainer from '../../components/WebContainer';
 
 // react-native-webview is native-only
 let WebView: any = null;
@@ -234,6 +235,7 @@ const AmcEnrollmentScreen = () => {
       </View>
 
       <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
+        <WebContainer variant="narrow" noPadding>
         {/* Plan Summary Card */}
         <View style={styles.planCard}>
           <View style={styles.planCardHeader}>
@@ -328,6 +330,7 @@ const AmcEnrollmentScreen = () => {
             Secure payment via Razorpay. By enrolling, you agree to the AMC terms and conditions.
           </Text>
         </View>
+        </WebContainer>
       </ScrollView>
 
       {/* Razorpay WebView Modal — native only */}

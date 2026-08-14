@@ -17,6 +17,7 @@ import KpiTile from '../../components/charts/KpiTile';
 import Donut from '../../components/charts/Donut';
 import Bars from '../../components/charts/Bars';
 import Spark from '../../components/charts/Spark';
+import WebContainer from '../../components/WebContainer';
 import { Star, Trophy } from '../../components/Icons';
 import { MisEcoScore } from '../../types/mis';
 
@@ -71,6 +72,7 @@ const MisEcoScoreScreen: React.FC = () => {
           ) : undefined
         }
       >
+        <WebContainer variant="default">
         <DateRangeFilter
           range={range}
           from={from}
@@ -167,6 +169,7 @@ const MisEcoScoreScreen: React.FC = () => {
             />
           </>
         ) : null}
+        </WebContainer>
       </ScrollView>
     </View>
   );

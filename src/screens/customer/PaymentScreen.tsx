@@ -5,8 +5,9 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import useBookingStore from '../../store/booking.store';
-import { bookingAPI, paymentAPI } from '../../services/api';
-import { API_URL } from '../../utils/constants';
+import usePremiumStore from '../../store/premium.store';
+import { bookingAPI, paymentAPI, funnelAPI } from '../../services/api';
+import { API_URL, SERVICE_PLANS } from '../../utils/constants';
 import { useTheme } from '../../hooks/useTheme';
 import { useWebScrollFix } from '../../utils/useWebScrollFix';
 
@@ -93,6 +94,27 @@ const makeStyles = (C: any) => StyleSheet.create({
   razorpayContainer: { flex: 1, backgroundColor: C.background, paddingTop: 44 },
   razorpayClose: { padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
   razorpayCloseText: { color: C.danger, fontSize: 16, fontWeight: '600' },
+  upsellCard: {
+    backgroundColor: C.primaryBg, borderRadius: 16, padding: 14,
+    borderWidth: 1.5, borderColor: C.borderActive,
+  },
+  upsellRow: { flexDirection: 'row', gap: 8 },
+  upsellChip: {
+    flex: 1, borderRadius: 12, borderWidth: 1.5, borderColor: C.borderActive,
+    backgroundColor: C.surface, paddingVertical: 10, paddingHorizontal: 8,
+    alignItems: 'center',
+  },
+  upsellChipActive: { backgroundColor: C.primary, borderColor: C.primary },
+  upsellChipLabel: { fontSize: 13, fontWeight: '800', color: C.foreground },
+  upsellChipSub: { fontSize: 10, color: C.muted, marginTop: 2 },
+  upsellNote: { fontSize: 12, color: C.success, fontWeight: '600', marginTop: 10, lineHeight: 17 },
+  upsellHint: { fontSize: 11, color: C.muted, marginTop: 10 },
+  savingsPill: {
+    backgroundColor: C.successBg, borderRadius: 999,
+    paddingHorizontal: 12, paddingVertical: 6,
+    alignSelf: 'flex-start', marginTop: 6,
+  },
+  savingsText: { fontSize: 12, fontWeight: '800', color: C.success },
 });
 
 const PaymentScreen = () => {
@@ -101,12 +123,45 @@ const PaymentScreen = () => {
   const scrollRef = useWebScrollFix();
 
   const navigation = useNavigation<any>();
-  const { draft, reset } = useBookingStore();
+  const { draft, reset, setUpsellPlan } = useBookingStore();
+  const isPremium = usePremiumStore((s) => s.isPremium);
   const [loading, setLoading] = useState(false);
   const [showRazorpay, setShowRazorpay] = useState(false);
   const [razorpayHtml, setRazorpayHtml] = useState('');
+  // Easebuzz checkout renders a hosted page URL instead of injected HTML
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
+  const [upsellLoading, setUpsellLoading] = useState(false);
   const bookingIdRef = useRef<string | null>(null);
   const paymentTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const tankSizes = (draft.tanks?.length ? draft.tanks : [{ tank_size_litres: draft.tank_size_litres }])
+    .map((t: any) => Number(t.tank_size_litres) || 1000);
+
+  // Funnel: customer reached the payment step
+  React.useEffect(() => {
+    funnelAPI.track(4, { plan: draft.plan, total: draft.grand_total });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── AMC upsell at checkout ────────────────────────────────────────────────
+  // One-time customers can add an AMC while paying: the bill switches to the
+  // annual plan invoice and today's service becomes visit #1 of the plan.
+  const showUpsell = !isPremium && draft.plan === 'one_time' && !draft.pricing?.amc_covered;
+  const applyUpsell = async (plan: '' | 'half_yearly' | 'quarterly' | 'monthly') => {
+    if (upsellLoading) return;
+    setUpsellLoading(true);
+    try {
+      const res: any = await bookingAPI.getQuote(tankSizes, plan || 'one_time', draft.addons || []);
+      const p = res.data?.pricing || res.data;
+      if (p) setUpsellPlan(plan as any, p);
+    } catch {
+      Alert.alert('Could not update bill', 'Please try again.');
+    } finally {
+      setUpsellLoading(false);
+    }
+  };
+  const upsellMeta = draft.purchase_amc_plan
+    ? SERVICE_PLANS.find((p) => p.value === draft.purchase_amc_plan)
+    : null;
 
   // Detect placeholder / unconfigured Razorpay key
   const isPlaceholderKey = (k: any): boolean => {
@@ -221,6 +276,16 @@ const PaymentScreen = () => {
     setShowRazorpay(false);
 
     try {
+      if (data.source === 'easebuzz') {
+        // Easebuzz callback page relayed the result. The backend already
+        // signature-verified + settled the booking in the callback handler.
+        if (data.status === 'success') {
+          goToConfirmed(bookingIdRef.current || '');
+        } else {
+          Alert.alert('Payment Failed', 'Payment was unsuccessful. Please try again.');
+        }
+        return;
+      }
       if (data.type === 'success') {
         // Verify payment on backend
         await paymentAPI.verifyPayment({
@@ -310,10 +375,14 @@ const PaymentScreen = () => {
   const handleConfirm = async () => {
     setLoading(true);
     try {
-      // Create booking
+      // Create booking (billing v2 — plan + multi-tank + optional AMC upsell)
       const bookingRes = await bookingAPI.createBooking({
         tank_type: draft.tank_type,
         tank_size_litres: draft.tank_size_litres,
+        tanks: draft.tanks?.length ? draft.tanks : undefined,
+        property_type: draft.property_type || undefined,
+        contact_name: draft.contact_name || undefined,
+        contact_phone: draft.contact_phone || undefined,
         address: draft.address,
         lat: draft.lat || undefined,
         lng: draft.lng || undefined,
@@ -321,6 +390,8 @@ const PaymentScreen = () => {
         addons: draft.addons,
         amc_plan: draft.amc_plan || undefined,
         payment_method: draft.payment_method,
+        plan: draft.plan || 'one_time',
+        purchase_amc_plan: draft.purchase_amc_plan || undefined,
       }) as any;
 
       const bookingId = bookingRes.data?.booking?.id;
@@ -347,10 +418,11 @@ const PaymentScreen = () => {
         return;
       }
 
-      const { order_id, key_id, amount } = orderRes.data || orderRes;
+      const { order_id, key_id, amount, gateway, payment_url } = orderRes.data || orderRes;
 
-      // Razorpay key missing / placeholder / unconfigured → COD fallback
-      if (!order_id || isPlaceholderKey(key_id)) {
+      // Gateway readiness check — Easebuzz needs a payment_url; Razorpay a real key
+      const gatewayReady = gateway === 'easebuzz' ? !!payment_url : (!!order_id && !isPlaceholderKey(key_id));
+      if (!gatewayReady) {
         Alert.alert(
           'Online Payment Not Configured',
           'Online payment is not configured for this build. Please choose Cash on Delivery — your booking has been saved.',
@@ -359,7 +431,7 @@ const PaymentScreen = () => {
         return;
       }
 
-      // Web: WebView is null. Skip Razorpay and treat as confirmed (web is dev/marketing).
+      // Web: WebView is null. Skip online checkout and treat as confirmed (web is dev/marketing).
       if (Platform.OS === 'web' || !WebView) {
         Alert.alert(
           'Use Mobile App to Pay',
@@ -369,8 +441,16 @@ const PaymentScreen = () => {
         return;
       }
 
-      const html = buildRazorpayHtml(order_id, key_id, amount || draft.amount_paise, bookingId);
-      setRazorpayHtml(html);
+      if (gateway === 'easebuzz') {
+        // Hosted checkout page — result comes back via the surl/furl callback
+        // page which postMessages { source:'easebuzz', status } to the WebView.
+        setCheckoutUrl(payment_url);
+        setRazorpayHtml('');
+      } else {
+        const html = buildRazorpayHtml(order_id, key_id, amount || draft.amount_paise, bookingId);
+        setRazorpayHtml(html);
+        setCheckoutUrl(null);
+      }
       setShowRazorpay(true);
       armPaymentTimeout(bookingId);
     } catch (err: any) {
@@ -408,23 +488,109 @@ const PaymentScreen = () => {
           {draft.amc_plan && <Row label="AMC Plan" value={draft.amc_plan.toUpperCase()} />}
         </View>
 
+        {/* AMC upsell — one-time customers can join a plan while paying.
+            Selecting a plan swaps the bill for the annual invoice and makes
+            today's service visit #1 of the plan. */}
+        {showUpsell && (
+          <>
+            <View style={styles.sectionTitleRow}>
+              <ShieldCheck size={16} weight="fill" color={C.primary} />
+              <Text style={styles.sectionTitle}>Add an AMC plan & save on every visit</Text>
+            </View>
+            <View style={styles.upsellCard}>
+              <View style={styles.upsellRow}>
+                {SERVICE_PLANS.filter((p) => p.value !== 'one_time').map((p) => {
+                  const active = draft.purchase_amc_plan === p.value;
+                  return (
+                    <TouchableOpacity
+                      key={p.value}
+                      style={[styles.upsellChip, active && styles.upsellChipActive]}
+                      onPress={() => applyUpsell(active ? '' : (p.value as any))}
+                      disabled={upsellLoading}
+                    >
+                      <Text style={[styles.upsellChipLabel, active && { color: C.primaryFg }]}>{p.label}</Text>
+                      <Text style={[styles.upsellChipSub, active && { color: C.primaryFg }]}>
+                        {p.visitsPerYear} visits · {p.discountPct}% off
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              {upsellLoading && <ActivityIndicator size="small" color={C.primary} style={{ marginTop: 8 }} />}
+              {upsellMeta && !upsellLoading && (
+                <Text style={styles.upsellNote}>
+                  ✓ {upsellMeta.label} AMC added — {upsellMeta.visitsPerYear} services/year, billed annually.
+                  Today's service counts as visit 1 of {upsellMeta.visitsPerYear}.
+                </Text>
+              )}
+              {!upsellMeta && !upsellLoading && (
+                <Text style={styles.upsellHint}>Tap a plan to see your updated bill — deselect anytime.</Text>
+              )}
+            </View>
+          </>
+        )}
+
         {/* Price Breakdown */}
         <View style={styles.sectionTitleRow}>
           <Receipt size={16} weight="regular" color={C.foreground} />
           <Text style={styles.sectionTitle}>Price Breakdown</Text>
         </View>
         <View style={styles.priceCard}>
-          <PriceRow label="Base Price" value={draft.pricing?.amc_covered ? `${fmt(draft.base_price)}  →  FREE` : fmt(draft.base_price)} />
-          {draft.pricing?.amc_covered && (
-            <View style={styles.priceRow}>
-              <Text style={[styles.priceLabel, { color: C.success }]}>Covered by AMC ({draft.amc_plan?.toUpperCase()})</Text>
-              <Text style={[styles.priceValue, { color: C.success }]}>✓</Text>
-            </View>
+          {draft.pricing?.billing_version === 2 && draft.pricing?.lines ? (
+            <>
+              {/* Itemized invoice — per-tank lines, discounts, tax split */}
+              {(draft.pricing.tanks || []).map((t: any, i: number) => (
+                <PriceRow key={`t${i}`} label={`Tank ${i + 1} · ${t.tier_label}`} value={fmt(Math.round(t.per_tank_per_service_paise / 100))} />
+              ))}
+              {draft.pricing.lines.tank_discount_per_service_paise > 0 && (
+                <View style={styles.priceRow}>
+                  <Text style={[styles.priceLabel, { color: C.success }]}>Multi-tank discount ({draft.pricing.lines.tank_discount_pct}%)</Text>
+                  <Text style={[styles.priceValue, { color: C.success }]}>−{fmt(Math.round(draft.pricing.lines.tank_discount_per_service_paise / 100))}</Text>
+                </View>
+              )}
+              {draft.pricing.lines.plan_discount_per_service_paise > 0 && (
+                <View style={styles.priceRow}>
+                  <Text style={[styles.priceLabel, { color: C.success }]}>Plan discount ({draft.pricing.lines.plan_discount_pct}%)</Text>
+                  <Text style={[styles.priceValue, { color: C.success }]}>−{fmt(Math.round(draft.pricing.lines.plan_discount_per_service_paise / 100))}</Text>
+                </View>
+              )}
+              <PriceRow label={`Per service visit (${draft.pricing.tank_count} tank${draft.pricing.tank_count > 1 ? 's' : ''})`} value={fmt(draft.pricing.per_service_price)} />
+              {draft.pricing.services_per_year > 1 && (
+                <PriceRow label={`× ${draft.pricing.services_per_year} visits/year (annual plan)`} value={fmt(Math.round(draft.pricing.annual_service_total_paise / 100))} />
+              )}
+              {(draft.pricing.addons || []).map((a: any) => (
+                <PriceRow key={a.code} label={`+ ${a.name}`} value={a.custom_quote ? 'On quote' : fmt(Math.round(a.price_paise / 100))} />
+              ))}
+              <View style={styles.divider} />
+              <PriceRow label="Taxable value" value={fmt(Math.round(draft.pricing.lines.taxable_value_paise / 100))} />
+              <PriceRow label="CGST (9%)" value={fmt(Math.round(draft.pricing.lines.cgst_paise / 100))} />
+              <PriceRow label="SGST (9%)" value={fmt(Math.round(draft.pricing.lines.sgst_paise / 100))} />
+              {draft.pricing.lines.annual_savings_paise > 0 && (
+                <View style={styles.savingsPill}>
+                  <Text style={styles.savingsText}>You save {fmt(Math.round(draft.pricing.lines.annual_savings_paise / 100))}/year vs one-time visits</Text>
+                </View>
+              )}
+            </>
+          ) : (
+            <>
+              <PriceRow
+                label={draft.pricing?.billing_version === 2 && draft.pricing?.services_per_year > 1
+                  ? `Service Plan (${draft.pricing.services_per_year} visits/yr)`
+                  : 'Base Price'}
+                value={draft.pricing?.amc_covered ? `${fmt(draft.base_price)}  →  FREE` : fmt(draft.base_price)}
+              />
+              {draft.pricing?.amc_covered && (
+                <View style={styles.priceRow}>
+                  <Text style={[styles.priceLabel, { color: C.success }]}>Covered by AMC ({draft.amc_plan?.toUpperCase()})</Text>
+                  <Text style={[styles.priceValue, { color: C.success }]}>✓</Text>
+                </View>
+              )}
+              {draft.addon_total > 0 && <PriceRow label="Hygiene Upgrades" value={fmt(draft.addon_total)} />}
+              {draft.grand_total > 0 && <PriceRow label="GST (18%, included)" value={fmt(draft.gst)} />}
+            </>
           )}
-          {draft.addon_total > 0 && <PriceRow label="Hygiene Upgrades" value={fmt(draft.addon_total)} />}
-          {draft.grand_total > 0 && <PriceRow label="GST (18%)" value={fmt(draft.gst)} />}
           <View style={styles.divider} />
-          <PriceRow label="Total" value={draft.grand_total === 0 ? 'FREE' : fmt(draft.grand_total)} isTotal />
+          <PriceRow label="Total (incl. GST)" value={draft.grand_total === 0 ? 'FREE' : fmt(draft.grand_total)} isTotal />
         </View>
 
         {/* Payment Method — hide when nothing to pay */}
@@ -491,7 +657,7 @@ const PaymentScreen = () => {
             </TouchableOpacity>
             <WebView
               originWhitelist={['*']}
-              source={{ html: razorpayHtml }}
+              source={checkoutUrl ? { uri: checkoutUrl } : { html: razorpayHtml }}
               onMessage={handleRazorpayMessage}
               onError={handleWebViewError}
               onHttpError={handleWebViewError}

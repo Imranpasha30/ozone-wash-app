@@ -7,6 +7,7 @@ import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { useFocusEffect } from '@react-navigation/native';
 import { incidentAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
+import { useResponsive } from '../../utils/responsive';
 import { Siren, CheckCircle, Warning, ArrowRight } from '../../components/Icons';
 import ScreenHeader from '../../components/ScreenHeader';
 
@@ -16,6 +17,7 @@ const AdminIncidentsScreen = () => {
   const C = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
   const scrollRef = useWebScrollFix();
+  const { isLarge } = useResponsive();
   const [incidents, setIncidents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -182,7 +184,10 @@ const AdminIncidentsScreen = () => {
           data={filtered}
           keyExtractor={(i) => i.id}
           renderItem={renderItem}
-          contentContainerStyle={filtered.length === 0 ? styles.emptyContainer : styles.list}
+          contentContainerStyle={[
+            filtered.length === 0 ? styles.emptyContainer : styles.list,
+            isLarge && { maxWidth: 1100, alignSelf: 'center' as const, width: '100%' as const },
+          ]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={() => fetchIncidents(true)} tintColor={C.primary} />
           }

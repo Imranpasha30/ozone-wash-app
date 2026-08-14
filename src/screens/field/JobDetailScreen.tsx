@@ -1,18 +1,22 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
   ActivityIndicator, Alert, Linking, Platform, StatusBar,
 } from 'react-native';
+import { capturePhoto } from '../../services/cameraCapture';
 import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { jobAPI, complianceAPI, ecoScoreAPI } from '../../services/api';
+import api, { jobAPI, complianceAPI, ecoScoreAPI, fieldAPI, uploadAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { Job } from '../../types';
+import WebContainer from '../../components/WebContainer';
 import {
   ArrowLeft, Calendar, Phone, CheckCircle, ArrowsClockwise,
   Hourglass, Key, ClipboardText, Siren, ArrowRight, MapPin, NavigationArrow, QrCode,
-  Trophy, Crown, Star, Lightning,
+  Trophy, Crown, Star, Lightning, Flask, Warning, Camera, Receipt, XCircle, Wrench,
 } from '../../components/Icons';
+
+const TANK_TYPES = ['overhead', 'underground', 'sump', 'sintex'] as const;
 
 const JobDetailScreen = () => {
   const navigation = useNavigation<any>();
@@ -28,6 +32,29 @@ const JobDetailScreen = () => {
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
 
+  // Arrival flow — en-route + confined-space gas check + pre-damage log
+  const [enRoute, setEnRoute] = useState(false);
+  const [enRouteLoading, setEnRouteLoading] = useState(false);
+  const [gas, setGas] = useState({ o2: '', o3: '', h2s: '', co: '' });
+  const [gasLoading, setGasLoading] = useState(false);
+  const [gasResult, setGasResult] = useState<{ result: string; instruction?: string | null } | null>(null);
+  const [dmgOpen, setDmgOpen] = useState(false);
+  const [dmgLevel, setDmgLevel] = useState<'none' | 'minor' | 'major' | null>(null);
+  const [dmgNotes, setDmgNotes] = useState('');
+  const [dmgPhotoUrl, setDmgPhotoUrl] = useState('');
+  const [dmgUploading, setDmgUploading] = useState(false);
+  const [dmgSaving, setDmgSaving] = useState(false);
+  const [dmgLogged, setDmgLogged] = useState<string | null>(null);
+
+  // On-site tank details confirm/correct (step 1.5)
+  const [tankOpen, setTankOpen] = useState(false);
+  const [tankType, setTankType] = useState('overhead');
+  const [tankLitres, setTankLitres] = useState('');
+  const [tankCount, setTankCount] = useState('1');
+  const [tankReason, setTankReason] = useState('');
+  const [tankSaving, setTankSaving] = useState(false);
+  const [tankConfirmed, setTankConfirmed] = useState(false);
+
   useEffect(() => {
     fetchData();
     const unsubscribe = navigation.addListener('focus', fetchData);
@@ -40,6 +67,21 @@ const JobDetailScreen = () => {
       const jobRes = await jobAPI.getJob(jobId) as any;
       const j = jobRes.data?.job;
       setJob(j);
+      // Departure only counts for TODAY — a stale departure_time from an
+      // earlier test day must not show "en route" (the daily van check
+      // resets each shift, so the flow restarts from On My Way).
+      setEnRoute(
+        !!j?.departure_time &&
+        new Date(j.departure_time).toDateString() === new Date().toDateString()
+      );
+      setDmgLogged(j?.pre_damage_level || null);
+      setTankConfirmed(!!j?.tank_confirmed_at);
+      if (j) {
+        // Prefill from booked values (or last confirmed values on refetch)
+        setTankType(j.tank_type || 'overhead');
+        setTankLitres(j.tank_size_litres != null ? String(j.tank_size_litres) : '');
+        setTankCount(String(j.tank_count || 1));
+      }
       if (j) {
         try {
           const cRes = await complianceAPI.getStatus(j.id) as any;
@@ -65,7 +107,16 @@ const JobDetailScreen = () => {
       await jobAPI.generateStartOtp(jobId);
       navigation.navigate('OtpEntry', { jobId, type: 'start' });
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Could not generate start OTP');
+      const { status, message } = errInfo(err);
+      // Gate G-0 — route the crew straight to the Van Check instead of a dead end.
+      if (status === 423 && /van check|G-0/i.test(message || '')) {
+        Alert.alert('Van Check Needed', message || "Complete today's van check before starting jobs.", [
+          { text: 'Not Now', style: 'cancel' },
+          { text: 'Open Van Check', onPress: () => navigation.navigate('VanCheck') },
+        ]);
+      } else {
+        Alert.alert('Error', message || err.message || 'Could not generate start OTP');
+      }
     } finally {
       setStarting(false);
     }
@@ -83,6 +134,143 @@ const JobDetailScreen = () => {
     }
   };
 
+  // Api interceptor rejects with { message, status }; raw axios errors carry
+  // e.response — read both shapes so safety gates (423/429) never crash us.
+  const errInfo = (e: any) => {
+    const d = e?.response?.data || e || {};
+    return { status: e?.status ?? e?.response?.status, message: d?.message as string | undefined };
+  };
+
+  const handleEnRoute = async () => {
+    if (!job) return;
+    setEnRouteLoading(true);
+    try {
+      await fieldAPI.markEnRoute(job.id);
+      setEnRoute(true);
+      Alert.alert('On My Way', 'Departure logged.');
+    } catch (e: any) {
+      const { status, message } = errInfo(e);
+      if (status === 423) {
+        Alert.alert('Van Check Needed', message || 'Complete today\'s van check before departing.', [
+          { text: 'Not Now', style: 'cancel' },
+          { text: 'Open Van Check', onPress: () => navigation.navigate('VanCheck') },
+        ]);
+      } else {
+        Alert.alert('Error', message || 'Could not log departure');
+      }
+    } finally {
+      setEnRouteLoading(false);
+    }
+  };
+
+  const handleGasCheck = async () => {
+    if (!job) return;
+    const vals = {
+      gas_o2_pct: parseFloat(gas.o2),
+      gas_o3_ppm: parseFloat(gas.o3),
+      gas_h2s_ppm: parseFloat(gas.h2s),
+      gas_co_ppm: parseFloat(gas.co),
+    };
+    if (Object.values(vals).some(v => !Number.isFinite(v))) {
+      Alert.alert('Missing Readings', 'Enter all four gas readings first.');
+      return;
+    }
+    setGasLoading(true);
+    try {
+      const res = await fieldAPI.submitGasCheck(job.id, vals) as any;
+      const d = res.data || {};
+      setGasResult({ result: d.result, instruction: d.instruction });
+    } catch (e: any) {
+      const { message } = errInfo(e);
+      Alert.alert('Blocked', message || 'Could not submit gas check');
+    } finally {
+      setGasLoading(false);
+    }
+  };
+
+  const takeDamagePhoto = async () => {
+    try {
+      const uri = await capturePhoto();
+      if (!uri) return; // cancelled
+      setDmgUploading(true);
+      const up = await uploadAPI.uploadPhoto(uri, 'damage') as any;
+      const url = up.data?.url || up.url;
+      if (url) setDmgPhotoUrl(url);
+      else Alert.alert('Upload Failed', 'Could not upload the photo. Try again.');
+    } catch (_) {
+      Alert.alert('Upload Failed', 'Could not upload the photo. Try again.');
+    } finally {
+      setDmgUploading(false);
+    }
+  };
+
+  const handleLogDamage = async () => {
+    if (!job || !dmgLevel) return;
+    if (dmgLevel !== 'none' && !dmgPhotoUrl) {
+      Alert.alert('Photo Required', 'Take a photo of the damage first.');
+      return;
+    }
+    setDmgSaving(true);
+    try {
+      await fieldAPI.logPreDamage(job.id, {
+        level: dmgLevel,
+        notes: dmgNotes.trim() || undefined,
+        photo_url: dmgPhotoUrl || undefined,
+      });
+      setDmgLogged(dmgLevel);
+      setDmgOpen(false);
+    } catch (e: any) {
+      const { message } = errInfo(e);
+      Alert.alert('Error', message || 'Could not log damage');
+    } finally {
+      setDmgSaving(false);
+    }
+  };
+
+  // True when the entered tank details differ from the booked ones — a change
+  // reason becomes mandatory (backend enforces this too).
+  const tankDiffers = () => {
+    if (!job) return false;
+    const litres = Number(tankLitres);
+    const count = Math.max(1, Math.floor(Number(tankCount) || 1));
+    return tankType !== (job.tank_type || '')
+      || (Number.isFinite(litres) && litres !== Number(job.tank_size_litres))
+      || count !== Number((job as any).tank_count || 1);
+  };
+
+  const handleConfirmTank = async () => {
+    if (!job) return;
+    const litres = Number(tankLitres);
+    if (!Number.isFinite(litres) || litres <= 0) {
+      Alert.alert('Missing Capacity', 'Enter the tank capacity in litres.');
+      return;
+    }
+    if (tankDiffers() && !tankReason.trim()) {
+      Alert.alert('Reason Required', 'Tank details differ from the booking — enter a short reason for the change.');
+      return;
+    }
+    setTankSaving(true);
+    try {
+      const res = await api.post(`/field/jobs/${job.id}/confirm-tank`, {
+        tank_type: tankType,
+        tank_capacity_litres: litres,
+        tank_count: Math.max(1, Math.floor(Number(tankCount) || 1)),
+        reason: tankReason.trim() || undefined,
+      }) as any;
+      const d = res?.data || {};
+      setTankConfirmed(true);
+      setTankOpen(false);
+      if (d.changed) {
+        Alert.alert('Admin Alerted', 'Tank details differ from the booking — admin has been alerted for repricing.');
+      }
+    } catch (e: any) {
+      const { message } = errInfo(e);
+      Alert.alert('Error', message || 'Could not confirm tank details');
+    } finally {
+      setTankSaving(false);
+    }
+  };
+
   const callCustomer = () => {
     if (job?.customer_phone) {
       Linking.openURL(`tel:${job.customer_phone}`);
@@ -90,15 +278,23 @@ const JobDetailScreen = () => {
   };
 
   const openInMaps = () => {
-    if (job?.location_lat && job?.location_lng) {
+    const j: any = job || {};
+    // Best coordinates available: job GPS → booking GPS
+    const lat = j.location_lat ?? j.booking_lat;
+    const lng = j.location_lng ?? j.booking_lng;
+    // Best address text: booking address → auto-wash location_address
+    const address = j.address || j.location_address;
+
+    if (lat != null && lng != null) {
       const url = Platform.select({
-        ios: `maps:0,0?q=${job.location_lat},${job.location_lng}`,
-        default: `https://www.google.com/maps/dir/?api=1&destination=${job.location_lat},${job.location_lng}`,
+        ios: `maps:0,0?q=${lat},${lng}`,
+        default: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
       });
-      Linking.openURL(url!);
-    } else if (job?.address) {
-      const encoded = encodeURIComponent(job.address);
-      Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encoded}`);
+      Linking.openURL(url!).catch(() => {});
+    } else if (address) {
+      Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`).catch(() => {});
+    } else {
+      Alert.alert('No location on this job', 'This booking has no saved address or GPS coordinates.');
     }
   };
 
@@ -150,6 +346,7 @@ const JobDetailScreen = () => {
       </View>
 
       <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
+        <WebContainer variant="narrow">
         {/* Job Summary */}
         <View style={styles.summaryCard}>
           <Text style={styles.jobIdText}>Job #{job.id?.slice(0, 8).toUpperCase()}</Text>
@@ -157,9 +354,13 @@ const JobDetailScreen = () => {
             <Text style={styles.jobIdText}>Booking #{job.booking_id?.slice(0, 8).toUpperCase()}</Text>
           )}
           <Text style={styles.jobTitle}>
-            {job.tank_type?.replace('_', ' ').toUpperCase() || 'CLEANING JOB'}
+            {job.job_type === 'auto_wash'
+              ? 'CAR WASH JOB'
+              : (job.tank_type?.replace('_', ' ').toUpperCase() || 'CLEANING JOB')}
           </Text>
-          <Text style={styles.jobSize}>{job.tank_size_litres} Litres</Text>
+          {job.tank_size_litres != null && (
+            <Text style={styles.jobSize}>{job.tank_size_litres} Litres</Text>
+          )}
           <View style={styles.scheduledRow}>
             <Calendar size={16} weight="regular" color={C.primary} />
             <Text style={styles.scheduledAt}>{formatDate(job.scheduled_at)}</Text>
@@ -183,6 +384,24 @@ const JobDetailScreen = () => {
             <Text style={styles.navigateBtnText}>Navigate to Location</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Add-ons the customer purchased — crew must know what to perform
+            (e.g. UV step auto-skips when uv_sterilization isn't here). */}
+        {Array.isArray(job.addons) && job.addons.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Add-ons Purchased</Text>
+            <View style={styles.customerCard}>
+              {job.addons.map((code: string) => (
+                <View key={code} style={styles.addonRow}>
+                  <CheckCircle size={15} weight="fill" color={C.success} />
+                  <Text style={styles.addonText}>
+                    {String(code).split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
 
         {/* Compliance Progress */}
         {compliance && (
@@ -218,25 +437,65 @@ const JobDetailScreen = () => {
 
         {/* Actions */}
         {job.status === 'scheduled' && (
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.startBtn, starting && styles.btnDisabled]}
-            onPress={handleGenerateStartOtp}
-            disabled={starting}
-            activeOpacity={0.8}
-          >
-            {starting ? (
-              <ActivityIndicator color={C.primaryFg} />
-            ) : (
-              <View style={styles.actionBtnContent}>
-                <Key size={18} weight="fill" color={C.primaryFg} />
-                <Text style={styles.actionBtnText}>Start Job (OTP)</Text>
+          <>
+            {enRoute ? (
+              <View style={styles.enRouteDone}>
+                <CheckCircle size={18} weight="fill" color={C.success} />
+                <Text style={styles.enRouteDoneText}>Departure logged — you're en route</Text>
               </View>
+            ) : (
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.enRouteBtn, enRouteLoading && styles.btnDisabled]}
+                onPress={handleEnRoute}
+                disabled={enRouteLoading}
+                activeOpacity={0.8}
+              >
+                {enRouteLoading ? (
+                  <ActivityIndicator color={C.primary} />
+                ) : (
+                  <View style={styles.actionBtnContent}>
+                    <NavigationArrow size={18} weight="fill" color={C.primary} />
+                    <Text style={[styles.actionBtnText, { color: C.primary }]}>On My Way</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.startBtn, starting && styles.btnDisabled]}
+              onPress={handleGenerateStartOtp}
+              disabled={starting}
+              activeOpacity={0.8}
+            >
+              {starting ? (
+                <ActivityIndicator color={C.primaryFg} />
+              ) : (
+                <View style={styles.actionBtnContent}>
+                  <Key size={18} weight="fill" color={C.primaryFg} />
+                  <Text style={styles.actionBtnText}>Start Job (OTP)</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </>
         )}
 
         {job.status === 'in_progress' && (
           <>
+            {/* Car wash jobs use the 6-step wash flow, not the tank SOP checklist.
+                This button is the ONLY route into AutoWashJob — without it the
+                crew can't log steps and the customer's progress stays at 0/6. */}
+            {job.job_type === 'auto_wash' ? (
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.checklistBtn]}
+                onPress={() => navigation.navigate('AutoWashJob', { id: job.id })}
+                activeOpacity={0.8}
+              >
+                <View style={styles.actionBtnContent}>
+                  <ClipboardText size={18} weight="regular" color={C.primaryFg} />
+                  <Text style={styles.actionBtnText}>Open Wash Steps (6 stages)</Text>
+                </View>
+              </TouchableOpacity>
+            ) : (
             <TouchableOpacity
               style={[styles.actionBtn, styles.checklistBtn]}
               onPress={() => navigation.navigate('Checklist', { job_id: job.id })}
@@ -249,6 +508,217 @@ const JobDetailScreen = () => {
                 </Text>
               </View>
             </TouchableOpacity>
+            )}
+
+            {/* Confined-space gas check — underground / sump tanks only */}
+            {(job.tank_type === 'underground' || job.tank_type === 'sump') && (
+              <View style={styles.gasCard}>
+                <View style={styles.cardTitleRow}>
+                  <Flask size={16} weight="fill" color={C.primary} />
+                  <Text style={styles.cardTitle}>Confined Space Gas Check</Text>
+                </View>
+                <View style={styles.gasGrid}>
+                  {([
+                    ['o2', 'O₂ %'],
+                    ['o3', 'O₃ ppm'],
+                    ['h2s', 'H₂S ppm'],
+                    ['co', 'CO ppm'],
+                  ] as const).map(([key, label]) => (
+                    <View key={key} style={styles.gasField}>
+                      <Text style={styles.gasLabel}>{label}</Text>
+                      <TextInput
+                        style={styles.gasInput}
+                        keyboardType="decimal-pad"
+                        placeholder="0.0"
+                        placeholderTextColor={C.muted}
+                        value={gas[key]}
+                        onChangeText={(t) => setGas(g => ({ ...g, [key]: t }))}
+                      />
+                    </View>
+                  ))}
+                </View>
+                {gasResult && (
+                  <View style={[styles.gasResultRow, { backgroundColor: gasResult.result === 'PASS' ? C.successBg : C.dangerBg }]}>
+                    {gasResult.result === 'PASS' ? (
+                      <CheckCircle size={18} weight="fill" color={C.success} />
+                    ) : (
+                      <XCircle size={18} weight="fill" color={C.danger} />
+                    )}
+                    <Text style={[styles.gasResultText, { color: gasResult.result === 'PASS' ? C.success : C.danger }]}>
+                      {gasResult.result === 'PASS' ? 'PASS — safe to proceed' : `FAIL${gasResult.instruction ? ` — ${gasResult.instruction}` : ''}`}
+                    </Text>
+                  </View>
+                )}
+                <TouchableOpacity
+                  style={[styles.gasSubmitBtn, gasLoading && styles.btnDisabled]}
+                  onPress={handleGasCheck}
+                  disabled={gasLoading}
+                  activeOpacity={0.8}
+                >
+                  {gasLoading ? (
+                    <ActivityIndicator color={C.primaryFg} />
+                  ) : (
+                    <Text style={styles.gasSubmitText}>{gasResult ? 'Recheck Gas Levels' : 'Submit Gas Check'}</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Confirm tank details (step 1.5) — collapsed card until confirmed */}
+            {tankConfirmed ? (
+              <View style={styles.dmgLoggedRow}>
+                <CheckCircle size={16} weight="fill" color={C.success} />
+                <Text style={styles.dmgLoggedText}>Tank details confirmed ✓</Text>
+              </View>
+            ) : (
+              <View style={styles.tankCard}>
+                <TouchableOpacity style={styles.cardTitleRow} onPress={() => setTankOpen(o => !o)} activeOpacity={0.7}>
+                  <Wrench size={16} weight="fill" color={C.primary} />
+                  <Text style={styles.cardTitle}>Confirm Tank Details</Text>
+                  <Text style={styles.dmgToggle}>{tankOpen ? 'Hide' : 'Open'}</Text>
+                </TouchableOpacity>
+                {tankOpen && (
+                  <>
+                    <View style={styles.tankChipRow}>
+                      {TANK_TYPES.map(t => (
+                        <TouchableOpacity
+                          key={t}
+                          style={[styles.tankChip, tankType === t && styles.tankChipActive]}
+                          onPress={() => setTankType(t)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={[styles.tankChipText, tankType === t && styles.tankChipTextActive]}>
+                            {t.charAt(0).toUpperCase() + t.slice(1)}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                    <View style={styles.tankInputRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.gasLabel}>Capacity (litres)</Text>
+                        <TextInput
+                          style={styles.gasInput}
+                          keyboardType="number-pad"
+                          placeholder="1000"
+                          placeholderTextColor={C.muted}
+                          value={tankLitres}
+                          onChangeText={setTankLitres}
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.gasLabel}>Tank count</Text>
+                        <TextInput
+                          style={styles.gasInput}
+                          keyboardType="number-pad"
+                          placeholder="1"
+                          placeholderTextColor={C.muted}
+                          value={tankCount}
+                          onChangeText={setTankCount}
+                        />
+                      </View>
+                    </View>
+                    {tankDiffers() && (
+                      <Text style={styles.tankDifferNote}>
+                        Details differ from the booking — a change reason is required and admin will be alerted for repricing.
+                      </Text>
+                    )}
+                    <TextInput
+                      style={styles.dmgNotes}
+                      placeholder={tankDiffers() ? 'Reason for change (required)' : 'Reason (only needed if different from booking)'}
+                      placeholderTextColor={C.muted}
+                      value={tankReason}
+                      onChangeText={setTankReason}
+                      multiline
+                    />
+                    <TouchableOpacity
+                      style={[styles.dmgSaveBtn, tankSaving && styles.btnDisabled]}
+                      onPress={handleConfirmTank}
+                      disabled={tankSaving}
+                      activeOpacity={0.8}
+                    >
+                      {tankSaving ? (
+                        <ActivityIndicator color={C.primaryFg} />
+                      ) : (
+                        <Text style={styles.dmgSaveText}>Confirm Tank Details</Text>
+                      )}
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            )}
+
+            {/* Pre-existing damage — small collapsed card until logged */}
+            {dmgLogged ? (
+              <View style={styles.dmgLoggedRow}>
+                <CheckCircle size={16} weight="fill" color={C.success} />
+                <Text style={styles.dmgLoggedText}>Pre-existing damage logged: {dmgLogged.toUpperCase()}</Text>
+              </View>
+            ) : (
+              <View style={styles.dmgCard}>
+                <TouchableOpacity style={styles.cardTitleRow} onPress={() => setDmgOpen(o => !o)} activeOpacity={0.7}>
+                  <Warning size={16} weight="fill" color={C.warning} />
+                  <Text style={styles.cardTitle}>Pre-existing Damage</Text>
+                  <Text style={styles.dmgToggle}>{dmgOpen ? 'Hide' : 'Log'}</Text>
+                </TouchableOpacity>
+                {dmgOpen && (
+                  <>
+                    <View style={styles.dmgChipRow}>
+                      {(['none', 'minor', 'major'] as const).map(lvl => (
+                        <TouchableOpacity
+                          key={lvl}
+                          style={[styles.dmgChip, dmgLevel === lvl && styles.dmgChipActive]}
+                          onPress={() => setDmgLevel(lvl)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={[styles.dmgChipText, dmgLevel === lvl && styles.dmgChipTextActive]}>
+                            {lvl.charAt(0).toUpperCase() + lvl.slice(1)}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                    {dmgLevel && dmgLevel !== 'none' && (
+                      <>
+                        <TouchableOpacity
+                          style={styles.dmgPhotoBtn}
+                          onPress={takeDamagePhoto}
+                          disabled={dmgUploading}
+                          activeOpacity={0.7}
+                        >
+                          {dmgUploading ? (
+                            <ActivityIndicator size="small" color={C.primary} />
+                          ) : (
+                            <Camera size={16} weight="regular" color={dmgPhotoUrl ? C.success : C.primary} />
+                          )}
+                          <Text style={[styles.dmgPhotoText, dmgPhotoUrl ? { color: C.success } : null]}>
+                            {dmgPhotoUrl ? 'Photo attached ✓' : 'Take Damage Photo'}
+                          </Text>
+                        </TouchableOpacity>
+                        <TextInput
+                          style={styles.dmgNotes}
+                          placeholder="Notes — what's damaged?"
+                          placeholderTextColor={C.muted}
+                          value={dmgNotes}
+                          onChangeText={setDmgNotes}
+                          multiline
+                        />
+                      </>
+                    )}
+                    <TouchableOpacity
+                      style={[styles.dmgSaveBtn, (!dmgLevel || dmgSaving) && styles.btnDisabled]}
+                      onPress={handleLogDamage}
+                      disabled={!dmgLevel || dmgSaving}
+                      activeOpacity={0.8}
+                    >
+                      {dmgSaving ? (
+                        <ActivityIndicator color={C.primaryFg} />
+                      ) : (
+                        <Text style={styles.dmgSaveText}>Save Damage Log</Text>
+                      )}
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            )}
 
             {compliance?.completion_percentage === 100 && (
               <TouchableOpacity
@@ -309,6 +779,21 @@ const JobDetailScreen = () => {
               </View>
             )}
             <TouchableOpacity
+              style={[styles.actionBtn, { backgroundColor: C.primary }]}
+              onPress={() => navigation.navigate('Closeout', {
+                jobId: job.id,
+                amountPaise: (job as any).amount_paise,
+                paymentStatus: (job as any).payment_status,
+              })}
+              activeOpacity={0.8}
+            >
+              <View style={styles.actionBtnContent}>
+                <Receipt size={18} weight="fill" color={C.primaryFg} />
+                <Text style={styles.actionBtnText}>Closeout — Payment & AMC</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
               style={[styles.actionBtn, { backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.primary }]}
               onPress={() => navigation.navigate('QrScanner')}
               activeOpacity={0.8}
@@ -356,6 +841,7 @@ const JobDetailScreen = () => {
             </TouchableOpacity>
           </View>
         )}
+        </WebContainer>
       </ScrollView>
     </View>
   );
@@ -414,6 +900,8 @@ const makeStyles = (C: any) => StyleSheet.create({
     }),
   },
   customerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
+  addonRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
+  addonText: { fontSize: 14, fontWeight: '600', color: C.foreground },
   customerName: { fontSize: 16, fontWeight: '700', color: C.foreground },
   callBtn: {
     backgroundColor: C.primaryBg, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12,
@@ -509,6 +997,103 @@ const makeStyles = (C: any) => StyleSheet.create({
     justifyContent: 'center', alignItems: 'center', marginBottom: 8,
   },
   secondaryBtnText: { fontSize: 12, color: C.muted, fontWeight: '600' },
+  // En-route
+  enRouteBtn: { backgroundColor: C.primaryBg, borderWidth: 1.5, borderColor: C.primary },
+  enRouteDone: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: C.successBg, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 12, marginTop: 16,
+  },
+  enRouteDoneText: { fontSize: 13, fontWeight: '600', color: C.success },
+  // Shared card bits
+  cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  cardTitle: { fontSize: 14, fontWeight: '700', color: C.foreground, flex: 1 },
+  // Gas check
+  gasCard: {
+    backgroundColor: C.surface, borderRadius: 16, padding: 16, marginTop: 16,
+    ...Platform.select({
+      ios: { shadowColor: C.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 },
+      android: { elevation: 2 },
+    }),
+  },
+  gasGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
+  gasField: { width: '47%', flexGrow: 1 },
+  gasLabel: { fontSize: 12, fontWeight: '600', color: C.muted, marginBottom: 4 },
+  gasInput: {
+    backgroundColor: C.surfaceElevated, borderRadius: 12,
+    paddingHorizontal: 12, paddingVertical: 10,
+    fontSize: 15, fontWeight: '600', color: C.foreground,
+  },
+  gasResultRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginTop: 12,
+  },
+  gasResultText: { fontSize: 13, fontWeight: '700', flex: 1 },
+  gasSubmitBtn: {
+    backgroundColor: C.primary, borderRadius: 12,
+    padding: 14, alignItems: 'center', marginTop: 12,
+  },
+  gasSubmitText: { color: C.primaryFg, fontWeight: '700', fontSize: 14 },
+  // Confirm tank details
+  tankCard: {
+    backgroundColor: C.surface, borderRadius: 16, padding: 16, marginTop: 16,
+    ...Platform.select({
+      ios: { shadowColor: C.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 },
+      android: { elevation: 2 },
+    }),
+  },
+  tankChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  tankChip: {
+    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12,
+    backgroundColor: C.surfaceElevated, borderWidth: 1.5, borderColor: C.border,
+  },
+  tankChipActive: { backgroundColor: C.primaryDim, borderColor: C.primary },
+  tankChipText: { fontSize: 13, fontWeight: '600', color: C.muted },
+  tankChipTextActive: { color: C.primary },
+  tankInputRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  tankDifferNote: {
+    fontSize: 12, color: C.warning, fontWeight: '600',
+    lineHeight: 17, marginTop: 10,
+  },
+  // Pre-existing damage
+  dmgCard: {
+    backgroundColor: C.surface, borderRadius: 16, padding: 16, marginTop: 16,
+    ...Platform.select({
+      ios: { shadowColor: C.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 },
+      android: { elevation: 2 },
+    }),
+  },
+  dmgToggle: { fontSize: 13, fontWeight: '700', color: C.primary },
+  dmgChipRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  dmgChip: {
+    flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center',
+    backgroundColor: C.surfaceElevated, borderWidth: 1.5, borderColor: C.border,
+  },
+  dmgChipActive: { backgroundColor: C.primaryDim, borderColor: C.primary },
+  dmgChipText: { fontSize: 13, fontWeight: '600', color: C.muted },
+  dmgChipTextActive: { color: C.primary },
+  dmgPhotoBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: C.primaryBg, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 12, marginTop: 12,
+  },
+  dmgPhotoText: { fontSize: 13, fontWeight: '600', color: C.primary },
+  dmgNotes: {
+    backgroundColor: C.surfaceElevated, borderRadius: 12, padding: 12,
+    fontSize: 14, color: C.foreground, minHeight: 60, marginTop: 10,
+    textAlignVertical: 'top',
+  },
+  dmgSaveBtn: {
+    backgroundColor: C.primary, borderRadius: 12,
+    padding: 14, alignItems: 'center', marginTop: 12,
+  },
+  dmgSaveText: { color: C.primaryFg, fontWeight: '700', fontSize: 14 },
+  dmgLoggedRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: C.successBg, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 10, marginTop: 16,
+  },
+  dmgLoggedText: { fontSize: 13, fontWeight: '600', color: C.success },
 });
 
 export default JobDetailScreen;

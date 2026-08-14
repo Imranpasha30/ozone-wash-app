@@ -35,6 +35,8 @@ import AutoWashBookingScreen from '../screens/customer/AutoWashBookingScreen';
 import AddVehicleScreen from '../screens/customer/AddVehicleScreen';
 import AutoWashBookingDetailScreen from '../screens/customer/AutoWashBookingDetailScreen';
 import AutoWashCertificateScreen from '../screens/customer/AutoWashCertificateScreen';
+import GuardWaitlistScreen from '../screens/customer/GuardWaitlistScreen';
+import MyAddressesScreen from '../screens/customer/MyAddressesScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -186,6 +188,10 @@ const CustomerNavigator = () => (
     <Stack.Screen name="AddVehicle" component={AddVehicleScreen} options={BOOKING_FLOW_OPTIONS} />
     <Stack.Screen name="AutoWashBookingDetail" component={AutoWashBookingDetailScreen} />
     <Stack.Screen name="AutoWashCertificate" component={AutoWashCertificateScreen} />
+    {/* Ozone Guard 24×7 — Coming Soon waitlist capture */}
+    <Stack.Screen name="GuardWaitlist" component={GuardWaitlistScreen} />
+    {/* Standalone address book */}
+    <Stack.Screen name="MyAddresses" component={MyAddressesScreen} />
   </Stack.Navigator>
 );
 

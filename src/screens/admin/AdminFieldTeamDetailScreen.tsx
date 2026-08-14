@@ -309,7 +309,7 @@ const AdminFieldTeamDetailScreen = () => {
               <ShareEditor
                 C={C}
                 value={editingShare[m.agent_id] ?? String(m.share_pct)}
-                onChange={(v) => setEditingShare((p) => ({ ...p, [m.agent_id]: v }))}
+                onChange={(v: string) => setEditingShare((p) => ({ ...p, [m.agent_id]: v }))}
                 onSave={() => saveShare(m)}
                 normalized={Math.round((m.share_pct / totalShares) * 100)}
                 editing={editingShare[m.agent_id] != null}
@@ -340,7 +340,7 @@ const AdminFieldTeamDetailScreen = () => {
                 <ShareEditor
                   C={C}
                   value={editingShare[m.agent_id] ?? String(m.share_pct)}
-                  onChange={(v) => setEditingShare((p) => ({ ...p, [m.agent_id]: v }))}
+                  onChange={(v: string) => setEditingShare((p) => ({ ...p, [m.agent_id]: v }))}
                   onSave={() => saveShare(m)}
                   normalized={Math.round((m.share_pct / totalShares) * 100)}
                   editing={editingShare[m.agent_id] != null}

@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { adminAuthAPI } from '../../services/api';
 import useAuthStore from '../../store/auth.store';
 import { useTheme } from '../../hooks/useTheme';
+import WebContainer from '../../components/WebContainer';
 import {
   ArrowLeft, Plus, ShieldCheck, CheckCircle, Warning, UserCircle, Trophy,
 } from '../../components/Icons';
@@ -174,7 +175,7 @@ export default function AdminCreateAccountScreen() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={[C.primary, C.primaryDk || '#0369A1']} style={[styles.header, { paddingTop: insets.top + 12 }]}>
+      <LinearGradient colors={[C.primary, C.primary || '#0369A1']} style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.85}>
             <ArrowLeft size={20} color="#fff" weight="bold" />
@@ -185,7 +186,7 @@ export default function AdminCreateAccountScreen() {
           </View>
           {!showForm && (
             <TouchableOpacity onPress={() => setShowForm(true)} style={styles.headerCta} activeOpacity={0.85}>
-              <Plus size={16} weight="bold" color={C.primaryDk || '#0369A1'} />
+              <Plus size={16} weight="bold" color={C.primary || '#0369A1'} />
               <Text style={styles.headerCtaText}>Add</Text>
             </TouchableOpacity>
           )}
@@ -197,10 +198,11 @@ export default function AdminCreateAccountScreen() {
         contentContainerStyle={styles.body}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadAdmins} />}
       >
+        <WebContainer variant="narrow">
         {/* Created-result banner (shown after a successful create) */}
         {createdResult && (
           <View style={styles.resultBox}>
-            <CheckCircle size={20} weight="fill" color={C.leaf || '#22C55E'} />
+            <CheckCircle size={20} weight="fill" color={C.success || '#22C55E'} />
             <View style={{ flex: 1 }}>
               <Text style={styles.resultTitle}>Account created — share these securely</Text>
               <View style={styles.resultRow}>
@@ -301,8 +303,8 @@ export default function AdminCreateAccountScreen() {
           <View key={a.id} style={[styles.adminCard, !a.is_active && { opacity: 0.5 }]}>
             <View style={styles.adminAvatar}>
               {a.admin_role === 'super_admin'
-                ? <ShieldCheck size={20} weight="fill" color={C.primaryDk || '#0369A1'} />
-                : <UserCircle size={22} weight="duotone" color={C.primaryDk || '#0369A1'} />}
+                ? <ShieldCheck size={20} weight="fill" color={C.primary || '#0369A1'} />
+                : <UserCircle size={22} weight="duotone" color={C.primary || '#0369A1'} />}
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.adminName}>
@@ -337,6 +339,7 @@ export default function AdminCreateAccountScreen() {
             )}
           </View>
         ))}
+        </WebContainer>
       </ScrollView>
     </View>
   );
@@ -358,14 +361,14 @@ const makeStyles = (C: any) => StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
     backgroundColor: '#fff',
   },
-  headerCtaText: { color: C.primaryDk || '#0369A1', fontWeight: '800', fontSize: 13 },
+  headerCtaText: { color: C.primary || '#0369A1', fontWeight: '800', fontSize: 13 },
 
   body: { padding: 16, paddingBottom: 32, gap: 14 },
 
   resultBox: {
     flexDirection: 'row', gap: 12, padding: 16, borderRadius: 14,
     backgroundColor: 'rgba(34,197,94,0.08)',
-    borderWidth: 1, borderColor: C.leaf || '#22C55E',
+    borderWidth: 1, borderColor: C.success || '#22C55E',
   },
   resultTitle: { fontSize: 14, fontWeight: '800', color: C.foreground, marginBottom: 10 },
   resultRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
@@ -442,12 +445,12 @@ const makeStyles = (C: any) => StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
     backgroundColor: (C.primaryBg as any) || '#E0F2FE',
   },
-  rolePillText: { fontSize: 9, fontWeight: '800', color: C.primaryDk || '#0369A1', letterSpacing: 0.6 },
+  rolePillText: { fontSize: 9, fontWeight: '800', color: C.primary || '#0369A1', letterSpacing: 0.6 },
   adminLast: { fontSize: 10, color: C.muted, marginTop: 4 },
 
   smallBtn: {
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
-    backgroundColor: C.surfaceAlt || '#F4F8FB',
+    backgroundColor: C.surfaceElevated || '#F4F8FB',
     borderWidth: 1, borderColor: C.border,
   },
   smallBtnDanger: { backgroundColor: '#FEF2F2', borderColor: '#FCA5A5' },

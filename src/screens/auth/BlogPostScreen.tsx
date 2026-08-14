@@ -174,7 +174,7 @@ export default function BlogPostScreen() {
             </View>
           </LinearGradient>
 
-          <View style={[styles.section, isLarge && { paddingHorizontal: 48 }]}>
+          <View style={[styles.section, isLarge && { paddingHorizontal: 48, maxWidth: 900, alignSelf: 'center', width: '100%' }]}>
             <View style={[styles.postGrid, isLarge && { gap: 18 }]}>
               {POSTS.map((p) => (
                 <TouchableOpacity

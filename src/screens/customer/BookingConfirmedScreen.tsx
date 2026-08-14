@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../../hooks/useTheme';
+import WebContainer from '../../components/WebContainer';
 import { CheckCircle, Phone, Wrench, Trophy, Star, Medal } from '../../components/Icons';
 
 const getProjectedBadge = (addons: string[]) => {
@@ -109,6 +110,7 @@ const BookingConfirmedScreen = () => {
 
   return (
     <View style={styles.container}>
+      <WebContainer variant="narrow">
       <View style={styles.card}>
         {/* Success Icon */}
         <View style={styles.iconCircle}>
@@ -164,6 +166,7 @@ const BookingConfirmedScreen = () => {
           <Text style={styles.secondaryBtnText}>Back to Home</Text>
         </TouchableOpacity>
       </View>
+      </WebContainer>
     </View>
   );
 };

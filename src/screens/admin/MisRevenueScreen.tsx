@@ -16,6 +16,7 @@ import {
 import KpiTile from '../../components/charts/KpiTile';
 import Donut from '../../components/charts/Donut';
 import Bars from '../../components/charts/Bars';
+import WebContainer from '../../components/WebContainer';
 import { CurrencyInr, TrendUp, Medal } from '../../components/Icons';
 import { MisRevenue, AgentTier } from '../../types/mis';
 
@@ -81,6 +82,7 @@ const MisRevenueScreen: React.FC = () => {
           ) : undefined
         }
       >
+        <WebContainer variant="default">
         <DateRangeFilter
           range={range}
           from={from}
@@ -195,6 +197,7 @@ const MisRevenueScreen: React.FC = () => {
             />
           </>
         ) : null}
+        </WebContainer>
       </ScrollView>
     </View>
   );

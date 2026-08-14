@@ -5,7 +5,8 @@ import {
   Modal, Pressable, TextInput, Alert as RNAlert,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { jobAPI } from '../../services/api';
+import { jobAPI, fieldAPI } from '../../services/api';
+import { confirm as showConfirm, alert as showAlert } from '../../services/dialog';
 import { useTheme } from '../../hooks/useTheme';
 import { flush as flushPendingUploads } from '../../utils/pendingUploads';
 import { Job } from '../../types';
@@ -45,7 +46,12 @@ const JobListScreen = () => {
   const { user } = useAuthStore();
   const { isLarge } = useResponsive();
   const webListStyle = isLarge
-    ? { maxWidth: 900, width: '100%' as const, alignSelf: 'center' as const, padding: 24 }
+    ? { maxWidth: 720, width: '100%' as const, alignSelf: 'center' as const, padding: 24 }
+    : null;
+  // Constrains the in-between bands (stats, banners, filters) to the same
+  // centred column as the list on wide web viewports.
+  const webBandStyle = isLarge
+    ? { maxWidth: 720, width: '100%' as const, alignSelf: 'center' as const }
     : null;
   const [jobs, setJobs] = useState<Job[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -60,6 +66,9 @@ const JobListScreen = () => {
   const [concernJobId, setConcernJobId] = useState<string | null>(null);
   const [concernText, setConcernText] = useState('');
   const [submittingConcern, setSubmittingConcern] = useState(false);
+  // Gate G-0 — null until we know, then true/false for today's van check
+  const [vanCheckDone, setVanCheckDone] = useState<boolean | null>(null);
+  const [submittingMis, setSubmittingMis] = useState(false);
 
   // Tick every 60s to keep countdown live
   useEffect(() => {
@@ -83,14 +92,59 @@ const JobListScreen = () => {
     }
   };
 
+  // Gate G-0 — is today's van check complete?
+  const checkVanStatus = async () => {
+    try {
+      const res = await fieldAPI.getVanCheck() as any;
+      setVanCheckDone(!!res.data?.van_check?.van_check_complete);
+    } catch (_) {}
+  };
+
+  const [queuedSteps, setQueuedSteps] = useState(0);
+
   useFocusEffect(
     useCallback(() => {
       fetchJobs();
+      checkVanStatus();
       setRouteOptimized(false);
       // Background flush of any photos that previously failed to upload.
       flushPendingUploads().catch(() => {});
+      // Offline step queue (spec §12): flush queued step submissions in order,
+      // then surface how many are still waiting.
+      import('../../utils/pendingSteps').then(async ({ flushPendingSteps, getPendingStepCount }) => {
+        try {
+          const out = await flushPendingSteps();
+          setQueuedSteps(out.remaining);
+          if (out.sent > 0) fetchJobs();
+        } catch {
+          getPendingStepCount().then(setQueuedSteps).catch(() => {});
+        }
+      }).catch(() => {});
     }, [])
   );
+
+  const handleSubmitDailyMis = async () => {
+    const ok = await showConfirm({
+      title: 'Submit Day (Daily MIS)?',
+      message: 'This closes your day and sends the daily report to your supervisor. All jobs must be closed first.',
+      confirmText: 'Submit',
+    });
+    if (!ok) return;
+    setSubmittingMis(true);
+    try {
+      const res = await fieldAPI.submitDailyMis() as any;
+      const mis = res.data?.mis;
+      showAlert({
+        title: 'Day Submitted',
+        message: `Jobs done: ${mis?.jobs_done ?? 0}\nWater saved: ${mis?.water_saved_litres ?? 0} L\nAMC leads: ${mis?.amc_leads ?? 0}`,
+      });
+    } catch (e: any) {
+      const d = e?.response?.data;
+      showAlert({ title: 'Not yet', message: d?.message || e?.message || 'Could not submit daily MIS.' });
+    } finally {
+      setSubmittingMis(false);
+    }
+  };
 
   const handleOptimizeRoute = async () => {
     setOptimizing(true);
@@ -274,7 +328,7 @@ const JobListScreen = () => {
 
       {/* Stats Bar */}
       {stats && (
-        <View style={styles.statsBar}>
+        <View style={[styles.statsBar, webBandStyle]}>
           <StatChip label="Total" value={stats.total_assigned ?? 0} color={C.primary} C={C} />
           <StatChip label="Pending" value={stats.pending ?? 0} color={C.accent} C={C} />
           <StatChip label="Active" value={stats.in_progress ?? 0} color={C.primary} C={C} />
@@ -282,11 +336,36 @@ const JobListScreen = () => {
         </View>
       )}
 
+      {/* Van check gate (G-0) — jobs stay locked until Phase 0 is done */}
+      {vanCheckDone === false && (
+        <View style={[styles.vanCheckBanner, webBandStyle]}>
+          <Warning size={20} weight="fill" color={C.warning} />
+          <Text style={styles.vanCheckText}>Complete your van check before starting jobs</Text>
+          <TouchableOpacity
+            style={styles.vanCheckBtn}
+            onPress={() => navigation.navigate('VanCheck')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.vanCheckBtnText}>Van Check</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Offline queue indicator (spec §12) — steps waiting to sync */}
+      {queuedSteps > 0 && (
+        <View style={[styles.vanCheckBanner, { backgroundColor: C.primaryBg }, webBandStyle]}>
+          <Clock size={18} weight="fill" color={C.primary} />
+          <Text style={[styles.vanCheckText, { color: C.primary }]}>
+            Offline — {queuedSteps} step{queuedSteps > 1 ? 's' : ''} queued, will sync automatically
+          </Text>
+        </View>
+      )}
+
       {/* Filter */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={styles.filterRow}
+        style={[styles.filterRow, webBandStyle]}
         contentContainerStyle={styles.filterContent}
       >
         {FILTERS.map((f) => (
@@ -303,7 +382,7 @@ const JobListScreen = () => {
 
       {/* Route Optimize Button */}
       {!loading && jobs.length > 1 && (
-        <View style={styles.routeRow}>
+        <View style={[styles.routeRow, webBandStyle]}>
           <TouchableOpacity
             style={[styles.routeBtn, routeOptimized && styles.routeBtnActive]}
             onPress={routeOptimized ? () => setRouteOptimized(false) : handleOptimizeRoute}
@@ -326,7 +405,7 @@ const JobListScreen = () => {
 
       {/* Escalation Banner */}
       {!loading && overdueJobs.length > 0 && (
-        <View style={styles.escalationBanner}>
+        <View style={[styles.escalationBanner, webBandStyle]}>
           <Siren size={16} weight="fill" color="#fff" />
           <Text style={styles.escalationText}>
             {overdueJobs.length} overdue job{overdueJobs.length > 1 ? 's' : ''} — contact supervisor immediately
@@ -400,6 +479,20 @@ const JobListScreen = () => {
               </View>
               <Text style={styles.emptyTitle}>No jobs assigned</Text>
               <Text style={styles.emptySub}>Your upcoming jobs will appear here</Text>
+            </View>
+          }
+          ListFooterComponent={
+            <View style={filtered.length === 0 ? { paddingHorizontal: 16 } : null}>
+              <TouchableOpacity
+                style={[styles.misBtn, submittingMis && { opacity: 0.5 }]}
+                onPress={handleSubmitDailyMis}
+                disabled={submittingMis}
+                activeOpacity={0.7}
+              >
+                {submittingMis
+                  ? <ActivityIndicator size="small" color={C.muted} />
+                  : <Text style={styles.misBtnText}>Submit Day (Daily MIS)</Text>}
+              </TouchableOpacity>
             </View>
           }
         />
@@ -497,6 +590,24 @@ const makeStyles = (C: any) => StyleSheet.create({
     backgroundColor: '#DC2626', paddingHorizontal: 16, paddingVertical: 12,
   },
   escalationText: { fontSize: 13, fontWeight: '700', color: '#fff', flex: 1 },
+  vanCheckBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: C.warningBg, borderWidth: 1.5, borderColor: C.warning,
+    borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12,
+    marginHorizontal: 16, marginTop: 10,
+  },
+  vanCheckText: { flex: 1, fontSize: 13, fontWeight: '700', color: C.warning },
+  vanCheckBtn: {
+    backgroundColor: C.warning, borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 8,
+  },
+  vanCheckBtnText: { fontSize: 12, fontWeight: '800', color: '#fff' },
+  misBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 14, borderRadius: 14, marginTop: 8, marginBottom: 24,
+    borderWidth: 1.5, borderColor: C.border, backgroundColor: C.surfaceElevated,
+  },
+  misBtnText: { fontSize: 13, fontWeight: '700', color: C.muted },
   card: {
     backgroundColor: C.surface,
     borderRadius: 18,

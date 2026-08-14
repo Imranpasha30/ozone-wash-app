@@ -24,6 +24,7 @@ import {
   MisHeader, Card, SectionTitle,
 } from '../../components/charts/MisScaffold';
 import KpiTile from '../../components/charts/KpiTile';
+import WebContainer from '../../components/WebContainer';
 import {
   ArrowLeft, ArrowRight, CurrencyInr, Wallet, Lightning,
 } from '../../components/Icons';
@@ -341,6 +342,7 @@ const AdminPayoutsScreen: React.FC = () => {
           ) : undefined
         }
       >
+        <WebContainer variant="default">
         {/* Month picker */}
         <View style={styles.monthRow}>
           <TouchableOpacity onPress={() => shiftMonth(-1)} style={styles.monthBtn}>
@@ -470,6 +472,7 @@ const AdminPayoutsScreen: React.FC = () => {
             })
           )}
         </Card>
+        </WebContainer>
       </ScrollView>
 
       {/* Mark-paid modal */}

@@ -22,6 +22,7 @@ import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { useTheme } from '../../hooks/useTheme';
 import { incentiveAPI } from '../../services/api';
 import { MisHeader, Card, SectionTitle } from '../../components/charts/MisScaffold';
+import WebContainer from '../../components/WebContainer';
 import { ArrowLeft, ArrowRight, Crown, Trophy, Medal, Star, Diamond } from '../../components/Icons';
 
 type CreditTier = 'platinum' | 'gold' | 'silver' | 'bronze' | 'unrated';
@@ -157,6 +158,7 @@ const AdminAgentCreditsScreen: React.FC = () => {
           ) : undefined
         }
       >
+        <WebContainer variant="default">
         {/* Month picker */}
         <View style={styles.monthRow}>
           <TouchableOpacity onPress={() => shiftMonth(-1)} style={styles.monthBtn}>
@@ -228,6 +230,7 @@ const AdminAgentCreditsScreen: React.FC = () => {
             })
           )}
         </Card>
+        </WebContainer>
       </ScrollView>
     </View>
   );

@@ -12,7 +12,7 @@ import {
   CalendarBlank, CheckCircle, Wrench, Warning,
   ClipboardText, Receipt, Users, QrCode,
   CurrencyInr, Siren, Crown, UserCircle,
-  ChartPie, ArrowRight, ShieldCheck, Car,
+  ChartPie, ArrowRight, ShieldCheck, Car, Hourglass, Clock,
 } from '../../components/Icons';
 import WebContainer from '../../components/WebContainer';
 import AdminInboxPanel from '../../components/AdminInboxPanel';
@@ -130,6 +130,8 @@ const AdminDashboardScreen = () => {
           { label: 'AMC',       icon: Crown,         route: 'AdminAmc' },
           { label: 'Auto Wash', icon: Car,           route: 'AdminAutoWash' },
           { label: 'Teams',     icon: Users,         route: 'AdminFieldTeams' },
+          { label: 'Lost Leads', icon: Hourglass,    route: 'AdminAbandoned' },
+          { label: 'Scheduling', icon: Clock,        route: 'AdminScheduling' },
           ...(isSuperAdmin
             ? [{ label: 'Admins', icon: ShieldCheck, route: 'AdminCreateAccount' }]
             : []),

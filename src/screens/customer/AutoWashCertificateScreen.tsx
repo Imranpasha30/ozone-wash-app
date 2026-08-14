@@ -13,6 +13,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { autoWashAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
+import WebContainer from '../../components/WebContainer';
 import {
   ArrowLeft, ShareNetwork, CheckCircle, Drop, ShieldCheck, Car, QrCode,
 } from '../../components/Icons';
@@ -93,7 +94,7 @@ export default function AutoWashCertificateScreen() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={[C.ink || '#0B1F33', '#0F2B48']} style={[styles.header, { paddingTop: insets.top + 12 }]}>
+      <LinearGradient colors={[C.foreground || '#0B1F33', '#0F2B48']} style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.85}>
             <ArrowLeft size={20} color="#fff" weight="bold" />
@@ -106,6 +107,7 @@ export default function AutoWashCertificateScreen() {
       </LinearGradient>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.body}>
+        <WebContainer variant="narrow" noPadding style={{ gap: 14 }}>
         {/* Certificate body */}
         <View style={styles.cert}>
           <View style={styles.certHeader}>
@@ -146,12 +148,12 @@ export default function AutoWashCertificateScreen() {
 
           {/* QR placeholder */}
           <View style={styles.qrBox}>
-            <QrCode size={88} weight="regular" color={C.ink || '#0B1F33'} />
+            <QrCode size={88} weight="regular" color={C.foreground || '#0B1F33'} />
             <Text style={styles.qrCaption}>Scan to verify · ozonewash.in/verify/AW-{String(jobId).slice(0, 8)}</Text>
           </View>
 
           <View style={styles.proofRow}>
-            <ShieldCheck size={14} weight="fill" color={C.leaf || '#22C55E'} />
+            <ShieldCheck size={14} weight="fill" color={C.success || '#22C55E'} />
             <Text style={styles.proofText}>QR-signed by Ozone Wash™ · tamper-evident</Text>
           </View>
 
@@ -177,6 +179,7 @@ export default function AutoWashCertificateScreen() {
           <ShareNetwork size={18} weight="fill" color="#fff" />
           <Text style={styles.shareBtnText}>Share certificate</Text>
         </TouchableOpacity>
+        </WebContainer>
       </ScrollView>
     </View>
   );
@@ -204,7 +207,7 @@ const makeStyles = (C: any) => StyleSheet.create({
   verifiedPill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
-    backgroundColor: C.leaf || '#22C55E',
+    backgroundColor: C.success || '#22C55E',
   },
   verifiedText: { color: '#fff', fontWeight: '800', fontSize: 9.5, letterSpacing: 1 },
   certType: { fontSize: 10, fontWeight: '800', color: C.muted, letterSpacing: 1.5, marginTop: 12 },
@@ -217,7 +220,7 @@ const makeStyles = (C: any) => StyleSheet.create({
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   statBox: {
     flex: 1, minWidth: '47%',
-    backgroundColor: C.surfaceAlt || '#F4F8FB',
+    backgroundColor: C.surfaceElevated,
     borderRadius: 10, padding: 12,
   },
   statLabel: { fontSize: 9, fontWeight: '800', color: C.muted, letterSpacing: 1.2 },

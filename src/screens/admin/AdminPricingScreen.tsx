@@ -18,6 +18,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../hooks/useTheme';
 import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { adminAPI } from '../../services/api';
+import WebContainer from '../../components/WebContainer';
 import {
   ArrowLeft, CurrencyInr, Check, X, ArrowsClockwise, CheckCircle,
 } from '../../components/Icons';
@@ -190,6 +191,7 @@ const AdminPricingScreen = () => {
         <ActivityIndicator color={C.primary} style={{ marginTop: 32 }} />
       ) : (
         <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
+          <WebContainer variant="default">
           {tiers.map((t) => {
             const slot = byTier.get(t.id);
             if (!slot) return null;
@@ -249,6 +251,7 @@ const AdminPricingScreen = () => {
             All prices are inclusive of GST 18%. Tap any price to edit. Edits take effect immediately.
           </Text>
           <View style={{ height: 24 }} />
+          </WebContainer>
         </ScrollView>
       )}
 
