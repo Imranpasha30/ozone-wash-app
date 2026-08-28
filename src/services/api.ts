@@ -639,6 +639,24 @@ export const paymentAPI = {
 
   verifyAmcPayment: (data: any) =>
     api.post('/payments/amc/verify', data),
+
+  // Admin refund — omit amount_paise for a full refund of the remaining
+  // balance, or pass it (paise) for a partial refund.
+  refund: (data: { booking_id: string; amount_paise?: number; reason?: string }) =>
+    api.post('/payments/refund', data),
+};
+
+// ── Invoices (GST tax invoices) ───────────────────────────────────────────────
+export const invoiceAPI = {
+  // Customer — my invoices (each row already carries a public pdf_url).
+  listMine: () => api.get('/invoices/my'),
+  get: (id: string) => api.get(`/invoices/${id}`),
+
+  // Admin — list with optional date range + GST settlement summary.
+  list: (params?: { from?: string; to?: string; limit?: number }) =>
+    api.get('/invoices', { params }),
+  taxSummary: (params?: { from?: string; to?: string }) =>
+    api.get('/invoices/tax-summary', { params }),
 };
 
 // ── Saved Addresses (Zomato-style address book) ──────────────────────────────

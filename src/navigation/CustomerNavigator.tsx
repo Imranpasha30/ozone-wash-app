@@ -37,6 +37,7 @@ import AutoWashBookingDetailScreen from '../screens/customer/AutoWashBookingDeta
 import AutoWashCertificateScreen from '../screens/customer/AutoWashCertificateScreen';
 import GuardWaitlistScreen from '../screens/customer/GuardWaitlistScreen';
 import MyAddressesScreen from '../screens/customer/MyAddressesScreen';
+import InvoicesScreen from '../screens/customer/InvoicesScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -192,6 +193,8 @@ const CustomerNavigator = () => (
     <Stack.Screen name="GuardWaitlist" component={GuardWaitlistScreen} />
     {/* Standalone address book */}
     <Stack.Screen name="MyAddresses" component={MyAddressesScreen} />
+    {/* GST tax invoices */}
+    <Stack.Screen name="Invoices" component={InvoicesScreen} />
   </Stack.Navigator>
 );
 

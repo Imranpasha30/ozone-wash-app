@@ -4,11 +4,11 @@ import {
   ActivityIndicator, RefreshControl, Platform, StatusBar,
 } from 'react-native';
 import { useWebScrollFix } from '../../utils/useWebScrollFix';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { adminAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  CurrencyInr, TrendUp, CheckCircle, ClipboardText, Receipt,
+  CurrencyInr, TrendUp, CheckCircle, ClipboardText, Receipt, FileText, ArrowRight,
 } from '../../components/Icons';
 import ScreenHeader from '../../components/ScreenHeader';
 import WebContainer from '../../components/WebContainer';
@@ -17,6 +17,7 @@ const AdminRevenueScreen = () => {
   const C = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
   const scrollRef = useWebScrollFix();
+  const navigation = useNavigation<any>();
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -85,6 +86,16 @@ const AdminRevenueScreen = () => {
         <Text style={styles.totalLabel}>Total Revenue</Text>
         <Text style={styles.totalValue}>{formatCurrency(totalRevenue)}</Text>
       </View>
+
+      {/* GST Tax Report link */}
+      <TouchableOpacity style={styles.taxLink} onPress={() => navigation.navigate('AdminTaxReport')} activeOpacity={0.85}>
+        <FileText size={20} weight="regular" color={C.primary} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.taxLinkTitle}>GST Tax Report</Text>
+          <Text style={styles.taxLinkSub}>CGST / SGST settlement figures for filing</Text>
+        </View>
+        <ArrowRight size={16} weight="bold" color={C.primary} />
+      </TouchableOpacity>
 
       {/* Stats Grid */}
       <View style={styles.statsGrid}>
@@ -195,6 +206,12 @@ const makeStyles = (C: any) => StyleSheet.create({
   },
   statValue: { fontSize: 22, fontWeight: '700' },
   statLabel: { fontSize: 12, color: C.muted },
+  taxLink: {
+    marginHorizontal: 16, marginBottom: 8, backgroundColor: C.surface, borderRadius: 14,
+    padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: C.border,
+  },
+  taxLinkTitle: { fontSize: 14, fontWeight: '700', color: C.foreground },
+  taxLinkSub: { fontSize: 12, color: C.muted, marginTop: 2 },
   conversionCard: {
     margin: 16, backgroundColor: C.surface, borderRadius: 16, padding: 16,
     ...Platform.select({

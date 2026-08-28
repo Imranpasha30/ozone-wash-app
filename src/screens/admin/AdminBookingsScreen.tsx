@@ -2,13 +2,14 @@ import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl, ScrollView, Alert, Platform, StatusBar,
+  Modal, TextInput,
 } from 'react-native';
 import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { useFocusEffect } from '@react-navigation/native';
-import { adminAPI } from '../../services/api';
+import { adminAPI, paymentAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { useResponsive } from '../../utils/responsive';
-import { ClipboardText, Check, X } from '../../components/Icons';
+import { ClipboardText, Check, X, CurrencyInr } from '../../components/Icons';
 
 const FILTERS = ['All', 'Pending', 'Confirmed', 'Completed', 'Cancelled'];
 
@@ -25,6 +26,49 @@ const AdminBookingsScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('All');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // Refund modal state
+  const [refundBooking, setRefundBooking] = useState<any>(null);
+  const [refundAmt, setRefundAmt] = useState('');   // rupees string
+  const [refundReason, setRefundReason] = useState('');
+  const [refundLoading, setRefundLoading] = useState(false);
+
+  const refundableRupees = (b: any) =>
+    Math.max(0, (Number(b?.amount_paise) || 0) - (Number(b?.refunded_paise) || 0)) / 100;
+
+  const openRefund = (b: any) => {
+    setRefundBooking(b);
+    setRefundAmt(String(refundableRupees(b)));
+    setRefundReason('');
+  };
+
+  const submitRefund = async () => {
+    if (!refundBooking) return;
+    const maxRs = refundableRupees(refundBooking);
+    const rs = Number(refundAmt);
+    if (!Number.isFinite(rs) || rs <= 0) { Alert.alert('Refund', 'Enter a valid amount.'); return; }
+    if (rs > maxRs + 0.001) { Alert.alert('Refund', `Amount exceeds the refundable balance (₹${maxRs}).`); return; }
+    const amount_paise = Math.round(rs * 100);
+    const isFull = amount_paise >= Math.round(maxRs * 100);
+    setRefundLoading(true);
+    try {
+      const res = await paymentAPI.refund({
+        booking_id: refundBooking.id,
+        amount_paise: isFull ? undefined : amount_paise,   // omit → full remaining
+        reason: refundReason || undefined,
+      }) as any;
+      const newStatus = res.data?.payment_status || (isFull ? 'refunded' : 'partially_refunded');
+      const newRefunded = res.data?.refunded_paise ?? ((Number(refundBooking.refunded_paise) || 0) + amount_paise);
+      setBookings((prev) => prev.map((b) => b.id === refundBooking.id
+        ? { ...b, payment_status: newStatus, refunded_paise: newRefunded } : b));
+      setRefundBooking(null);
+      Alert.alert('Refund', isFull ? 'Full refund initiated.' : `Partial refund of ₹${rs} initiated.`);
+    } catch (err: any) {
+      Alert.alert('Refund failed', err?.message || 'Could not process the refund.');
+    } finally {
+      setRefundLoading(false);
+    }
+  };
 
   const fetchBookings = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -174,6 +218,31 @@ const AdminBookingsScreen = () => {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Refund — available on any paid / partially-refunded booking */}
+      {['paid', 'partially_refunded'].includes(item.payment_status) && refundableRupees(item) > 0 && (
+        <View style={styles.actions}>
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.refundBtn]}
+            onPress={() => openRefund(item)}
+            disabled={!!actionLoading}
+            activeOpacity={0.7}
+          >
+            <View style={styles.actionBtnInner}>
+              <CurrencyInr size={16} weight="bold" color={C.warning} />
+              <Text style={styles.refundText}> {item.payment_status === 'partially_refunded' ? 'Refund more' : 'Refund'}</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      )}
+      {item.payment_status === 'refunded' && (
+        <Text style={styles.refundedNote}>✓ Fully refunded</Text>
+      )}
+      {item.payment_status === 'partially_refunded' && (
+        <Text style={styles.refundedNote}>
+          Partially refunded: ₹{((Number(item.refunded_paise) || 0) / 100).toLocaleString('en-IN')}
+        </Text>
+      )}
     </View>
     );
   };
@@ -229,6 +298,66 @@ const AdminBookingsScreen = () => {
           }
         />
       )}
+
+      {/* Refund modal */}
+      <Modal
+        visible={!!refundBooking}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setRefundBooking(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Refund booking</Text>
+            {refundBooking && (
+              <>
+                <Text style={styles.modalSub}>
+                  #{refundBooking.id?.slice(0, 8).toUpperCase()} · Paid ₹{((Number(refundBooking.amount_paise) || 0) / 100).toLocaleString('en-IN')}
+                </Text>
+                {(Number(refundBooking.refunded_paise) || 0) > 0 && (
+                  <Text style={styles.modalSub}>
+                    Already refunded ₹{((Number(refundBooking.refunded_paise) || 0) / 100).toLocaleString('en-IN')}
+                  </Text>
+                )}
+                <Text style={styles.modalRefundable}>Refundable balance: ₹{refundableRupees(refundBooking).toLocaleString('en-IN')}</Text>
+
+                <Text style={styles.modalLabel}>Refund amount (₹)</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={refundAmt}
+                  onChangeText={setRefundAmt}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor={C.muted}
+                />
+                <TouchableOpacity onPress={() => setRefundAmt(String(refundableRupees(refundBooking)))}>
+                  <Text style={styles.modalFullLink}>Use full balance</Text>
+                </TouchableOpacity>
+
+                <Text style={styles.modalLabel}>Reason (optional)</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={refundReason}
+                  onChangeText={setRefundReason}
+                  placeholder="e.g. customer request"
+                  placeholderTextColor={C.muted}
+                />
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity style={[styles.modalBtn, styles.modalCancel]} onPress={() => setRefundBooking(null)} disabled={refundLoading}>
+                    <Text style={styles.modalCancelText}>Close</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.modalBtn, styles.modalConfirm]} onPress={submitRefund} disabled={refundLoading}>
+                    {refundLoading
+                      ? <ActivityIndicator size="small" color={C.primaryFg} />
+                      : <Text style={styles.modalConfirmText}>Refund ₹{Number(refundAmt) || 0}</Text>}
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -287,6 +416,24 @@ const makeStyles = (C: any) => StyleSheet.create({
   cancelText: { color: C.danger, fontWeight: '700', fontSize: 13 },
   emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, gap: 12 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: C.foreground },
+  refundBtn: { backgroundColor: C.warningBg },
+  refundText: { color: C.warning, fontWeight: '700', fontSize: 13 },
+  refundedNote: { marginTop: 10, fontSize: 12, color: C.muted, fontWeight: '600' },
+  // Modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  modalCard: { width: '100%', maxWidth: 420, backgroundColor: C.surface, borderRadius: 18, padding: 20 },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: C.foreground },
+  modalSub: { fontSize: 13, color: C.muted, marginTop: 4 },
+  modalRefundable: { fontSize: 14, fontWeight: '700', color: C.primary, marginTop: 8 },
+  modalLabel: { fontSize: 12, color: C.muted, fontWeight: '600', marginTop: 16, marginBottom: 6 },
+  modalInput: { borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15, color: C.foreground, backgroundColor: C.background },
+  modalFullLink: { fontSize: 12, color: C.primary, fontWeight: '700', marginTop: 6 },
+  modalActions: { flexDirection: 'row', gap: 12, marginTop: 22 },
+  modalBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  modalCancel: { backgroundColor: C.surfaceElevated, borderWidth: 1, borderColor: C.border },
+  modalCancelText: { color: C.foreground, fontWeight: '700', fontSize: 14 },
+  modalConfirm: { backgroundColor: C.warning },
+  modalConfirmText: { color: C.primaryFg, fontWeight: '700', fontSize: 14 },
 });
 
 export default AdminBookingsScreen;
