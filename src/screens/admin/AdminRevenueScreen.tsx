@@ -36,13 +36,16 @@ const AdminRevenueScreen = () => {
 
   useFocusEffect(useCallback(() => { fetchData(); }, []));
 
-  // Compute revenue stats
+  // Compute revenue stats — NET of refunds. A refunded/partially-refunded
+  // booking keeps status='completed' but must be counted at amount minus
+  // refunded_paise, else the dashboard overstates revenue.
+  const netPaid = (b: any) => (b.amount_paise || 0) - (b.refunded_paise || 0);
   const totalRevenue = bookings
     .filter(b => b.status !== 'cancelled')
-    .reduce((sum, b) => sum + (b.amount_paise || 0), 0);
+    .reduce((sum, b) => sum + netPaid(b), 0);
   const completedRevenue = bookings
     .filter(b => b.status === 'completed' || b.job_status === 'completed')
-    .reduce((sum, b) => sum + (b.amount_paise || 0), 0);
+    .reduce((sum, b) => sum + netPaid(b), 0);
   const pendingRevenue = bookings
     .filter(b => b.status === 'pending' || b.status === 'confirmed')
     .reduce((sum, b) => sum + (b.amount_paise || 0), 0);

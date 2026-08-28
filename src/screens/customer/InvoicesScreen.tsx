@@ -96,8 +96,15 @@ const InvoicesScreen = () => {
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
+  // A pdf_url pointing at the R2 demo-placeholder host isn't a real, reachable
+  // document (R2 unconfigured or an upload failed) — treat it as not-ready.
+  const pdfReady = (item: any) => !!item.pdf_url && !String(item.pdf_url).includes('demo-placeholder');
+
   const openPdf = async (item: any) => {
-    if (!item.pdf_url) { Alert.alert('Invoice', 'Your invoice PDF is still being prepared. Please pull to refresh in a moment.'); return; }
+    if (!pdfReady(item)) {
+      Alert.alert('Invoice', 'Your invoice PDF is still being prepared. Please pull to refresh in a moment.');
+      return;
+    }
     try {
       const ok = await Linking.canOpenURL(item.pdf_url);
       if (ok) await Linking.openURL(item.pdf_url);
@@ -134,12 +141,12 @@ const InvoicesScreen = () => {
       </View>
 
       <TouchableOpacity
-        style={[styles.dlBtn, !item.pdf_url && styles.dlBtnDisabled]}
+        style={[styles.dlBtn, !pdfReady(item) && styles.dlBtnDisabled]}
         onPress={() => openPdf(item)}
         activeOpacity={0.85}
       >
         <DownloadSimple size={18} weight="bold" color={C.primaryFg} />
-        <Text style={styles.dlText}>{item.pdf_url ? 'Download PDF' : 'Preparing…'}</Text>
+        <Text style={styles.dlText}>{pdfReady(item) ? 'Download PDF' : 'Preparing…'}</Text>
       </TouchableOpacity>
     </View>
   );

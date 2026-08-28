@@ -138,6 +138,20 @@ const AmcEnrollmentScreen = () => {
     rzp.open();
     </script></body></html>`;
 
+  // PayU hosted checkout — auto-submit the signed form POST inside the WebView.
+  const buildPayuHtml = (actionUrl: string, params: Record<string, any>) => {
+    const inputs = Object.entries(params || {})
+      .map(([k, v]) => `<input type="hidden" name="${k}" value="${String(v).replace(/"/g, '&quot;')}"/>`)
+      .join('');
+    return `<!DOCTYPE html><html><head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>body{background:${C.background};display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:sans-serif;color:${C.foreground};}</style>
+      </head><body><p>Opening payment...</p>
+      <form id="payuForm" method="post" action="${actionUrl}">${inputs}</form>
+      <script>document.getElementById("payuForm").submit();</script>
+      </body></html>`;
+  };
+
   const handleRazorpayMessage = async (event: any) => {
     clearPaymentTimeout();
     let data: any;
@@ -151,6 +165,12 @@ const AmcEnrollmentScreen = () => {
     setShowRazorpay(false);
 
     try {
+      if (data.source === 'payu' || data.source === 'easebuzz') {
+        // Hosted-checkout callback already settled the contract server-side.
+        if (data.status === 'success') goToConfirmed(contractIdRef.current || '');
+        else Alert.alert('Payment Failed', 'Payment was unsuccessful. Please try again.');
+        return;
+      }
       if (data.type === 'success') {
         await paymentAPI.verifyAmcPayment({
           contract_id: data.contract_id,
@@ -191,9 +211,15 @@ const AmcEnrollmentScreen = () => {
         return;
       }
 
-      const { order_id, key_id, amount } = orderRes.data || orderRes;
+      const { order_id, key_id, amount, gateway, payment_url, payment_params } = orderRes.data || orderRes;
 
-      if (!order_id || isPlaceholderKey(key_id)) {
+      // PayU needs signed form params; Razorpay a real key. (Easebuzz uses a
+      // hosted-URL WebView not wired into this screen → treated as not-ready.)
+      const gatewayReady = gateway === 'payu'
+        ? (!!payment_url && !!payment_params && payment_params.hash !== 'dev')
+        : (gateway === 'razorpay' || !gateway) ? (!!order_id && !isPlaceholderKey(key_id))
+        : false;
+      if (!gatewayReady) {
         Alert.alert(
           'Online Payment Not Configured',
           'Online payment is not configured for this build. Your contract has been saved as pending — an admin will follow up.',
@@ -211,9 +237,10 @@ const AmcEnrollmentScreen = () => {
         return;
       }
 
-      // Step 3: Open Razorpay checkout
-      const html = buildRazorpayHtml(order_id, key_id, amount || plan_price * 100, contract.id);
-      setRazorpayHtml(html);
+      // Step 3: Open the gateway checkout (both PayU + Razorpay render as HTML).
+      setRazorpayHtml(gateway === 'payu'
+        ? buildPayuHtml(payment_url, payment_params)
+        : buildRazorpayHtml(order_id, key_id, amount || plan_price * 100, contract.id));
       setShowRazorpay(true);
       armPaymentTimeout(contract.id);
     } catch (err: any) {

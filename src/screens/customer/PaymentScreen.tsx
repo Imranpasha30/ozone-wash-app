@@ -263,6 +263,22 @@ const PaymentScreen = () => {
     rzp.open();
     </script></body></html>`;
 
+  // PayU hosted checkout: auto-submit a signed form POST to {payment_url}.
+  // The result returns via the surl/furl callback page which postMessages
+  // { source:'payu', status } to this WebView (backend already settled).
+  const buildPayuHtml = (actionUrl: string, params: Record<string, any>) => {
+    const inputs = Object.entries(params || {})
+      .map(([k, v]) => `<input type="hidden" name="${k}" value="${String(v).replace(/"/g, '&quot;')}"/>`)
+      .join('');
+    return `<!DOCTYPE html><html><head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>body{background:${C.background};display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:sans-serif;color:#F1F2F8;}</style>
+      </head><body><p>Opening payment...</p>
+      <form id="payuForm" method="post" action="${actionUrl}">${inputs}</form>
+      <script>document.getElementById("payuForm").submit();</script>
+      </body></html>`;
+  };
+
   const handleRazorpayMessage = async (event: any) => {
     clearPaymentTimeout();
     let data: any;
@@ -276,9 +292,9 @@ const PaymentScreen = () => {
     setShowRazorpay(false);
 
     try {
-      if (data.source === 'easebuzz') {
-        // Easebuzz callback page relayed the result. The backend already
-        // signature-verified + settled the booking in the callback handler.
+      if (data.source === 'easebuzz' || data.source === 'payu') {
+        // Hosted-checkout callback page relayed the result. The backend already
+        // hash-verified + settled the booking in the callback handler.
         if (data.status === 'success') {
           goToConfirmed(bookingIdRef.current || '');
         } else {
@@ -418,10 +434,15 @@ const PaymentScreen = () => {
         return;
       }
 
-      const { order_id, key_id, amount, gateway, payment_url } = orderRes.data || orderRes;
+      const { order_id, key_id, amount, gateway, payment_url, payment_params } = orderRes.data || orderRes;
 
-      // Gateway readiness check — Easebuzz needs a payment_url; Razorpay a real key
-      const gatewayReady = gateway === 'easebuzz' ? !!payment_url : (!!order_id && !isPlaceholderKey(key_id));
+      // Gateway readiness — PayU needs payment_url + signed form params; Easebuzz
+      // a payment_url; Razorpay a real key.
+      const gatewayReady = gateway === 'payu'
+        ? (!!payment_url && !!payment_params && payment_params.hash !== 'dev')
+        : gateway === 'easebuzz'
+          ? !!payment_url
+          : (!!order_id && !isPlaceholderKey(key_id));
       if (!gatewayReady) {
         Alert.alert(
           'Online Payment Not Configured',
@@ -441,7 +462,12 @@ const PaymentScreen = () => {
         return;
       }
 
-      if (gateway === 'easebuzz') {
+      if (gateway === 'payu') {
+        // Auto-submit the signed PayU form inside the WebView; result relays
+        // back via the surl/furl callback page ({ source:'payu', status }).
+        setRazorpayHtml(buildPayuHtml(payment_url, payment_params));
+        setCheckoutUrl(null);
+      } else if (gateway === 'easebuzz') {
         // Hosted checkout page — result comes back via the surl/furl callback
         // page which postMessages { source:'easebuzz', status } to the WebView.
         setCheckoutUrl(payment_url);
