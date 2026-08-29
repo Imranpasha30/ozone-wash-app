@@ -4,6 +4,7 @@ import {
   ActivityIndicator, Alert, Linking, Image, TextInput,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import useBookingStore from '../../store/booking.store';
 import { bookingAPI, complianceAPI, certificateAPI, jobAPI, fieldAPI, ratingAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { useWebScrollFix } from '../../utils/useWebScrollFix';
@@ -52,6 +53,7 @@ const makeStyles = (C: any) => StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: C.border,
+    shadowColor: '#0b1220', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2,
   },
   timelineRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 0 },
   timelineLeft: { alignItems: 'center', marginRight: 12, width: 20 },
@@ -70,6 +72,7 @@ const makeStyles = (C: any) => StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: C.border,
+    shadowColor: '#0b1220', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2,
   },
   infoRow: { flexDirection: 'row', marginBottom: 10 },
   infoLabel: { width: 90, fontSize: 12, color: C.muted, fontWeight: '600' },
@@ -80,6 +83,7 @@ const makeStyles = (C: any) => StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: C.border,
+    shadowColor: '#0b1220', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2,
   },
   complianceHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   compliancePct: { fontSize: 32, fontWeight: 'bold', color: C.primary, marginRight: 10 },
@@ -99,6 +103,7 @@ const makeStyles = (C: any) => StyleSheet.create({
     borderColor: C.border,
     borderLeftWidth: 4,
     borderLeftColor: C.warning,
+    shadowColor: '#0b1220', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2,
   },
   certIconContainer: {
     width: 48,
@@ -126,6 +131,7 @@ const makeStyles = (C: any) => StyleSheet.create({
     borderColor: C.border,
     borderLeftWidth: 4,
     borderLeftColor: C.primary,
+    shadowColor: '#0b1220', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2,
   },
   otpIconContainer: {
     width: 48,
@@ -163,6 +169,11 @@ const makeStyles = (C: any) => StyleSheet.create({
   },
   slaBreachTitle: { fontSize: 13, fontWeight: '700', color: '#92400E', marginBottom: 2 },
   slaBreachSub: { fontSize: 12, color: '#92400E', lineHeight: 17 },
+  reorderBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: C.primary, borderRadius: 14, paddingVertical: 15, marginTop: 20,
+  },
+  reorderText: { color: C.primaryFg, fontWeight: 'bold', fontSize: 16 },
   cancelBtn: {
     marginTop: 24,
     borderWidth: 2,
@@ -180,6 +191,7 @@ const makeStyles = (C: any) => StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: C.border,
+    shadowColor: '#0b1220', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2,
   },
   compareRow: {
     flexDirection: 'row',
@@ -217,6 +229,7 @@ const makeStyles = (C: any) => StyleSheet.create({
     borderColor: C.border,
     marginRight: 12,
     width: 260,
+    shadowColor: '#0b1220', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2,
   },
   photoStepName: { fontSize: 12, fontWeight: '700', color: C.foreground, marginBottom: 8 },
   photoPairRow: { flexDirection: 'row', gap: 8 },
@@ -241,6 +254,7 @@ const makeStyles = (C: any) => StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: C.border,
+    shadowColor: '#0b1220', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2,
   },
   rateStarsRow: { flexDirection: 'row', justifyContent: 'center', gap: 6 },
   rateStarBtn: { padding: 4 },
@@ -274,6 +288,7 @@ const BookingDetailScreen = () => {
   const scrollRef = useWebScrollFix();
 
   const navigation = useNavigation<any>();
+  const { setStep1, reset: resetDraft } = useBookingStore();
   const route = useRoute<any>();
   const bookingId = route.params?.booking_id ?? route.params?.id;
 
@@ -413,6 +428,30 @@ const BookingDetailScreen = () => {
     } finally {
       setRequestingOtp(false);
     }
+  };
+
+  // Reorder — clone this booking's tanks + address + contact into a fresh draft
+  // and drop the user into the booking flow (they pick a new date).
+  const handleReorder = () => {
+    if (!booking) return;
+    resetDraft();
+    let tanks: any[] = [];
+    try { tanks = typeof booking.tanks === 'string' ? JSON.parse(booking.tanks) : (booking.tanks || []); } catch { tanks = []; }
+    if (!tanks.length) tanks = [{ tank_type: booking.tank_type, tank_size_litres: Number(booking.tank_size_litres) || 1000, name: '' }];
+    setStep1({
+      property_type: booking.property_type || 'residential',
+      tanks,
+      tank_type: booking.tank_type,
+      tank_size_litres: Number(booking.tank_size_litres) || 1000,
+      address: booking.address || '',
+      lat: booking.lat ?? null,
+      lng: booking.lng ?? null,
+      address_id: null,
+      contact_name: booking.contact_name || '',
+      contact_phone: booking.contact_phone || '',
+      plan: 'one_time',
+    });
+    navigation.navigate('TankDetails');
   };
 
   const handleCancel = () => {
@@ -947,6 +986,12 @@ const BookingDetailScreen = () => {
             </>
           );
         })()}
+
+        {/* Reorder — clone this booking's tanks + address into a fresh booking */}
+        <TouchableOpacity style={styles.reorderBtn} onPress={handleReorder} activeOpacity={0.85}>
+          <ArrowRight size={18} weight="bold" color={C.primaryFg} />
+          <Text style={styles.reorderText}>Reorder this service</Text>
+        </TouchableOpacity>
 
         {/* Cancel Button — hide once job has started (start OTP verified) */}
         {(booking.status === 'pending' || booking.status === 'confirmed') &&

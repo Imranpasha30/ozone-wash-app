@@ -44,11 +44,11 @@ const DateTimeScreen = () => {
   const [meta, setMeta] = useState<SlotMeta | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Build next 14 days
+  // Build next 30 days (spans into next month) — grouped by month in the grid.
   const buildDays = () => {
     const days = [];
     const today = new Date();
-    for (let i = 1; i <= 14; i++) {
+    for (let i = 1; i <= 30; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() + i);
       days.push(d);
@@ -155,40 +155,37 @@ const DateTimeScreen = () => {
       <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
         <WebContainer variant="narrow">
 
-        {/* SLA arrival block — G3/G4. Sets expectations + reinforces auto-refund safety net. */}
-        <View style={styles.slaCard}>
-          <View style={styles.slaHeader}>
-            <Clock size={18} weight="fill" color={C.success} />
-            <Text style={styles.slaTitle}>Arrival SLA</Text>
-          </View>
-          <Text style={styles.slaText}>
-            Guaranteed arrival within <Text style={styles.slaTextBold}>30 minutes</Text> of your slot.
-            If we breach this SLA, your booking auto-refunds — no calls, no questions.
-          </Text>
-        </View>
-
         {/* Date Picker */}
         <View style={styles.labelRow}>
           <Calendar size={16} weight="regular" color={C.primary} />
           <Text style={styles.label}>Select Date</Text>
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateScroll}>
-          {days.map((d) => {
+        <View style={styles.dateGrid}>
+          {days.map((d, i) => {
             const key = formatDateKey(d);
             const active = selectedDate === key;
+            // Full-width month header when the month changes → next-month dates
+            // appear under their own label (e.g. "September 2026").
+            const newMonth = i === 0 || d.getMonth() !== days[i - 1].getMonth();
             return (
-              <TouchableOpacity
-                key={key}
-                style={[styles.dayBtn, active && styles.dayBtnActive]}
-                onPress={() => handleDateSelect(d)}
-              >
-                <Text style={[styles.dayLabel, active && styles.dayLabelActive]}>{dayLabel(d)}</Text>
-                <Text style={[styles.dateNum, active && styles.dateNumActive]}>{dateLabel(d)}</Text>
-                <Text style={[styles.monthLabel, active && styles.monthLabelActive]}>{monthLabel(d)}</Text>
-              </TouchableOpacity>
+              <React.Fragment key={key}>
+                {newMonth && (
+                  <Text style={styles.monthDivider}>
+                    {d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+                  </Text>
+                )}
+                <TouchableOpacity
+                  style={[styles.dayBtn, active && styles.dayBtnActive]}
+                  onPress={() => handleDateSelect(d)}
+                >
+                  <Text style={[styles.dayLabel, active && styles.dayLabelActive]}>{dayLabel(d)}</Text>
+                  <Text style={[styles.dateNum, active && styles.dateNumActive]}>{dateLabel(d)}</Text>
+                  <Text style={[styles.monthLabel, active && styles.monthLabelActive]}>{monthLabel(d)}</Text>
+                </TouchableOpacity>
+              </React.Fragment>
             );
           })}
-        </ScrollView>
+        </View>
 
         {/* Time Slots */}
         <View style={styles.labelRow}>
@@ -334,13 +331,14 @@ const makeStyles = (C: any) => StyleSheet.create({
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12, marginTop: 8 },
   label: { fontSize: 14, fontWeight: '700', color: C.foreground },
   dateScroll: { marginBottom: 8 },
+  dateGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
+  monthDivider: { width: '100%', fontSize: 12, fontWeight: '700', color: C.muted, marginTop: 10, marginBottom: 2 },
   dayBtn: {
     width: 64,
     alignItems: 'center',
     padding: 12,
     backgroundColor: C.surface,
     borderRadius: 16,
-    marginRight: 8,
     borderWidth: 2,
     borderColor: C.border,
   },
@@ -359,6 +357,7 @@ const makeStyles = (C: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
     gap: 8,
+    shadowColor: '#0b1220', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2,
   },
   hintText: { fontSize: 15, color: C.foreground, fontWeight: '600' },
   hintSub: { fontSize: 12, color: C.muted, marginTop: 4 },
@@ -397,6 +396,7 @@ const makeStyles = (C: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: C.borderActive,
     gap: 6,
+    shadowColor: '#0b1220', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2,
   },
   summaryLabel: { fontSize: 11, color: C.muted, textTransform: 'uppercase' },
   summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },

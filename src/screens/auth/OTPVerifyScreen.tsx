@@ -38,7 +38,17 @@ const OTPVerifyScreen = () => {
   useEffect(() => {
     if (Platform.OS !== 'android') return;
     let RNOtpVerify: any = null;
-    try { RNOtpVerify = require('react-native-otp-verify').default; } catch (_) { return; }
+    try {
+      // react-native-otp-verify constructs a NativeEventEmitter on its native
+      // module AT LOAD TIME; when the module isn't linked (Expo Go) that's a
+      // throwing Proxy and the require() itself crashes. Its native module
+      // registers as NativeModules.OtpVerify — check that FIRST and bail before
+      // requiring the package, so auto-read is silently skipped (manual OTP
+      // entry still works).
+      const { NativeModules } = require('react-native');
+      if (!NativeModules.OtpVerify) return;
+      RNOtpVerify = require('react-native-otp-verify').default;
+    } catch (_) { return; }
     if (!RNOtpVerify?.getOtp || !RNOtpVerify?.addListener) return;
 
     let mounted = true;

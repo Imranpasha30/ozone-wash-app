@@ -44,9 +44,9 @@ export const TANK_SIZE_BANDS = [
 ] as const;
 
 export const PAYMENT_METHODS = [
-  { label: 'UPI', value: 'upi' },
-  { label: 'Card', value: 'card' },
-  { label: 'Wallet', value: 'wallet' },
+  // Pay Online routes to the PayU hosted checkout (which itself offers UPI, cards,
+  // netbanking, wallets) — so we don't list those separately. COD = pay on service.
+  { label: 'Pay Online', value: 'online' },
   { label: 'Cash on Delivery', value: 'cod' },
 ];
 

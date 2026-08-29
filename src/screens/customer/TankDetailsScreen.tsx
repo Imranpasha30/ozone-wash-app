@@ -45,6 +45,11 @@ const bandForLitres = (litres: number) => {
   return found || TANK_SIZE_BANDS[0];
 };
 
+// Stable client-side id for React keys — so adding/removing a tank never
+// disturbs the other tank cards' selections or inputs.
+let _tankSeq = 0;
+const newTankId = () => `tk_${Date.now().toString(36)}_${_tankSeq++}`;
+
 const tankPrice = (tank: TankEntry) => {
   if (!tank.tank_type || !tank.tank_size_litres) return 0;
   return bandForLitres(tank.tank_size_litres).basePrice;
@@ -72,7 +77,9 @@ const TankDetailsScreen = () => {
     (draft.property_type as any) || 'residential'
   );
   const [tanks, setTanks] = useState<TankEntry[]>(
-    draft.tanks?.length ? draft.tanks : [{ tank_type: '', tank_size_litres: 1000, name: '' }]
+    draft.tanks?.length
+      ? draft.tanks.map((t: any) => ({ ...t, _id: t._id || newTankId() }))
+      : [{ tank_type: '', tank_size_litres: 1000, name: '', _id: newTankId() } as any]
   );
   const [address, setAddress] = useState(draft.address || '');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
@@ -83,13 +90,13 @@ const TankDetailsScreen = () => {
   const [locating, setLocating] = useState(false);
   // Per-tank: index 0 is always "primary", index 1+ can have different location
   const [sameLocation, setSameLocation] = useState<boolean[]>(
-    (draft.tanks || []).map((_: any, i: number) => i === 0 ? true : !(draft.tanks?.[i]?.address))
+    tanks.map((t: any, i: number) => i === 0 ? true : !(t.address))
   );
   const [tankAddresses, setTankAddresses] = useState<string[]>(
-    (draft.tanks || []).map((t: any) => t.address || '')
+    tanks.map((t: any) => t.address || '')
   );
   const [tankCoords, setTankCoords] = useState<({ lat: number; lng: number } | null)[]>(
-    (draft.tanks || []).map((t: any) => (t.lat && t.lng ? { lat: t.lat, lng: t.lng } : null))
+    tanks.map((t: any) => (t.lat && t.lng ? { lat: t.lat, lng: t.lng } : null))
   );
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
   const [addressId, setAddressId] = useState<string | null>(draft.address_id || null);
@@ -99,6 +106,9 @@ const TankDetailsScreen = () => {
   const [showSaveRow, setShowSaveRow] = useState(false);
   const [savingAddr, setSavingAddr] = useState(false);
   const userId = useAuthStore((s) => s.user?.id || '');
+  const userPhone = useAuthStore((s) => s.user?.phone || '');
+  // Contact phone defaults to the logged-in number (required in handleNext).
+  React.useEffect(() => { if (!contactPhone && userPhone) setContactPhone(userPhone); }, [userPhone]);
 
   const loadAddresses = React.useCallback(() => {
     addressAPI.list()
@@ -121,6 +131,7 @@ const TankDetailsScreen = () => {
       setAddress(def.address);
       setAddressId(def.id);
       if (def.lat && def.lng) setCoords({ lat: Number(def.lat), lng: Number(def.lng) });
+      if ((def as any).phone) setContactPhone(String((def as any).phone));
     }
   }, [savedAddresses]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -169,6 +180,9 @@ const TankDetailsScreen = () => {
       const res: any = await addressAPI.create({
         label,
         address: trimmed,
+        // Bind the current contact phone + tank set to this saved location.
+        phone: contactPhone.trim() || null,
+        tanks: tanks.map(({ _id, ...t }: any) => t),
         lat: coords?.lat ?? null,
         lng: coords?.lng ?? null,
       });
@@ -196,6 +210,15 @@ const TankDetailsScreen = () => {
     setAddress(a.address);
     setAddressId(a.id);
     setCoords(a.lat && a.lng ? { lat: Number(a.lat), lng: Number(a.lng) } : null);
+    // Zomato-style: a saved location carries its own contact phone + tank set.
+    if ((a as any).phone) setContactPhone(String((a as any).phone));
+    const savedTanks = (a as any).tanks;
+    if (Array.isArray(savedTanks) && savedTanks.length) {
+      setTanks(savedTanks.map((t: any) => ({ ...t, _id: newTankId() })));
+      setSameLocation(savedTanks.map(() => true));
+      setTankAddresses(savedTanks.map(() => ''));
+      setTankCoords(savedTanks.map(() => null));
+    }
   };
 
   // "Update existing" — open the map picker preloaded, then PUT on return.
@@ -216,7 +239,7 @@ const TankDetailsScreen = () => {
 
   const addTank = () => {
     if (tanks.length >= 5) return Alert.alert('Max 5 tanks', 'You can add up to 5 tanks per booking.');
-    setTanks(prev => [...prev, { tank_type: '', tank_size_litres: 1000, name: '' }]);
+    setTanks(prev => [...prev, { tank_type: '', tank_size_litres: 1000, name: '', _id: newTankId() } as any]);
     setSameLocation(prev => [...prev, true]);
     setTankAddresses(prev => [...prev, '']);
     setTankCoords(prev => [...prev, null]);
@@ -298,6 +321,10 @@ const TankDetailsScreen = () => {
     });
 
     const firstTank = tanks[0];
+    const phone = contactPhone.trim();
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+      return Alert.alert('Contact number required', 'Please enter a valid 10-digit mobile number our team can call on arrival.');
+    }
     setStep1({
       property_type: propertyType,
       tanks: tanksWithAddresses,
@@ -511,7 +538,7 @@ const TankDetailsScreen = () => {
           </View>
 
           {tanks.map((tank, idx) => (
-            <View key={idx} style={styles.tankCard}>
+            <View key={(tank as any)._id || idx} style={styles.tankCard}>
               <View style={styles.tankCardHeader}>
                 <Text style={styles.tankCardTitle}>Tank {idx + 1}</Text>
                 {tanks.length > 1 && (
@@ -771,28 +798,32 @@ const TankDetailsScreen = () => {
             </>
           )}
 
-          {/* Service Contact Person */}
+          {/* Service Contact — phone required, defaults to the login number */}
           <View style={styles.labelRow}>
             <User size={16} weight="regular" color={C.primary} />
-            <Text style={styles.labelWithIcon}>Service Contact Person</Text>
-            <Text style={styles.optionalTag}>(Optional)</Text>
+            <Text style={styles.labelWithIcon}>Service Contact</Text>
           </View>
           <TextInput
             style={styles.input}
-            placeholder="Watchman / Facility manager name"
+            placeholder="Contact name (watchman / facility manager) — optional"
             value={contactName}
             onChangeText={setContactName}
             placeholderTextColor={C.gray}
           />
           <TextInput
             style={[styles.input, { marginTop: 8 }]}
-            placeholder="Contact phone number"
+            placeholder="Contact mobile number (required)"
             keyboardType="phone-pad"
             maxLength={10}
             value={contactPhone}
-            onChangeText={setContactPhone}
+            onChangeText={(v) => setContactPhone(v.replace(/\D/g, ''))}
             placeholderTextColor={C.gray}
           />
+          <Text style={{ fontSize: 11, color: C.muted, marginTop: 6, marginLeft: 4 }}>
+            {contactPhone && contactPhone === userPhone
+              ? '✓ Using your login number — edit it if the on-site contact is different.'
+              : 'The number our team should call on arrival.'}
+          </Text>
 
           {/* Cross-sell CS2 — co-visit Auto. Team already coming → low-friction add. */}
           <TouchableOpacity
@@ -890,8 +921,11 @@ const makeStyles = (C: any) => StyleSheet.create({
   tanksSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   tankCount: { fontSize: 12, color: C.primary, fontWeight: '700', marginTop: 18 },
   tankCard: {
-    backgroundColor: C.surface, borderRadius: 16, padding: 16,
-    borderWidth: 1.5, borderColor: C.border, marginBottom: 12,
+    backgroundColor: C.surface, borderRadius: 16, padding: 16, marginBottom: 12,
+    borderWidth: 1, borderColor: C.border,
+    // Soft depth instead of a flat hard outline — the key "premium" upgrade.
+    shadowColor: '#0b1220', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06, shadowRadius: 12, elevation: 2,
   },
   tankCardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   tankCardTitle: { fontSize: 14, fontWeight: '700', color: C.foreground },
@@ -930,7 +964,8 @@ const makeStyles = (C: any) => StyleSheet.create({
   tank1LocText: { fontSize: 12, color: C.primary, flex: 1 },
   addTankBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    borderWidth: 1.5, borderColor: C.primary, borderStyle: 'dashed',
+    borderWidth: 1, borderColor: C.primary + '33',
+    backgroundColor: C.primaryBg,
     borderRadius: 14, padding: 14, marginBottom: 4,
   },
   addTankText: { fontSize: 14, color: C.primary, fontWeight: '600' },

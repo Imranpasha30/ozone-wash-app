@@ -52,6 +52,7 @@ const MyAddressesScreen = () => {
   // Pending location returned from the map picker, awaiting a nickname + save.
   const [pending, setPending] = useState<{ address: string; lat?: number; lng?: number } | null>(null);
   const [pendingLabel, setPendingLabel] = useState('Home');
+  const [pendingPhone, setPendingPhone] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -108,6 +109,7 @@ const MyAddressesScreen = () => {
   const cancelPending = () => {
     setPending(null);
     setEditingId(null);
+    setPendingPhone('');
   };
 
   const savePending = async () => {
@@ -115,10 +117,12 @@ const MyAddressesScreen = () => {
     const label = pendingLabel.trim() || 'Home';
     setSaving(true);
     try {
+      const phone = pendingPhone.trim() || null;
       if (editingId) {
         await addressAPI.update(editingId, {
           label,
           address: pending.address,
+          phone,
           lat: pending.lat ?? null,
           lng: pending.lng ?? null,
         });
@@ -126,12 +130,14 @@ const MyAddressesScreen = () => {
         await addressAPI.create({
           label,
           address: pending.address,
+          phone,
           lat: pending.lat ?? null,
           lng: pending.lng ?? null,
         });
       }
       setPending(null);
       setEditingId(null);
+      setPendingPhone('');
       await loadAddresses();
     } catch (e: any) {
       showAlert({ title: 'Could Not Save', message: errMessage(e) });
@@ -225,6 +231,15 @@ const MyAddressesScreen = () => {
               placeholderTextColor={C.muted}
               value={pendingLabel}
               onChangeText={setPendingLabel}
+            />
+            <TextInput
+              style={[styles.labelInput, { marginTop: 8 }]}
+              placeholder="Contact number for this location (optional)"
+              placeholderTextColor={C.muted}
+              keyboardType="phone-pad"
+              maxLength={10}
+              value={pendingPhone}
+              onChangeText={(v) => setPendingPhone(v.replace(/\D/g, ''))}
             />
 
             <TouchableOpacity
@@ -326,7 +341,7 @@ const makeStyles = (C: any) => StyleSheet.create({
   addBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     backgroundColor: C.primaryBg, borderRadius: 14,
-    borderWidth: 1.5, borderColor: C.primary, borderStyle: 'dashed',
+    borderWidth: 1, borderColor: C.primary + '33',
     paddingVertical: 14, marginBottom: 14,
   },
   addBtnText: { fontSize: 14, fontWeight: '700', color: C.primary },

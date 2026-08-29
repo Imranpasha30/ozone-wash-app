@@ -1,12 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  ActivityIndicator, Alert, Modal, Platform,
+  ActivityIndicator, Alert, Modal, Platform, Linking, Keyboard, BackHandler,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import useBookingStore from '../../store/booking.store';
 import usePremiumStore from '../../store/premium.store';
-import { bookingAPI, paymentAPI, funnelAPI } from '../../services/api';
+import { bookingAPI, paymentAPI, funnelAPI, invalidateCache } from '../../services/api';
 import { API_URL, SERVICE_PLANS } from '../../utils/constants';
 import { useTheme } from '../../hooks/useTheme';
 import { useWebScrollFix } from '../../utils/useWebScrollFix';
@@ -48,6 +48,7 @@ const makeStyles = (C: any) => StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: C.border,
+    shadowColor: '#0b1220', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2,
   },
   row: { flexDirection: 'row', marginBottom: 10 },
   rowLabel: { width: 100, fontSize: 13, color: C.muted, fontWeight: '600' },
@@ -59,6 +60,7 @@ const makeStyles = (C: any) => StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: C.border,
+    shadowColor: '#0b1220', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2,
   },
   priceRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   priceLabel: { fontSize: 14, color: C.muted },
@@ -75,6 +77,7 @@ const makeStyles = (C: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
     gap: 12,
+    shadowColor: '#0b1220', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2,
   },
   payMethodText: { fontSize: 16, fontWeight: 'bold', color: C.foreground },
   confirmBtn: {
@@ -91,9 +94,21 @@ const makeStyles = (C: any) => StyleSheet.create({
   pgNote: { fontSize: 11, color: C.muted, textAlign: 'center', lineHeight: 16 },
   disclaimerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 16, justifyContent: 'center' },
   disclaimer: { fontSize: 11, color: C.muted, textAlign: 'center', lineHeight: 16, flex: 1 },
+  razorpayOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: C.background, zIndex: 1000, elevation: 1000,
+  },
   razorpayContainer: { flex: 1, backgroundColor: C.background, paddingTop: 44 },
   razorpayClose: { padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
   razorpayCloseText: { color: C.danger, fontSize: 16, fontWeight: '600' },
+  holdBanner: {
+    backgroundColor: C.primaryBg, paddingVertical: 10, paddingHorizontal: 16,
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
+    borderBottomWidth: 1, borderBottomColor: C.border,
+  },
+  holdBannerText: { fontSize: 13, color: C.foreground, fontWeight: '600' },
+  holdBannerTime: { fontWeight: '800', color: C.primary },
+  holdBannerUrgent: { color: C.danger },
   upsellCard: {
     backgroundColor: C.primaryBg, borderRadius: 16, padding: 14,
     borderWidth: 1.5, borderColor: C.borderActive,
@@ -130,9 +145,95 @@ const PaymentScreen = () => {
   const [razorpayHtml, setRazorpayHtml] = useState('');
   // Easebuzz checkout renders a hosted page URL instead of injected HTML
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
+  // baseUrl for the inline-HTML WebView (PayU needs a real origin so its
+  // cross-origin form-POST to the hosted checkout is allowed).
+  const [webBaseUrl, setWebBaseUrl] = useState<string | null>(null);
+  // Keyboard height — the checkout WebView lives in a Modal, whose window does
+  // NOT resize for the keyboard on Android; we shrink the WebView by this amount
+  // so the focused card/OTP field stays visible above the keyboard.
+  const [kbHeight, setKbHeight] = useState(0);
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', (e) => setKbHeight(e.endCoordinates?.height || 0));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKbHeight(0));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
   const [upsellLoading, setUpsellLoading] = useState(false);
   const bookingIdRef = useRef<string | null>(null);
   const paymentTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Payment-hold countdown (RedBus-style) ─────────────────────────────────
+  // The van slot is reserved until holdEndsAt (ms epoch, from create-order's
+  // hold_expires_at). While the in-app checkout is open we tick a MM:SS badge;
+  // at zero the reservation has lapsed server-side — close checkout, tell the
+  // user, and send them back to rebook.
+  const [holdEndsAt, setHoldEndsAt] = useState<number | null>(null);
+  const [holdLeft, setHoldLeft] = useState<number>(0);
+  useEffect(() => {
+    if (!showRazorpay || !holdEndsAt) return;
+    const tick = () => {
+      const left = Math.max(0, Math.round((holdEndsAt - Date.now()) / 1000));
+      setHoldLeft(left);
+      if (left <= 0) {
+        clearPaymentTimeout();
+        setShowRazorpay(false);
+        setHoldEndsAt(null);
+        Alert.alert(
+          'Reservation expired',
+          'Your slot was held for 8 minutes and the payment wasn’t completed in time, so the slot has been released. Please book again.',
+          [{ text: 'OK', onPress: () => navigation.reset({ index: 0, routes: [{ name: 'CustomerTabs' }] }) }],
+        );
+      }
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [showRazorpay, holdEndsAt]);
+
+  // Android hardware-back closes the in-window checkout overlay. (A real <Modal>
+  // did this for free; our overlay — which we use to keep WebView keyboard input
+  // working — must intercept back itself.)
+  useEffect(() => {
+    if (Platform.OS === 'web' || !showRazorpay) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => { setShowRazorpay(false); return true; });
+    return () => sub.remove();
+  }, [showRazorpay]);
+
+  // One-shot guard for the payment-return handler; reset when a checkout opens.
+  const paymentReturnedRef = useRef(false);
+  useEffect(() => { if (showRazorpay) paymentReturnedRef.current = false; }, [showRazorpay]);
+
+  // BULLETPROOF return: while the checkout is open, poll the backend. The PayU
+  // callback settles the booking server-side; the instant payment_status flips to
+  // 'paid' we route in-app — independent of any WebView postMessage/redirect,
+  // which are unreliable on Android. (Cache is busted each poll so it reads live.)
+  useEffect(() => {
+    if (!showRazorpay) return;
+    const bId = bookingIdRef.current;
+    if (!bId) return;
+    let stop = false;
+    const poll = async () => {
+      if (stop || paymentReturnedRef.current) return;
+      try {
+        invalidateCache(`/bookings/${bId}`);
+        const res: any = await bookingAPI.getBooking(bId);
+        const b = res?.data?.booking || res?.data || res?.booking || res;
+        const ps = b?.payment_status;
+        console.log('[pay-poll]', bId, 'payment_status=', ps);
+        if (ps === 'paid' && !paymentReturnedRef.current) {
+          paymentReturnedRef.current = true;
+          clearPaymentTimeout();
+          setHoldEndsAt(null);
+          setShowRazorpay(false);
+          goToConfirmed(bId);
+        }
+      } catch (e: any) {
+        console.log('[pay-poll] err', e?.message);
+      }
+    };
+    const id = setInterval(poll, 2500);
+    poll();
+    return () => { stop = true; clearInterval(id); };
+  }, [showRazorpay]);
 
   const tankSizes = (draft.tanks?.length ? draft.tanks : [{ tank_size_litres: draft.tank_size_litres }])
     .map((t: any) => Number(t.tank_size_litres) || 1000);
@@ -279,6 +380,30 @@ const PaymentScreen = () => {
       </body></html>`;
   };
 
+  // Reliable payment-return handler. The PayU callback navigates the WebView to
+  // {APP_URL}/payu-app-return?ozw_payment=…&booking_id=… . We catch that from
+  // EITHER onShouldStartLoadWithRequest OR onNavigationStateChange (Android is
+  // inconsistent about which fires for a JS redirect) and route in-app once.
+  const handlePaymentReturnUrl = (url: string): boolean => {
+    if (!url || url.indexOf('ozw_payment=') === -1) return false;
+    if (paymentReturnedRef.current) return true;
+    paymentReturnedRef.current = true;
+    const st = (url.match(/[?&]ozw_payment=([^&]+)/) || [])[1];
+    const bId = (url.match(/[?&]booking_id=([^&]+)/) || [])[1];
+    clearPaymentTimeout();
+    setHoldEndsAt(null);
+    setShowRazorpay(false);
+    if (st === 'success') {
+      goToConfirmed(decodeURIComponent(bId || '') || bookingIdRef.current || '');
+    } else {
+      Alert.alert(
+        'Payment failed',
+        'Your payment didn’t go through, so the booking isn’t placed. Your slot is held for a few minutes — tap Pay to try again, or pick another time.',
+      );
+    }
+    return true;
+  };
+
   const handleRazorpayMessage = async (event: any) => {
     clearPaymentTimeout();
     let data: any;
@@ -298,7 +423,11 @@ const PaymentScreen = () => {
         if (data.status === 'success') {
           goToConfirmed(bookingIdRef.current || '');
         } else {
-          Alert.alert('Payment Failed', 'Payment was unsuccessful. Please try again.');
+          setHoldEndsAt(null);
+          Alert.alert(
+            'Payment failed',
+            'Your payment didn’t go through, so the booking isn’t placed. Your slot is held for a few minutes — tap Pay to try again, or pick another time.',
+          );
         }
         return;
       }
@@ -321,13 +450,16 @@ const PaymentScreen = () => {
     }
   };
 
-  const handleWebViewError = () => {
+  const handleWebViewError = (e?: any) => {
     clearPaymentTimeout();
+    const ne = e?.nativeEvent;
+    console.log('[payment] WebView onError:', JSON.stringify(ne));
     setShowRazorpay(false);
     const bookingId = bookingIdRef.current;
+    const detail = ne ? `\n\n[${ne.code ?? '?'}] ${String(ne.description ?? '').slice(0, 80)}\n${String(ne.url ?? '').slice(0, 60)}` : '';
     Alert.alert(
       'Payment Unavailable',
-      'Could not load the payment screen. You can retry, or your booking has been saved — pay Cash on Delivery instead.',
+      'Could not load the payment screen. You can retry, or your booking has been saved — pay Cash on Delivery instead.' + detail,
       [
         { text: 'Retry', onPress: () => { if (bookingId) retryRazorpay(bookingId); } },
         {
@@ -338,8 +470,18 @@ const PaymentScreen = () => {
     );
   };
 
+  // Hosted checkout pages (PayU/Razorpay) load many sub-resources; a stray
+  // 4xx/5xx on one of them must NOT tear down the payment. Log only — genuine
+  // navigation failures still surface via onError, and the 30s timeout backs it up.
+  const handleWebViewHttpError = (e: any) => {
+    console.log('[payment] webview http status', e?.nativeEvent?.statusCode, e?.nativeEvent?.url);
+  };
+
   const armPaymentTimeout = (bookingId: string) => {
     clearPaymentTimeout();
+    // Only a safety net for a checkout page that NEVER loads. It is cleared the
+    // moment the page loads (WebView onLoadEnd), so it can't interrupt someone
+    // actively entering card/OTP details.
     paymentTimeoutRef.current = setTimeout(() => {
       setShowRazorpay(false);
       Alert.alert(
@@ -350,12 +492,12 @@ const PaymentScreen = () => {
           { text: 'Use COD', onPress: () => goToConfirmed(bookingId) },
         ],
       );
-    }, 30000);
+    }, 90000);
   };
 
   const retryRazorpay = async (bookingId: string) => {
     try {
-      const orderRes = await paymentAPI.createOrder(bookingId) as any;
+      const orderRes = await paymentAPI.createOrder(bookingId, Platform.OS === 'web' ? 'web' : undefined) as any;
       const { order_id, key_id, amount } = orderRes.data || orderRes;
       if (!order_id || isPlaceholderKey(key_id)) {
         Alert.alert(
@@ -423,7 +565,7 @@ const PaymentScreen = () => {
       // Online payment — create Razorpay order and open checkout
       let orderRes: any;
       try {
-        orderRes = await paymentAPI.createOrder(bookingId) as any;
+        orderRes = await paymentAPI.createOrder(bookingId, Platform.OS === 'web' ? 'web' : undefined) as any;
       } catch (orderErr: any) {
         // Backend payment endpoint failed — fall back to COD gracefully.
         Alert.alert(
@@ -434,7 +576,9 @@ const PaymentScreen = () => {
         return;
       }
 
-      const { order_id, key_id, amount, gateway, payment_url, payment_params } = orderRes.data || orderRes;
+      const { order_id, key_id, amount, gateway, payment_url, payment_params, hold_expires_at } = orderRes.data || orderRes;
+      // Start the RedBus-style hold countdown — the slot is reserved until this instant.
+      setHoldEndsAt(hold_expires_at ? Date.parse(hold_expires_at) : null);
 
       // Gateway readiness — PayU needs payment_url + signed form params; Easebuzz
       // a payment_url; Razorpay a real key.
@@ -452,8 +596,37 @@ const PaymentScreen = () => {
         return;
       }
 
-      // Web: WebView is null. Skip online checkout and treat as confirmed (web is dev/marketing).
+      // Web: there's no WebView. PayU still works via a normal full-page browser
+      // form-POST to the hosted checkout — PayU settles server-side through the
+      // callback, and the user returns to the app afterward (booking is already
+      // confirmed + invoiced). Other gateways fall back to COD on web.
       if (Platform.OS === 'web' || !WebView) {
+        if (gateway === 'payu' && payment_url && payment_params && typeof document !== 'undefined') {
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = payment_url;
+          Object.entries(payment_params).forEach(([k, v]) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = k;
+            input.value = String(v);
+            form.appendChild(input);
+          });
+          // Full-page redirect wipes React state — persist the addons so the
+          // return handler (RootNavigator) can pass them to BookingConfirmed.
+          // The booking_id itself comes back in the callback's return URL.
+          try {
+            window.localStorage.setItem('ozw_pending_payment', JSON.stringify({
+              booking_id: bookingId,
+              addons: draft.addons || [],
+              txnid: order_id,
+              ts: Date.now(),
+            }));
+          } catch { /* localStorage unavailable — addons default to [] on return */ }
+          document.body.appendChild(form);
+          form.submit();
+          return;
+        }
         Alert.alert(
           'Use Mobile App to Pay',
           'Online payment is only available in the mobile app. Your booking has been saved.',
@@ -465,17 +638,22 @@ const PaymentScreen = () => {
       if (gateway === 'payu') {
         // Auto-submit the signed PayU form inside the WebView; result relays
         // back via the surl/furl callback page ({ source:'payu', status }).
+        // baseUrl = the PayU origin (e.g. https://test.payu.in) so the form POST
+        // is treated as same-origin instead of a blocked null-origin request.
         setRazorpayHtml(buildPayuHtml(payment_url, payment_params));
         setCheckoutUrl(null);
+        setWebBaseUrl(String(payment_url).split('/').slice(0, 3).join('/'));
       } else if (gateway === 'easebuzz') {
         // Hosted checkout page — result comes back via the surl/furl callback
         // page which postMessages { source:'easebuzz', status } to the WebView.
         setCheckoutUrl(payment_url);
         setRazorpayHtml('');
+        setWebBaseUrl(null);
       } else {
         const html = buildRazorpayHtml(order_id, key_id, amount || draft.amount_paise, bookingId);
         setRazorpayHtml(html);
         setCheckoutUrl(null);
+        setWebBaseUrl(null);
       }
       setShowRazorpay(true);
       armPaymentTimeout(bookingId);
@@ -633,7 +811,21 @@ const PaymentScreen = () => {
         {/* Confirm Button */}
         <TouchableOpacity
           style={[styles.confirmBtn, loading && styles.confirmBtnDisabled]}
-          onPress={handleConfirm}
+          onPress={() => {
+            // COD has no payment step to gate it, so confirm explicitly first.
+            if (draft.payment_method === 'cod' && draft.grand_total > 0) {
+              Alert.alert(
+                'Confirm Cash-on-Service booking',
+                `You'll pay ${fmt(draft.grand_total)} in cash after the service is completed. Confirm this booking?`,
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Confirm Booking', onPress: () => handleConfirm() },
+                ],
+              );
+              return;
+            }
+            handleConfirm();
+          }}
           disabled={loading}
         >
           {loading ? (
@@ -673,26 +865,65 @@ const PaymentScreen = () => {
         </WebContainer>
       </ScrollView>
 
-      {/* Razorpay WebView Checkout Modal — native only */}
-      {Platform.OS !== 'web' && WebView && (
-        <Modal visible={showRazorpay} animationType="slide" onRequestClose={() => setShowRazorpay(false)}>
-          <View style={styles.razorpayContainer}>
+      {/* PayU/Razorpay WebView checkout — native only. Rendered as a full-screen
+          absolute OVERLAY, NOT a React Native <Modal>: on Android a WebView inside
+          a Modal loses its keyboard input connection, so text fields (card-holder
+          name, 3-D-Secure OTP) accept focus but drop every keystroke. A normal
+          in-window overlay keeps typing working. */}
+      {Platform.OS !== 'web' && WebView && showRazorpay && (
+        <View style={styles.razorpayOverlay}>
+          <View style={[styles.razorpayContainer, { paddingBottom: kbHeight }]}>
             <TouchableOpacity style={styles.razorpayClose} onPress={() => setShowRazorpay(false)}>
               <X size={20} weight="bold" color={C.danger} />
               <Text style={styles.razorpayCloseText}>Close</Text>
             </TouchableOpacity>
+            {holdLeft > 0 && (
+              <View style={styles.holdBanner}>
+                <Text style={styles.holdBannerText}>
+                  ⏳ Slot reserved · complete payment in{' '}
+                  <Text style={[styles.holdBannerTime, holdLeft <= 60 && styles.holdBannerUrgent]}>
+                    {Math.floor(holdLeft / 60)}:{String(holdLeft % 60).padStart(2, '0')}
+                  </Text>
+                </Text>
+              </View>
+            )}
             <WebView
               originWhitelist={['*']}
-              source={checkoutUrl ? { uri: checkoutUrl } : { html: razorpayHtml }}
+              source={checkoutUrl ? { uri: checkoutUrl } : { html: razorpayHtml, ...(webBaseUrl ? { baseUrl: webBaseUrl } : {}) }}
               onMessage={handleRazorpayMessage}
               onError={handleWebViewError}
-              onHttpError={handleWebViewError}
+              onHttpError={handleWebViewHttpError}
+              mixedContentMode="always"
+              setSupportMultipleWindows={false}
               javaScriptEnabled
               domStorageEnabled
+              thirdPartyCookiesEnabled
+              sharedCookiesEnabled
+              userAgent="Mozilla/5.0 (Linux; Android 12; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+              startInLoadingState
+              onLoadEnd={() => clearPaymentTimeout()}
+              keyboardDisplayRequiresUserAction={false}
+              nestedScrollEnabled
+              // Android often does NOT fire onShouldStartLoadWithRequest for a JS
+              // location.replace, so we ALSO watch onNavigationStateChange — the
+              // first to report the return URL routes in-app (guarded, runs once).
+              onNavigationStateChange={(s: any) => { console.log('[pay-nav]', s?.url); handlePaymentReturnUrl(s?.url || ''); }}
+              onShouldStartLoadWithRequest={(req: any) => {
+                const url = req?.url || '';
+                console.log('[pay-should]', url);
+                // Payment-return sentinel — intercept it, don't load it.
+                if (handlePaymentReturnUrl(url)) return false;
+                // Normal web pages load in the WebView.
+                if (/^(https?|data|about|blob):/i.test(url)) return true;
+                // UPI / bank-app deep links (upi://, tez://, phonepe://,
+                // paytmmp://, intent://, …) — hand off to the installed app.
+                Linking.openURL(url).catch(() => {});
+                return false;
+              }}
               style={{ flex: 1, backgroundColor: C.background }}
             />
           </View>
-        </Modal>
+        </View>
       )}
     </View>
   );

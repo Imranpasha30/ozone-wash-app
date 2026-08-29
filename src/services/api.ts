@@ -628,14 +628,15 @@ export const incidentAPI = {
 //   razorpay → { order_id, key_id }            → open Razorpay checkout modal
 //   easebuzz → { order_id, payment_url }       → open payment_url in a WebView
 export const paymentAPI = {
-  createOrder: (booking_id: string) =>
-    api.post('/payments/create-order', { booking_id }),
+  // channel: 'web' makes PayU use the server-side-302 web callback; omit on native.
+  createOrder: (booking_id: string, channel?: string) =>
+    api.post('/payments/create-order', { booking_id, channel }),
 
   verifyPayment: (data: any) =>
     api.post('/payments/verify', data),
 
-  createAmcOrder: (contract_id: string) =>
-    api.post('/payments/amc/create-order', { contract_id }),
+  createAmcOrder: (contract_id: string, channel?: string) =>
+    api.post('/payments/amc/create-order', { contract_id, channel }),
 
   verifyAmcPayment: (data: any) =>
     api.post('/payments/amc/verify', data),
@@ -663,12 +664,12 @@ export const invoiceAPI = {
 export const addressAPI = {
   list: () => cachedGet('/addresses'),
 
-  create: (data: { label: string; address: string; lat?: number | null; lng?: number | null; is_default?: boolean }) => {
+  create: (data: { label: string; address: string; phone?: string | null; tanks?: any[] | null; lat?: number | null; lng?: number | null; is_default?: boolean }) => {
     invalidateCache('/addresses');
     return api.post('/addresses', data);
   },
 
-  update: (id: string, data: { label?: string; address?: string; lat?: number | null; lng?: number | null }) => {
+  update: (id: string, data: { label?: string; address?: string; phone?: string | null; tanks?: any[] | null; lat?: number | null; lng?: number | null }) => {
     invalidateCache('/addresses');
     return api.put(`/addresses/${id}`, data);
   },

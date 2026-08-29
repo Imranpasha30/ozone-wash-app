@@ -37,8 +37,8 @@ const AddonsScreen = () => {
   const isPremium = usePremiumStore((s) => s.isPremium);
 
   const [selectedAddons, setSelectedAddons] = useState<string[]>(draft.addons || []);
-  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card' | 'wallet' | 'cod'>(
-    draft.payment_method || 'upi'
+  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>(
+    draft.payment_method === 'cod' ? 'cod' : 'online'
   );
   const [pricing, setPricing] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -409,6 +409,7 @@ const makeStyles = (C: any) => StyleSheet.create({
     marginTop: 20,
     borderWidth: 1,
     borderColor: C.border,
+    shadowColor: '#0b1220', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2,
   },
   priceTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   priceTitle: { fontSize: 15, fontWeight: 'bold', color: C.foreground },
