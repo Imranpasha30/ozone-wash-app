@@ -479,6 +479,10 @@ export const adminAPI = {
   getAllBookings: (params?: { status?: string; date?: string; limit?: number; offset?: number }) =>
     cachedGet('/bookings', { params }),
 
+  // Consolidated money-in/out ledger (payments in, refunds, crew payouts, bonuses).
+  getLedger: (params?: { from?: string; to?: string; limit?: number }) =>
+    api.get('/admin/ledger', { params }),
+
   // Admin alerts (slot conflicts, no-team-available, technician overcommit).
   // The conflict detector queues these automatically after booking create /
   // job assignment. Admin sees them on the dashboard banner.

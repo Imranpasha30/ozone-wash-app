@@ -14,6 +14,7 @@ import AdminTeamsScreen from '../screens/admin/AdminTeamsScreen';
 import AdminCustomersScreen from '../screens/admin/AdminCustomersScreen';
 import AdminIncidentsScreen from '../screens/admin/AdminIncidentsScreen';
 import AdminRevenueScreen from '../screens/admin/AdminRevenueScreen';
+import AdminLedgerScreen from '../screens/admin/AdminLedgerScreen';
 import AdminTaxReportScreen from '../screens/admin/AdminTaxReportScreen';
 import AdminAmcScreen from '../screens/admin/AdminAmcScreen';
 import ProfileScreen from '../screens/customer/ProfileScreen';
@@ -131,6 +132,7 @@ const AdminNavigator = () => (
     <Stack.Screen name="AdminCustomers" component={AdminCustomersScreen} />
     <Stack.Screen name="AdminIncidents" component={AdminIncidentsScreen} />
     <Stack.Screen name="AdminRevenue" component={AdminRevenueScreen} />
+    <Stack.Screen name="AdminLedger" component={AdminLedgerScreen} />
     <Stack.Screen name="AdminTaxReport" component={AdminTaxReportScreen} />
     <Stack.Screen name="AdminAmc" component={AdminAmcScreen} />
     <Stack.Screen name="QrScanner" component={QrScannerScreen} />

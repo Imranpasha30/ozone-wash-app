@@ -100,6 +100,16 @@ const AdminRevenueScreen = () => {
         <ArrowRight size={16} weight="bold" color={C.primary} />
       </TouchableOpacity>
 
+      {/* Financial Ledger link */}
+      <TouchableOpacity style={styles.taxLink} onPress={() => navigation.navigate('AdminLedger')} activeOpacity={0.85}>
+        <TrendUp size={20} weight="regular" color={C.primary} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.taxLinkTitle}>Financial Ledger</Text>
+          <Text style={styles.taxLinkSub}>All money in & out — payments, refunds, crew payouts</Text>
+        </View>
+        <ArrowRight size={16} weight="bold" color={C.primary} />
+      </TouchableOpacity>
+
       {/* Stats Grid */}
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
