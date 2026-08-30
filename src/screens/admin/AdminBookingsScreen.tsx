@@ -11,7 +11,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useResponsive } from '../../utils/responsive';
 import { ClipboardText, Check, X, CurrencyInr } from '../../components/Icons';
 
-const FILTERS = ['All', 'Pending', 'Confirmed', 'Completed', 'Cancelled'];
+const FILTERS = ['All', 'Pending', 'Confirmed', 'Completed', 'Cancelled', 'Refunded'];
 
 const AdminBookingsScreen = () => {
   const C = useTheme();
@@ -107,9 +107,16 @@ const AdminBookingsScreen = () => {
 
   useFocusEffect(useCallback(() => { fetchBookings(); }, []));
 
-  const filtered = filter === 'All'
-    ? bookings
-    : bookings.filter((b) => b.status === filter.toLowerCase());
+  // "Refunded" is a PAYMENT state (payment_status), not a booking status — a
+  // fully-refunded booking is also 'cancelled', so it needs its own bucket.
+  const isRefunded = (b: any) => ['refunded', 'partially_refunded'].includes(b.payment_status);
+  const matchesFilter = (b: any, f: string) => {
+    if (f === 'All') return true;
+    if (f === 'Refunded') return isRefunded(b);
+    return b.status === f.toLowerCase();
+  };
+  const filtered = bookings.filter((b) => matchesFilter(b, filter));
+  const countFor = (f: string) => bookings.filter((b) => matchesFilter(b, f)).length;
 
   const handleConfirm = async (id: string) => {
     setActionLoading(id + '_confirm');
@@ -297,7 +304,7 @@ const AdminBookingsScreen = () => {
             onPress={() => setFilter(f)}
             activeOpacity={0.75}
           >
-            <Text style={[styles.chipText, filter === f && styles.chipTextActive]} numberOfLines={1}>{f}</Text>
+            <Text style={[styles.chipText, filter === f && styles.chipTextActive]} numberOfLines={1}>{f} ({countFor(f)})</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
