@@ -9,7 +9,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { adminAPI, paymentAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { useResponsive } from '../../utils/responsive';
-import { ClipboardText, Check, X, CurrencyInr } from '../../components/Icons';
+import { ClipboardText, Check, X, CurrencyInr, MagnifyingGlass } from '../../components/Icons';
 
 const FILTERS = ['All', 'Pending', 'Confirmed', 'Completed', 'Cancelled', 'Refunded'];
 
@@ -25,6 +25,8 @@ const AdminBookingsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('All');
+  const [sub, setSub] = useState('all');       // contextual sub-filter within a tab
+  const [search, setSearch] = useState('');    // customer name / phone / id
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Refund modal state
@@ -107,16 +109,58 @@ const AdminBookingsScreen = () => {
 
   useFocusEffect(useCallback(() => { fetchBookings(); }, []));
 
-  // "Refunded" is a PAYMENT state (payment_status), not a booking status — a
-  // fully-refunded booking is also 'cancelled', so it needs its own bucket.
-  const isRefunded = (b: any) => ['refunded', 'partially_refunded'].includes(b.payment_status);
+  // A refund is "active" while it's still moving (initiated → queued →
+  // processing). Once PayU marks it 'processed' the money is credited and the
+  // booking settles into Cancelled. So: active refund → Refunded tab; completed
+  // refund (or a plain admin cancel) → Cancelled tab.
+  const activeRefund = (b: any) => ['initiated', 'queued', 'processing'].includes(b?.refund_status);
+
   const matchesFilter = (b: any, f: string) => {
     if (f === 'All') return true;
-    if (f === 'Refunded') return isRefunded(b);
+    if (f === 'Refunded') return activeRefund(b);
+    if (f === 'Cancelled') return b.status === 'cancelled' && !activeRefund(b);
     return b.status === f.toLowerCase();
   };
-  const filtered = bookings.filter((b) => matchesFilter(b, filter));
-  const countFor = (f: string) => bookings.filter((b) => matchesFilter(b, f)).length;
+
+  // Contextual sub-filters per tab (secondary chip row).
+  const SUB_FILTERS: Record<string, { key: string; label: string }[]> = {
+    All:       [{ key: 'all', label: 'All' }, { key: 'tank', label: 'Tank' }, { key: 'auto_wash', label: 'Auto wash' }],
+    Pending:   [{ key: 'all', label: 'All' }, { key: 'online', label: 'Online' }, { key: 'cod', label: 'COD' }],
+    Confirmed: [{ key: 'all', label: 'All' }, { key: 'unassigned', label: 'Unassigned' }, { key: 'assigned', label: 'Assigned' }, { key: 'tank', label: 'Tank' }, { key: 'auto_wash', label: 'Auto wash' }],
+    Completed: [{ key: 'all', label: 'All' }, { key: 'tank', label: 'Tank' }, { key: 'auto_wash', label: 'Auto wash' }],
+    Refunded:  [{ key: 'all', label: 'All' }, { key: 'full', label: 'Full' }, { key: 'partial', label: 'Partial' }, { key: 'processing', label: 'Processing' }],
+    Cancelled: [{ key: 'all', label: 'All' }, { key: 'by_admin', label: 'By company' }, { key: 'refund_done', label: 'Refund completed' }],
+  };
+
+  const matchesSub = (b: any, subKey: string) => {
+    if (!subKey || subKey === 'all') return true;
+    switch (subKey) {
+      case 'tank':       return b.kind !== 'auto_wash';
+      case 'auto_wash':  return b.kind === 'auto_wash';
+      case 'online':     return b.payment_method !== 'cod';
+      case 'cod':        return b.payment_method === 'cod';
+      case 'assigned':   return !!b.assigned_team_id;
+      case 'unassigned': return !b.assigned_team_id;
+      case 'full':       return b.payment_status === 'refunded';
+      case 'partial':    return b.payment_status === 'partially_refunded';
+      case 'processing': return b.refund_status === 'processing';
+      case 'by_admin':   return !['refunded', 'partially_refunded'].includes(b.payment_status);
+      case 'refund_done': return ['refunded', 'partially_refunded'].includes(b.payment_status);
+      default: return true;
+    }
+  };
+
+  const matchesSearch = (b: any) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return [b.customer_name, b.customer_phone, b.id, b.contact_name, b.contact_phone, b.address]
+      .filter(Boolean).some((v: any) => String(v).toLowerCase().includes(q));
+  };
+
+  const filtered = bookings.filter((b) => matchesFilter(b, filter) && matchesSub(b, sub) && matchesSearch(b));
+  // Tab counts respect the search context but not the sub-filter.
+  const countFor = (f: string) => bookings.filter((b) => matchesFilter(b, f) && matchesSearch(b)).length;
+  const subFilters = SUB_FILTERS[filter] || [];
 
   const handleConfirm = async (id: string) => {
     setActionLoading(id + '_confirm');
@@ -291,6 +335,26 @@ const AdminBookingsScreen = () => {
         <Text style={styles.headerCount}>{filtered.length} booking{filtered.length !== 1 ? 's' : ''}</Text>
       </View>
 
+      {/* Search — customer name / phone / booking id / address */}
+      <View style={styles.searchWrap}>
+        <MagnifyingGlass size={16} weight="bold" color={C.muted} />
+        <TextInput
+          style={styles.searchInput}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search customer, phone, address, id…"
+          placeholderTextColor={C.muted}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        {search ? (
+          <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <X size={15} weight="bold" color={C.muted} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
+
+      {/* Primary status tabs (with live counts) */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -301,13 +365,34 @@ const AdminBookingsScreen = () => {
           <TouchableOpacity
             key={f}
             style={[styles.chip, filter === f && styles.chipActive]}
-            onPress={() => setFilter(f)}
+            onPress={() => { setFilter(f); setSub('all'); }}
             activeOpacity={0.75}
           >
             <Text style={[styles.chipText, filter === f && styles.chipTextActive]} numberOfLines={1}>{f} ({countFor(f)})</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
+
+      {/* Secondary contextual filters for the selected tab */}
+      {subFilters.length > 1 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.subRow}
+          contentContainerStyle={styles.subContent}
+        >
+          {subFilters.map((s) => (
+            <TouchableOpacity
+              key={s.key}
+              style={[styles.subChip, sub === s.key && styles.subChipActive]}
+              onPress={() => setSub(s.key)}
+              activeOpacity={0.75}
+            >
+              <Text style={[styles.subChipText, sub === s.key && styles.subChipTextActive]} numberOfLines={1}>{s.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
 
       {loading ? (
         <View style={styles.center}>
@@ -432,8 +517,23 @@ const makeStyles = (C: any) => StyleSheet.create({
   },
   headerTitle: { fontSize: 20, fontWeight: '700', color: C.foreground },
   headerCount: { fontSize: 13, color: C.muted },
+  searchWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: C.surface, paddingHorizontal: 16, paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: C.border,
+  },
+  searchInput: {
+    flex: 1, fontSize: 14, color: C.foreground, paddingVertical: 6, paddingHorizontal: 10,
+    backgroundColor: C.surfaceElevated, borderRadius: 10, borderWidth: 1, borderColor: C.border,
+  },
   filterRow: { backgroundColor: C.surface, flexShrink: 0, flexGrow: 0 },
   filterContent: { paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center' },
+  subRow: { backgroundColor: C.surface, flexShrink: 0, flexGrow: 0, borderTopWidth: 1, borderTopColor: C.border },
+  subContent: { paddingHorizontal: 16, paddingVertical: 8, flexDirection: 'row', alignItems: 'center' },
+  subChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: C.surfaceElevated, marginRight: 8, borderWidth: 1, borderColor: C.border, flexShrink: 0 },
+  subChipActive: { backgroundColor: C.primaryBg, borderColor: C.primary },
+  subChipText: { fontSize: 12, color: C.muted, fontWeight: '600' },
+  subChipTextActive: { color: C.primary, fontWeight: '800' },
   chip: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 999, backgroundColor: C.surfaceElevated, marginRight: 8, borderWidth: 1.5, borderColor: C.muted, flexShrink: 0 },
   chipActive: { backgroundColor: C.primary, borderColor: C.primary },
   chipText: { fontSize: 13, color: C.foreground, fontWeight: '600', flexShrink: 0 },
