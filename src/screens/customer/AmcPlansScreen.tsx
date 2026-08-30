@@ -110,7 +110,8 @@ const AmcPlansScreen = () => {
   const onEnroll = (p: MatrixPlan) => {
     navigation.navigate('AmcEnrollment', {
       plan_type: p.plan,
-      plan_label: PLAN_LABEL[p.plan],
+      tank_size_litres,
+      plan_label: (p as any).display_name || PLAN_LABEL[p.plan],
       plan_price: Math.round(p.total_paise / 100),
       matrix_id: p.matrix_id,
       tier_id: p.tier_id,

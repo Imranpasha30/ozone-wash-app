@@ -39,7 +39,7 @@ const AmcEnrollmentScreen = () => {
   const styles = useMemo(() => makeStyles(C), [C]);
   const scrollRef = useWebScrollFix();
 
-  const { plan_type, plan_label, plan_price } = route.params || {};
+  const { plan_type, plan_label, plan_price, tank_size_litres, tank_count } = route.params || {};
   const features = PLAN_FEATURES[plan_type] || [];
   const durationMonths = PLAN_DURATIONS[plan_type] || 1;
 
@@ -193,7 +193,7 @@ const AmcEnrollmentScreen = () => {
     setLoading(true);
     try {
       // Step 1: Create AMC contract (pending_payment)
-      const contractRes = await amcAPI.createContract({ plan_type }) as any;
+      const contractRes = await amcAPI.createContract({ plan_type, tank_size_litres, tank_count }) as any;
       const contract = contractRes.data?.contract;
       if (!contract?.id) throw new Error('Contract creation failed');
       contractIdRef.current = contract.id;
