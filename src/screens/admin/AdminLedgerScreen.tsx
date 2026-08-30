@@ -1,13 +1,13 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Platform, StatusBar,
+  ActivityIndicator, RefreshControl, Platform, StatusBar, TextInput, Modal, Pressable,
 } from 'react-native';
 import { useWebScrollFix } from '../../utils/useWebScrollFix';
 import { useFocusEffect } from '@react-navigation/native';
 import { adminAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
-import { CurrencyInr, TrendUp, Receipt, Wrench } from '../../components/Icons';
+import { CurrencyInr, TrendUp, Receipt, Wrench, MagnifyingGlass, X } from '../../components/Icons';
 import ScreenHeader from '../../components/ScreenHeader';
 import WebContainer from '../../components/WebContainer';
 
@@ -36,6 +36,8 @@ const AdminLedgerScreen = () => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [search, setSearch] = useState('');        // filter txns by party / booking id
+  const [selectedTx, setSelectedTx] = useState<any>(null); // tapped row → detail modal
 
   const fetchData = async (isRefresh = false, rk = rangeKey) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
@@ -58,6 +60,11 @@ const AdminLedgerScreen = () => {
   const net = Number(s.net_paise || 0);
   const bonuses: any[] = data?.bonuses_by_reason || [];
   const txns: any[] = data?.transactions || [];
+  const q = search.trim().toLowerCase();
+  const filteredTxns = q
+    ? txns.filter((t) => [t.party, t.ref, t.type, t.detail]
+        .filter(Boolean).some((v: any) => String(v).toLowerCase().includes(q)))
+    : txns;
 
   const typeMeta = (t: string) => {
     if (t === 'refund') return { color: C.danger, Icon: Receipt, label: 'Refund' };
@@ -159,14 +166,35 @@ const AdminLedgerScreen = () => {
 
         {/* Unified transaction feed */}
         <Text style={styles.sectionTitle}>Transactions</Text>
-        {txns.length === 0 ? (
-          <Text style={styles.empty}>No transactions in this window.</Text>
+
+        {/* Search by customer / booking id */}
+        <View style={styles.searchWrap}>
+          <MagnifyingGlass size={16} weight="bold" color={C.muted} />
+          <TextInput
+            style={styles.searchInput}
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search customer, booking id, type…"
+            placeholderTextColor={C.muted}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {search ? (
+            <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <X size={15} weight="bold" color={C.muted} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        {filteredTxns.length === 0 ? (
+          <Text style={styles.empty}>{q ? 'No matching transactions.' : 'No transactions in this window.'}</Text>
         ) : (
-          txns.map((t, i) => {
+          filteredTxns.map((t, i) => {
             const meta = typeMeta(t.type);
             const isIn = t.direction === 'in';
+            const shortRef = t.ref ? String(t.ref).slice(0, 8).toUpperCase() : null;
             return (
-              <View key={i} style={styles.txCard}>
+              <TouchableOpacity key={i} style={styles.txCard} onPress={() => setSelectedTx(t)} activeOpacity={0.7}>
                 <View style={[styles.txIcon, { backgroundColor: meta.color + '18' }]}>
                   <meta.Icon size={16} weight="bold" color={meta.color} />
                 </View>
@@ -175,15 +203,55 @@ const AdminLedgerScreen = () => {
                   <Text style={styles.txMeta} numberOfLines={1}>
                     {meta.label}{t.detail ? ` · ${String(t.detail).toUpperCase()}` : ''} · {fmtDate(t.ts)}
                   </Text>
+                  {shortRef ? <Text style={styles.txRef}>Booking #{shortRef}</Text> : null}
                 </View>
                 <Text style={[styles.txAmt, { color: isIn ? C.success : C.danger }]}>
                   {isIn ? '+' : '−'}{fmt(t.amount_paise)}
                 </Text>
-              </View>
+              </TouchableOpacity>
             );
           })
         )}
       </WebContainer>
+
+      {/* Transaction detail */}
+      <Modal visible={!!selectedTx} transparent animationType="fade" onRequestClose={() => setSelectedTx(null)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setSelectedTx(null)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            {selectedTx && (() => {
+              const meta = typeMeta(selectedTx.type);
+              const isIn = selectedTx.direction === 'in';
+              const rows: [string, string][] = [
+                ['Type', meta.label],
+                ['Direction', isIn ? 'Money in' : 'Money out'],
+                ['Amount', `${isIn ? '+' : '−'}${fmt(selectedTx.amount_paise)}`],
+                ['Customer', selectedTx.party || '—'],
+                ['Booking / ref', selectedTx.ref ? String(selectedTx.ref) : '—'],
+                ['Detail', selectedTx.detail ? String(selectedTx.detail) : '—'],
+                ['Date', fmtDate(selectedTx.ts)],
+              ];
+              return (
+                <>
+                  <View style={styles.modalHead}>
+                    <View style={[styles.txIcon, { backgroundColor: meta.color + '18' }]}>
+                      <meta.Icon size={16} weight="bold" color={meta.color} />
+                    </View>
+                    <Text style={styles.modalTitle}>{meta.label} details</Text>
+                    <TouchableOpacity onPress={() => setSelectedTx(null)}><X size={16} weight="bold" color={C.muted} /></TouchableOpacity>
+                  </View>
+                  {rows.map(([k, v]) => (
+                    <View key={k} style={styles.mRow}>
+                      <Text style={styles.mKey}>{k}</Text>
+                      <Text style={styles.mVal} selectable numberOfLines={2}>{v}</Text>
+                    </View>
+                  ))}
+                  <Text style={styles.mHint}>Full booking info (service, tank, status) is on the Bookings tab — search the same customer or id there.</Text>
+                </>
+              );
+            })()}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScrollView>
   );
 };
@@ -243,8 +311,23 @@ const makeStyles = (C: any) => StyleSheet.create({
   txInfo: { flex: 1 },
   txParty: { fontSize: 14, fontWeight: '700', color: C.foreground },
   txMeta: { fontSize: 11, color: C.muted, marginTop: 2 },
+  txRef: { fontSize: 10, color: C.primary, fontWeight: '700', fontFamily: 'monospace', marginTop: 2 },
   txAmt: { fontSize: 15, fontWeight: '800' },
   empty: { textAlign: 'center', color: C.muted, fontSize: 13, paddingVertical: 24 },
+  searchWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginHorizontal: 16, marginBottom: 10, paddingHorizontal: 12,
+    backgroundColor: C.surface, borderRadius: 12, borderWidth: 1, borderColor: C.border,
+  },
+  searchInput: { flex: 1, fontSize: 14, color: C.foreground, paddingVertical: 10 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  modalCard: { width: '100%', maxWidth: 440, backgroundColor: C.surface, borderRadius: 18, padding: 18 },
+  modalHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  modalTitle: { flex: 1, fontSize: 16, fontWeight: '800', color: C.foreground },
+  mRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 16, paddingVertical: 8, borderTopWidth: 1, borderTopColor: C.border },
+  mKey: { fontSize: 13, color: C.muted, fontWeight: '600' },
+  mVal: { flex: 1, fontSize: 13, color: C.foreground, fontWeight: '700', textAlign: 'right' },
+  mHint: { fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 12, lineHeight: 16 },
 });
 
 export default AdminLedgerScreen;
