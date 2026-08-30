@@ -2,11 +2,12 @@ import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl, Platform, StatusBar, Linking,
+  Modal, TextInput, Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { adminAPI } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
-import { Users, Phone, ChatCircle, MapPin } from '../../components/Icons';
+import { Users, Phone, ChatCircle, MapPin, Plus } from '../../components/Icons';
 import { useResponsive } from '../../utils/responsive';
 import ScreenHeader from '../../components/ScreenHeader';
 
@@ -22,6 +23,45 @@ const AdminTeamsScreen = () => {
   const [teams, setTeams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // ── Add-agent (OTP onboarding) ──────────────────────────────────────
+  const [showAdd, setShowAdd] = useState(false);
+  const [agName, setAgName] = useState('');
+  const [agPhone, setAgPhone] = useState('');
+  const [agOtp, setAgOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const resetAdd = () => {
+    setShowAdd(false); setAgName(''); setAgPhone(''); setAgOtp(''); setOtpSent(false); setBusy(false);
+  };
+
+  const sendOtp = async () => {
+    if (!/^[6-9]\d{9}$/.test(agPhone.trim())) {
+      Alert.alert('Invalid number', 'Enter a valid 10-digit mobile number.'); return;
+    }
+    setBusy(true);
+    try {
+      await adminAPI.sendAgentOtp(agPhone.trim());
+      setOtpSent(true);
+      Alert.alert('OTP sent', `Ask the agent for the 6-digit OTP sent to ${agPhone.trim()}.`);
+    } catch (e: any) {
+      Alert.alert('Could not send OTP', e?.message || 'Please try again.');
+    } finally { setBusy(false); }
+  };
+
+  const createAgent = async () => {
+    if (!/^\d{6}$/.test(agOtp.trim())) { Alert.alert('OTP', 'Enter the 6-digit OTP.'); return; }
+    setBusy(true);
+    try {
+      await adminAPI.createAgentWithOtp(agPhone.trim(), agOtp.trim(), agName.trim() || undefined);
+      resetAdd();
+      fetchTeams(true);
+      Alert.alert('Agent added', 'Crew member created. Add them to a crew from Field Teams to make them assignable.');
+    } catch (e: any) {
+      Alert.alert('Could not add agent', e?.message || 'Please try again.');
+    } finally { setBusy(false); }
+  };
 
   const fetchTeams = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -132,6 +172,70 @@ const AdminTeamsScreen = () => {
           }
         />
       )}
+
+      {/* Add-agent FAB */}
+      <TouchableOpacity style={styles.fab} onPress={() => setShowAdd(true)} activeOpacity={0.85}>
+        <Plus size={20} weight="bold" color={C.primaryFg} />
+        <Text style={styles.fabText}>Add Agent</Text>
+      </TouchableOpacity>
+
+      {/* Add-agent modal (OTP onboarding) */}
+      <Modal visible={showAdd} transparent animationType="fade" onRequestClose={resetAdd}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Add field agent</Text>
+            <Text style={styles.modalSub}>
+              Send an OTP to the agent's phone, then enter the code they read back to verify & create the account.
+            </Text>
+
+            <Text style={styles.label}>Name</Text>
+            <TextInput
+              style={[styles.input, otpSent && styles.inputLocked]}
+              value={agName} onChangeText={setAgName}
+              placeholder="Agent name" placeholderTextColor={C.muted}
+              editable={!otpSent}
+            />
+
+            <Text style={styles.label}>Phone</Text>
+            <TextInput
+              style={[styles.input, otpSent && styles.inputLocked]}
+              value={agPhone} onChangeText={(t) => setAgPhone(t.replace(/[^0-9]/g, ''))}
+              placeholder="10-digit mobile" placeholderTextColor={C.muted}
+              keyboardType="phone-pad" maxLength={10} editable={!otpSent}
+            />
+
+            {otpSent && (
+              <>
+                <Text style={styles.label}>OTP from agent</Text>
+                <TextInput
+                  style={styles.input}
+                  value={agOtp} onChangeText={(t) => setAgOtp(t.replace(/[^0-9]/g, ''))}
+                  placeholder="6-digit OTP" placeholderTextColor={C.muted}
+                  keyboardType="number-pad" maxLength={6} autoFocus
+                />
+                <TouchableOpacity onPress={() => { setOtpSent(false); setAgOtp(''); }}>
+                  <Text style={styles.link}>Change number / resend</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={[styles.mBtn, styles.mCancel]} onPress={resetAdd} disabled={busy}>
+                <Text style={styles.mCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              {!otpSent ? (
+                <TouchableOpacity style={[styles.mBtn, styles.mPrimary]} onPress={sendOtp} disabled={busy}>
+                  {busy ? <ActivityIndicator size="small" color={C.primaryFg} /> : <Text style={styles.mPrimaryText}>Send OTP</Text>}
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={[styles.mBtn, styles.mPrimary]} onPress={createAgent} disabled={busy}>
+                  {busy ? <ActivityIndicator size="small" color={C.primaryFg} /> : <Text style={styles.mPrimaryText}>Verify & Add</Text>}
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -190,6 +294,32 @@ const makeStyles = (C: any) => StyleSheet.create({
   emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, gap: 8 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: C.foreground },
   emptySub: { fontSize: 14, color: C.muted, textAlign: 'center' },
+
+  // Add-agent FAB + modal
+  fab: {
+    position: 'absolute', right: 20, bottom: 24,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: C.primary, paddingHorizontal: 18, paddingVertical: 14, borderRadius: 999,
+    ...Platform.select({
+      ios: { shadowColor: C.shadowMedium, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 12 },
+      android: { elevation: 8 },
+    }),
+  },
+  fabText: { color: C.primaryFg, fontWeight: '800', fontSize: 14 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  modalCard: { width: '100%', maxWidth: 420, backgroundColor: C.surface, borderRadius: 18, padding: 20 },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: C.foreground },
+  modalSub: { fontSize: 12.5, color: C.muted, marginTop: 6, lineHeight: 18 },
+  label: { fontSize: 12, color: C.muted, fontWeight: '700', marginTop: 16, marginBottom: 6 },
+  input: { borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15, color: C.foreground, backgroundColor: C.background },
+  inputLocked: { backgroundColor: C.surfaceElevated, color: C.muted },
+  link: { fontSize: 12, color: C.primary, fontWeight: '700', marginTop: 8 },
+  modalActions: { flexDirection: 'row', gap: 12, marginTop: 22 },
+  mBtn: { flex: 1, paddingVertical: 13, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  mCancel: { backgroundColor: C.surfaceElevated, borderWidth: 1, borderColor: C.border },
+  mCancelText: { color: C.foreground, fontWeight: '700', fontSize: 14 },
+  mPrimary: { backgroundColor: C.primary },
+  mPrimaryText: { color: C.primaryFg, fontWeight: '800', fontSize: 14 },
 });
 
 export default AdminTeamsScreen;

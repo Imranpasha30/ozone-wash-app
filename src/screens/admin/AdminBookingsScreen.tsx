@@ -36,6 +36,16 @@ const AdminBookingsScreen = () => {
   const refundableRupees = (b: any) =>
     Math.max(0, (Number(b?.amount_paise) || 0) - (Number(b?.refunded_paise) || 0)) / 100;
 
+  const rupees = (paise: any) => `₹${((Number(paise) || 0) / 100).toLocaleString('en-IN')}`;
+  // Human label of the service the customer actually selected.
+  const serviceLabel = (b: any) => {
+    if (!b) return '';
+    if (b.kind === 'auto_wash') {
+      return `Auto Wash · ${(b.vehicle_type || 'vehicle').replace('_', ' ').toUpperCase()}${b.registration_number ? ` ${b.registration_number}` : ''} · ${(b.service_package || 'car wash').toUpperCase()}`;
+    }
+    return `Tank Cleaning · ${(b.tank_type || 'tank').toUpperCase()} · ${b.tank_size_litres ?? '—'}L`;
+  };
+
   const openRefund = (b: any) => {
     setRefundBooking(b);
     setRefundAmt(String(refundableRupees(b)));
@@ -312,14 +322,31 @@ const AdminBookingsScreen = () => {
             {refundBooking && (
               <>
                 <Text style={styles.modalSub}>
-                  #{refundBooking.id?.slice(0, 8).toUpperCase()} · Paid ₹{((Number(refundBooking.amount_paise) || 0) / 100).toLocaleString('en-IN')}
+                  #{refundBooking.id?.slice(0, 8).toUpperCase()}{refundBooking.customer_name ? ` · ${refundBooking.customer_name}` : ''}
                 </Text>
-                {(Number(refundBooking.refunded_paise) || 0) > 0 && (
-                  <Text style={styles.modalSub}>
-                    Already refunded ₹{((Number(refundBooking.refunded_paise) || 0) / 100).toLocaleString('en-IN')}
-                  </Text>
-                )}
-                <Text style={styles.modalRefundable}>Refundable balance: ₹{refundableRupees(refundBooking).toLocaleString('en-IN')}</Text>
+
+                {/* Complete details the admin needs while refunding */}
+                <View style={styles.detailBox}>
+                  <Text style={styles.detailService}>{serviceLabel(refundBooking)}</Text>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailK}>Service amount</Text>
+                    <Text style={styles.detailV}>{rupees(refundBooking.amount_paise)}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailK}>Amount paid</Text>
+                    <Text style={styles.detailV}>{rupees(refundBooking.amount_paise)}</Text>
+                  </View>
+                  {(Number(refundBooking.refunded_paise) || 0) > 0 && (
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailK}>Already refunded</Text>
+                      <Text style={[styles.detailV, { color: C.warning }]}>− {rupees(refundBooking.refunded_paise)}</Text>
+                    </View>
+                  )}
+                  <View style={[styles.detailRow, styles.detailRowLast]}>
+                    <Text style={styles.detailKBold}>Refundable balance</Text>
+                    <Text style={styles.detailVBold}>{rupees((Number(refundBooking.amount_paise) || 0) - (Number(refundBooking.refunded_paise) || 0))}</Text>
+                  </View>
+                </View>
 
                 <Text style={styles.modalLabel}>Refund amount (₹)</Text>
                 <TextInput
@@ -425,6 +452,14 @@ const makeStyles = (C: any) => StyleSheet.create({
   modalTitle: { fontSize: 18, fontWeight: '700', color: C.foreground },
   modalSub: { fontSize: 13, color: C.muted, marginTop: 4 },
   modalRefundable: { fontSize: 14, fontWeight: '700', color: C.primary, marginTop: 8 },
+  detailBox: { marginTop: 12, borderWidth: 1, borderColor: C.border, borderRadius: 12, padding: 12, backgroundColor: C.surfaceElevated },
+  detailService: { fontSize: 13, fontWeight: '800', color: C.foreground, marginBottom: 8 },
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 },
+  detailRowLast: { marginTop: 4, paddingTop: 8, borderTopWidth: 1, borderTopColor: C.border },
+  detailK: { fontSize: 13, color: C.muted },
+  detailV: { fontSize: 13, fontWeight: '700', color: C.foreground },
+  detailKBold: { fontSize: 13, fontWeight: '800', color: C.foreground },
+  detailVBold: { fontSize: 15, fontWeight: '800', color: C.primary },
   modalLabel: { fontSize: 12, color: C.muted, fontWeight: '600', marginTop: 16, marginBottom: 6 },
   modalInput: { borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15, color: C.foreground, backgroundColor: C.background },
   modalFullLink: { fontSize: 12, color: C.primary, fontWeight: '700', marginTop: 6 },

@@ -633,6 +633,18 @@ export const adminAPI = {
 
   clearCrewAvailability: (agent_id: string, date: string) =>
     api.delete('/admin/crew-availability', { params: { agent_id, date } }),
+
+  // ── Agent (crew) onboarding via OTP ─────────────────────────────────
+  // Admin sends an OTP to the person's phone, they read it back, then verify
+  // creates/promotes the field_team agent.
+  sendAgentOtp: (phone: string) =>
+    api.post('/admin/agents/send-otp', { phone }),
+
+  createAgentWithOtp: (phone: string, otp: string, name?: string) => {
+    invalidateCache('/jobs/teams');
+    invalidateCache('/teams');
+    return api.post('/admin/agents/verify', { phone, otp, name });
+  },
 };
 
 // ── Incidents ────────────────────────────────────────────────────────────────
