@@ -209,8 +209,8 @@ const AdminPricingScreen = () => {
       {loading ? (
         <ActivityIndicator color={C.primary} style={{ marginTop: 32 }} />
       ) : (
-        <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
-          <WebContainer variant="default">
+        <ScrollView ref={scrollRef} style={styles.scroll} contentContainerStyle={styles.body}>
+          <WebContainer variant="wide">
           {/* AMC plan names / copy — editable; prices stay in the matrix below */}
           {amcPlans.length > 0 && (
             <View style={styles.tierCard}>
@@ -437,6 +437,9 @@ const makeStyles = (C: any) => StyleSheet.create({
     backgroundColor: C.primary, paddingVertical: 12, borderRadius: 12,
   },
   freezeBtnText: { color: C.primaryFg, fontWeight: '700', fontSize: 13 },
+  // flex:1 makes the ScrollView a viewport-bounded scroll area on web
+  // regardless of when it mounts (data can load after the scroll-fix timers).
+  scroll: { flex: 1 },
   body: { padding: 14, paddingBottom: 60 },
   tierCard: {
     backgroundColor: C.surface, borderRadius: 14, padding: 12, marginBottom: 12,

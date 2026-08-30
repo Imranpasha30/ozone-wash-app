@@ -145,6 +145,7 @@ const AdminSchedulingScreen = () => {
       ) : (
         <ScrollView
           ref={scrollRef}
+          style={styles.scroll}
           contentContainerStyle={styles.body}
           keyboardShouldPersistTaps="handled"
         >
@@ -281,6 +282,7 @@ const AdminSchedulingScreen = () => {
 const makeStyles = (C: any) => StyleSheet.create({
   root: { flex: 1, backgroundColor: C.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  scroll: { flex: 1 },   // viewport-bounded scroll area on web (mount-timing safe)
   body: { padding: 16, paddingBottom: 40 },
   sectionHeader: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
