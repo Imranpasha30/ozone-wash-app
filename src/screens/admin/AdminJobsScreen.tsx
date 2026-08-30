@@ -15,9 +15,11 @@ const FILTERS = ['All', 'Scheduled', 'In Progress', 'Completed', 'Cancelled'];
 const AdminJobsScreen = () => {
   const C = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
-  const { isLarge } = useResponsive();
+  const { isLarge, areaWidth } = useResponsive();
+  // Responsive grid: 3 columns on very wide, 2 on desktop/tablet, 1 on phone.
+  const numColumns = isLarge ? (areaWidth >= 1400 ? 3 : 2) : 1;
   const webListStyle = isLarge
-    ? { maxWidth: 1100, width: '100%' as const, alignSelf: 'center' as const, padding: 24 }
+    ? { maxWidth: 1280, width: '100%' as const, alignSelf: 'center' as const, padding: 24 }
     : null;
   const [jobs, setJobs] = useState<any[]>([]);
   const [teams, setTeams] = useState<any[]>([]);
@@ -240,7 +242,7 @@ const AdminJobsScreen = () => {
   // ── Render ───────────────────────────────────────────────────────────────────
 
   const renderJob = ({ item }: { item: any }) => (
-    <View style={styles.card}>
+    <View style={[styles.card, numColumns > 1 && styles.cardGrid]}>
       <View style={styles.cardTop}>
         <View style={styles.cardInfo}>
           <Text style={styles.jobId}>Job #{item.id?.slice(0, 8).toUpperCase()}</Text>
@@ -426,6 +428,9 @@ const AdminJobsScreen = () => {
         /* ── Jobs Tab ── */
         <FlatList
           data={filtered}
+          key={`jobs-cols-${numColumns}`}
+          numColumns={numColumns}
+          columnWrapperStyle={numColumns > 1 ? styles.jobRow : undefined}
           keyExtractor={(j) => j.id}
           renderItem={renderJob}
           contentContainerStyle={[
@@ -591,6 +596,10 @@ const makeStyles = (C: any) => StyleSheet.create({
   chipTextActive: { color: C.primaryFg, fontWeight: '700' },
   list: { padding: 16 },
   emptyContainer: { flex: 1 },
+  // Grid row (web/tablet): even columns with a gap; cards flex to equal width.
+  // Horizontal gap via jobRow; vertical gap via the card's own marginBottom.
+  jobRow: { gap: 16, alignItems: 'stretch' },
+  cardGrid: { flex: 1, maxWidth: 620 },
   card: {
     backgroundColor: C.surface, borderRadius: 18, marginBottom: 14,
     overflow: 'hidden', borderWidth: 1, borderColor: C.border,
