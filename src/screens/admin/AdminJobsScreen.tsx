@@ -106,17 +106,25 @@ const AdminJobsScreen = () => {
     doAssign(assignJobId, teamId, teamName);
   };
 
-  const doAssign = async (jobId: string, teamId: string, teamName: string) => {
+  const doAssign = async (jobId: string, teamId: string, teamName: string, force = false) => {
     setAssignJobId(null);
     setConflictWarning(null);
     setAssignLoading(jobId);
     try {
-      await adminAPI.assignTeam(jobId, teamId);
+      await adminAPI.assignTeam(jobId, teamId, force);
       setJobs((prev) => prev.map((j) =>
         j.id === jobId ? { ...j, assigned_team_id: teamId, team_name: teamName } : j
       ));
     } catch (err: any) {
-      Alert.alert('Error', err?.message || 'Failed to assign team');
+      // Server blocks a duration-aware crew overlap with 409 — offer an explicit override.
+      if (err?.status === 409 && !force) {
+        Alert.alert('Crew already booked', err?.message || 'That crew has an overlapping job.', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Assign anyway', style: 'destructive', onPress: () => doAssign(jobId, teamId, teamName, true) },
+        ]);
+      } else {
+        Alert.alert('Error', err?.message || 'Failed to assign team');
+      }
     } finally {
       setAssignLoading(null);
     }
@@ -526,7 +534,7 @@ const AdminJobsScreen = () => {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.warnProceedBtn}
-                onPress={() => conflictWarning && doAssign(conflictWarning.jobId, conflictWarning.teamId, conflictWarning.teamName)}
+                onPress={() => conflictWarning && doAssign(conflictWarning.jobId, conflictWarning.teamId, conflictWarning.teamName, true)}
               >
                 <Text style={styles.warnProceedText}>Assign Anyway</Text>
               </TouchableOpacity>

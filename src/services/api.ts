@@ -243,9 +243,9 @@ export const jobAPI = {
   getAllJobs: (filters?: any) =>
     cachedGet('/jobs', { params: filters }),
 
-  assignTeam: (jobId: string, team_id: string) => {
+  assignTeam: (jobId: string, team_id: string, force?: boolean) => {
     invalidateCache('/jobs');
-    return api.patch(`/jobs/${jobId}/assign`, { team_id });
+    return api.patch(`/jobs/${jobId}/assign`, { team_id, force });
   },
 
   getTeamList: () =>
@@ -551,9 +551,9 @@ export const adminAPI = {
   getTeamList: () =>
     cachedGet('/jobs/teams'),
 
-  assignTeam: (jobId: string, team_id: string) => {
+  assignTeam: (jobId: string, team_id: string, force?: boolean) => {
     invalidateCache('/jobs');
-    return api.patch(`/jobs/${jobId}/assign`, { team_id });
+    return api.patch(`/jobs/${jobId}/assign`, { team_id, force });
   },
 
   // Job requests
