@@ -692,6 +692,12 @@ export const paymentAPI = {
   // balance, or pass it (paise) for a partial refund.
   refund: (data: { booking_id: string; amount_paise?: number; reason?: string }) =>
     api.post('/payments/refund', data),
+
+  // Close a refund case at the already-refunded amount — waive/settle the balance.
+  closeRefund: (data: { booking_id?: string; contract_id?: string; note?: string }) => {
+    invalidateCache('/bookings');
+    return api.post('/payments/refund/close', data);
+  },
 };
 
 // ── Invoices (GST tax invoices) ───────────────────────────────────────────────

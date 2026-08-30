@@ -95,6 +95,34 @@ const AdminBookingsScreen = () => {
     }
   };
 
+  // Close the refund case at the already-refunded amount — waive the balance.
+  const closeCase = () => {
+    if (!refundBooking) return;
+    const bal = refundableRupees(refundBooking);
+    Alert.alert(
+      'Close & settle',
+      `Mark this account settled at the amount already refunded? The remaining ₹${bal.toLocaleString('en-IN')} balance is waived — no further refund. This can't be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Mark settled', style: 'destructive',
+          onPress: async () => {
+            setRefundLoading(true);
+            try {
+              const res = await paymentAPI.closeRefund({ booking_id: refundBooking.id, note: refundReason || undefined }) as any;
+              setBookings((prev) => prev.map((b) => b.id === refundBooking.id
+                ? { ...b, payment_status: res.data?.payment_status || 'refunded', refund_status: res.data?.refund_status || 'processed' } : b));
+              setRefundBooking(null);
+              Alert.alert('Settled', 'Account marked settled — refund case closed.');
+            } catch (err: any) {
+              Alert.alert('Could not close', err?.message || 'Please try again.');
+            } finally { setRefundLoading(false); }
+          },
+        },
+      ]
+    );
+  };
+
   const fetchBookings = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
@@ -490,6 +518,14 @@ const AdminBookingsScreen = () => {
                       : <Text style={styles.modalConfirmText}>Refund ₹{Number(refundAmt) || 0}</Text>}
                   </TouchableOpacity>
                 </View>
+
+                {/* Settle at partial: close the case & waive the remaining balance */}
+                {refundableRupees(refundBooking) > 0 && (
+                  <TouchableOpacity style={styles.settleBtn} onPress={closeCase} disabled={refundLoading} activeOpacity={0.8}>
+                    <Check size={15} weight="bold" color={C.success} />
+                    <Text style={styles.settleBtnText}>Mark settled & close — waive ₹{refundableRupees(refundBooking).toLocaleString('en-IN')}</Text>
+                  </TouchableOpacity>
+                )}
               </>
             )}
           </View>
@@ -595,6 +631,12 @@ const makeStyles = (C: any) => StyleSheet.create({
   modalCancelText: { color: C.foreground, fontWeight: '700', fontSize: 14 },
   modalConfirm: { backgroundColor: C.warning },
   modalConfirmText: { color: C.primaryFg, fontWeight: '700', fontSize: 14 },
+  settleBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    marginTop: 12, paddingVertical: 12, borderRadius: 12,
+    borderWidth: 1.5, borderColor: C.success, backgroundColor: C.successBg,
+  },
+  settleBtnText: { color: C.success, fontWeight: '800', fontSize: 13 },
 });
 
 export default AdminBookingsScreen;
