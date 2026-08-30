@@ -48,6 +48,29 @@ const JobTransferScreen = () => {
     }
   };
 
+  const submitTransfer = async (teamId: string, finalReason: string, force: boolean) => {
+    setSubmitting(true);
+    try {
+      await jobAPI.transferJob(jobId, teamId, finalReason, force);
+      Alert.alert('Job Transferred', 'The job has been transferred to the selected team member.', [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
+    } catch (err: any) {
+      // Server blocks a crew double-booking / unavailable crew with 409 — let the
+      // agent override deliberately.
+      if (err?.status === 409 && !force) {
+        Alert.alert('Crew unavailable', err?.message || 'That crew has an overlapping job or is off that day.', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Transfer anyway', style: 'destructive', onPress: () => submitTransfer(teamId, finalReason, true) },
+        ]);
+      } else {
+        Alert.alert('Error', err.message || 'Could not transfer job');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleTransfer = async () => {
     if (!selectedTeam) {
       Alert.alert('Error', 'Please select a team member');
@@ -58,18 +81,7 @@ const JobTransferScreen = () => {
       Alert.alert('Error', 'Please select or enter a reason');
       return;
     }
-
-    setSubmitting(true);
-    try {
-      await jobAPI.transferJob(jobId, selectedTeam, finalReason);
-      Alert.alert('Job Transferred', 'The job has been transferred to the selected team member.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
-    } catch (err: any) {
-      Alert.alert('Error', err.message || 'Could not transfer job');
-    } finally {
-      setSubmitting(false);
-    }
+    submitTransfer(selectedTeam, finalReason, false);
   };
 
   if (loading) {

@@ -131,6 +131,7 @@ const AdminDashboardScreen = () => {
           { label: 'Auto Wash', icon: Car,           route: 'AdminAutoWash' },
           { label: 'Teams',     icon: Users,         route: 'AdminFieldTeams' },
           { label: 'Lost Leads', icon: Hourglass,    route: 'AdminAbandoned' },
+          { label: 'Schedule Board', icon: CalendarBlank, route: 'AdminScheduleBoard' },
           { label: 'Scheduling', icon: Clock,        route: 'AdminScheduling' },
           ...(isSuperAdmin
             ? [{ label: 'Admins', icon: ShieldCheck, route: 'AdminCreateAccount' }]

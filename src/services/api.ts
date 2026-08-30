@@ -297,10 +297,10 @@ export const jobAPI = {
     return api.post(`/jobs/${jobId}/customer-request-otp`);
   },
 
-  // Transfer
-  transferJob: (jobId: string, new_team_id: string, reason?: string) => {
+  // Transfer — force overrides the crew double-booking / availability guard (409)
+  transferJob: (jobId: string, new_team_id: string, reason?: string, force?: boolean) => {
     invalidateCache('/jobs');
-    return api.post(`/jobs/${jobId}/transfer`, { new_team_id, reason });
+    return api.post(`/jobs/${jobId}/transfer`, { new_team_id, reason, force });
   },
 
   // Route optimization (field team)
@@ -556,6 +556,14 @@ export const adminAPI = {
     return api.patch(`/jobs/${jobId}/assign`, { team_id, force });
   },
 
+  // Assign a whole FIELD TEAM (crew) — preferred over the single-agent path.
+  // Server sets assigned_field_team_id + the lead agent; force overrides the
+  // crew overlap/availability guard (409).
+  assignFieldTeam: (jobId: string, field_team_id: string, force?: boolean) => {
+    invalidateCache('/jobs');
+    return api.patch(`/jobs/${jobId}/assign`, { field_team_id, force });
+  },
+
   // Job requests
   getJobRequests: (params?: { status?: string }) =>
     cachedGet('/jobs/requests', { params }),
@@ -563,9 +571,9 @@ export const adminAPI = {
   getPendingRequestCount: () =>
     api.get('/jobs/requests/count'),
 
-  approveJobRequest: (requestId: string) => {
+  approveJobRequest: (requestId: string, force?: boolean) => {
     invalidateCache('/jobs');
-    return api.patch(`/jobs/requests/${requestId}/approve`);
+    return api.patch(`/jobs/requests/${requestId}/approve`, { force });
   },
 
   rejectJobRequest: (requestId: string) => {
@@ -607,6 +615,24 @@ export const adminAPI = {
     invalidateCache('/admin/pricing');
     return api.post('/admin/pricing/freeze');
   },
+
+  // ── Crew scheduling board + availability ────────────────────────────
+  // Everything the crew × time-slot board needs for a date (config, crew
+  // lanes with availability, and the day's job blocks). Uncached — always live.
+  getScheduleBoard: (date: string) =>
+    api.get('/admin/schedule-board', { params: { date } }),
+
+  getCrewAvailability: (date: string) =>
+    api.get('/admin/crew-availability', { params: { date } }),
+
+  // status: 'working' | 'leave' | 'sick' | 'off'; shift_start/end are 'HH:MM' or null.
+  setCrewAvailability: (payload: {
+    agent_id: string; date: string; status: string;
+    shift_start?: string | null; shift_end?: string | null; note?: string | null;
+  }) => api.put('/admin/crew-availability', payload),
+
+  clearCrewAvailability: (agent_id: string, date: string) =>
+    api.delete('/admin/crew-availability', { params: { agent_id, date } }),
 };
 
 // ── Incidents ────────────────────────────────────────────────────────────────

@@ -45,7 +45,7 @@ const AdminJobsScreen = () => {
     try {
       const [jobsRes, teamsRes, reqRes, concernsRes] = await Promise.allSettled([
         adminAPI.getAllJobs() as any,
-        adminAPI.getTeamList() as any,
+        adminAPI.listFieldTeams() as any,
         adminAPI.getJobRequests({ status: 'pending' }) as any,
         jobAPI.getConcerns() as any,
       ]);
@@ -68,7 +68,7 @@ const AdminJobsScreen = () => {
 
   const openAssignModal = async (jobId: string) => {
     if (teams.length === 0) {
-      Alert.alert('No Teams', 'No field teams available to assign.');
+      Alert.alert('No Teams', 'No field teams available. Create one in Field Teams first.');
       return;
     }
     setAssignJobId(jobId);
@@ -81,7 +81,9 @@ const AdminJobsScreen = () => {
     try {
       const results = await Promise.allSettled(
         teams.map((t: any) =>
-          jobAPI.checkConflict(t.id, job.scheduled_at, jobId) as any
+          // Conflict check keys on the crew's lead agent (that's what lands in
+          // assigned_team_id when the whole team is assigned).
+          jobAPI.checkConflict(t.leader_id, job.scheduled_at, jobId) as any
         )
       );
       const map: Record<string, any[]> = {};
@@ -111,9 +113,11 @@ const AdminJobsScreen = () => {
     setConflictWarning(null);
     setAssignLoading(jobId);
     try {
-      await adminAPI.assignTeam(jobId, teamId, force);
+      await adminAPI.assignFieldTeam(jobId, teamId, force);
+      // teamId is the field_team id — that's what the "Current" badge checks
+      // (assigned_field_team_id). The server also sets assigned_team_id = leader.
       setJobs((prev) => prev.map((j) =>
-        j.id === jobId ? { ...j, assigned_team_id: teamId, team_name: teamName } : j
+        j.id === jobId ? { ...j, assigned_field_team_id: teamId, team_name: teamName } : j
       ));
     } catch (err: any) {
       // Server blocks a duration-aware crew overlap with 409 — offer an explicit override.
@@ -144,7 +148,7 @@ const AdminJobsScreen = () => {
           `${request.team_name} already has a job at ${conflictTime} (${conflicting.customer_name || 'another customer'}).\n\nApprove this request anyway?`,
           [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Approve Anyway', style: 'destructive', onPress: () => confirmApprove(request.id) },
+            { text: 'Approve Anyway', style: 'destructive', onPress: () => confirmApprove(request.id, true) },
           ]
         );
         return;
@@ -153,14 +157,23 @@ const AdminJobsScreen = () => {
     confirmApprove(request.id);
   };
 
-  const confirmApprove = async (requestId: string) => {
+  const confirmApprove = async (requestId: string, force = false) => {
     setRequestActionLoading(requestId);
     try {
-      await adminAPI.approveJobRequest(requestId);
+      await adminAPI.approveJobRequest(requestId, force);
       setRequests((prev) => prev.filter((r) => r.id !== requestId));
       fetchData(true);
     } catch (err: any) {
-      Alert.alert('Error', err?.response?.data?.message || 'Failed to approve');
+      // Server now BLOCKS a duration-aware overlap / unavailable crew with 409 —
+      // offer an explicit override (the ±60 min pre-check can miss these).
+      if (err?.status === 409 && !force) {
+        Alert.alert('Crew unavailable', err?.message || 'That crew has an overlapping job or is off that day.', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Approve anyway', style: 'destructive', onPress: () => confirmApprove(requestId, true) },
+        ]);
+      } else {
+        Alert.alert('Error', err?.message || 'Failed to approve');
+      }
     } finally {
       setRequestActionLoading(null);
     }
@@ -455,20 +468,22 @@ const AdminJobsScreen = () => {
                 return (
                   <TouchableOpacity
                     key={t.id}
-                    style={[styles.teamCard, assigningJob?.assigned_team_id === t.id && styles.teamCardActive, hasConflict && styles.teamCardConflict]}
+                    style={[styles.teamCard, assigningJob?.assigned_field_team_id === t.id && styles.teamCardActive, hasConflict && styles.teamCardConflict]}
                     onPress={() => handleAssignTeam(t.id, t.name)}
                     activeOpacity={0.7}
                   >
-                    <View style={[styles.teamAvatar, assigningJob?.assigned_team_id === t.id && styles.teamAvatarActive]}>
-                      <Text style={[styles.teamAvatarText, assigningJob?.assigned_team_id === t.id && styles.teamAvatarTextActive]}>
-                        {getInitials(t.name || t.phone)}
+                    <View style={[styles.teamAvatar, assigningJob?.assigned_field_team_id === t.id && styles.teamAvatarActive]}>
+                      <Text style={[styles.teamAvatarText, assigningJob?.assigned_field_team_id === t.id && styles.teamAvatarTextActive]}>
+                        {getInitials(t.name)}
                       </Text>
                     </View>
                     <View style={styles.teamInfo}>
-                      <Text style={styles.teamName}>{t.name || 'Unnamed'}</Text>
+                      <Text style={styles.teamName}>{t.name || 'Unnamed team'}</Text>
                       <View style={styles.teamPhoneRow}>
-                        <Phone size={12} weight="regular" color={C.muted} />
-                        <Text style={styles.teamPhone}>{t.phone}</Text>
+                        <Users size={12} weight="regular" color={C.muted} />
+                        <Text style={styles.teamPhone}>
+                          {(t.member_count ?? 0)} member{(t.member_count === 1) ? '' : 's'}{t.leader_name ? ` · lead ${t.leader_name}` : ''}
+                        </Text>
                       </View>
                       {hasConflict && (
                         <View style={styles.conflictChip}>
@@ -479,7 +494,7 @@ const AdminJobsScreen = () => {
                         </View>
                       )}
                     </View>
-                    {assigningJob?.assigned_team_id === t.id ? (
+                    {assigningJob?.assigned_field_team_id === t.id ? (
                       <View style={styles.currentBadge}><Text style={styles.currentBadgeText}>Current</Text></View>
                     ) : (
                       <View style={[styles.assignTeamBtn, hasConflict && styles.assignTeamBtnWarn]}>
