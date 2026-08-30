@@ -206,7 +206,7 @@ const AmcPlansScreen = () => {
           <View style={styles.planGrid}>
             {plans.map((p) => {
               const isPopular = p.plan === 'quarterly';
-              const features = FEATURE_BLURB[p.plan] || [];
+              const features = ((p as any).features?.length ? (p as any).features : FEATURE_BLURB[p.plan]) || [];
               const isInspect = p.requires_inspection;
               const perCleanPaise = p.services_per_year > 0
                 ? Math.round(p.total_paise / p.services_per_year)
@@ -230,9 +230,9 @@ const AmcPlansScreen = () => {
 
                   <View style={styles.planHead}>
                     <Text style={[styles.planLabel, isPopular && styles.planLabelPopular]}>
-                      {PLAN_LABEL[p.plan]}
+                      {(p as any).display_name || PLAN_LABEL[p.plan]}
                     </Text>
-                    <Text style={styles.planSub}>{PLAN_HEADLINE[p.plan]}</Text>
+                    <Text style={styles.planSub}>{(p as any).headline || PLAN_HEADLINE[p.plan]}</Text>
                   </View>
 
                   {isInspect ? (
