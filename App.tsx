@@ -220,6 +220,17 @@ function App() {
        */
       .r-flex-13awgt0 { min-height: 0 !important; min-width: 0 !important; }
       /*
+       * HASH-INDEPENDENT flex-chain fix. RNW generates atomic class names like
+       * r-flex-<hash> at runtime, and the hash changes across RNW/Expo versions
+       * — which is why the pinned rule above silently went stale on upgrade and
+       * broke scrolling app-wide. This partial match covers every RNW flex
+       * utility whatever its hash, so it can't rot again. min-height/width:0 lets
+       * flex children shrink below content height so a viewport-bounded ancestor
+       * actually bounds them (default min-height:auto is what blows past the
+       * viewport and gets clipped by body overflow:hidden).
+       */
+      [class*="r-flex-"] { min-height: 0 !important; min-width: 0 !important; }
+      /*
        * React Navigation's Card wrapper uses .r-minHeight-2llsf (min-height:100%)
        * which combined with content-natural-height blows up the height above the
        * viewport. Force min-height:0 so the card respects its bounded parent.
