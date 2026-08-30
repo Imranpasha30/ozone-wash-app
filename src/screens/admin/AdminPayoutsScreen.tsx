@@ -233,7 +233,7 @@ const AdminPayoutsScreen: React.FC = () => {
       const r = res?.data?.rules || res?.rules;
       setRules(r);
       const draft: Record<string, string> = {};
-      Object.keys(r || {}).forEach(k => { draft[k] = String(r[k]); });
+      Object.keys(r || {}).forEach(k => { draft[k] = ruleToDisplay(k, r[k]); });
       setRulesDraft(draft);
     } catch (e: any) {
       Alert.alert('Failed to load rules', e?.message || '');
@@ -264,9 +264,9 @@ const AdminPayoutsScreen: React.FC = () => {
     for (const k of editable) {
       const raw = rulesDraft[k];
       if (raw === undefined || raw === '') continue;
-      const v = Number(raw);
+      const v = ruleToStored(k, raw);   // convert ₹/% back to stored paise/decimal
       if (!Number.isFinite(v) || v < 0) {
-        Alert.alert('Invalid value', `${k}: must be a non-negative number.`);
+        Alert.alert('Invalid value', 'Please enter valid non-negative numbers.');
         return;
       }
       fields[k] = v;
@@ -292,6 +292,57 @@ const AdminPayoutsScreen: React.FC = () => {
     if (raw === undefined || raw === '') return fallback ?? 0;
     const v = Number(raw);
     return Number.isFinite(v) ? v : (fallback ?? 0);
+  };
+
+  // ── Human-friendly units ─────────────────────────────────────────────────
+  // Stored values are paise (₹×100) or decimals (10% = 0.1); we show/edit them
+  // as rupees / percent / × so a normal admin can read them. Weights + counts
+  // stay raw.
+  type Unit = 'rupees' | 'percent' | 'x' | 'count';
+  const RULE_UNIT: Record<string, Unit> = {
+    base_completion_paise: 'rupees', rating_5_paise: 'rupees', rating_4_paise: 'rupees', rating_3_paise: 'rupees',
+    referral_bonus_paise: 'rupees', monthly_target_bonus_paise: 'rupees', streak_bonus_paise: 'rupees',
+    tier_platinum_paise: 'rupees', tier_gold_paise: 'rupees', tier_silver_paise: 'rupees',
+    addon_commission_pct: 'percent', cash_bonus_pct_platinum: 'percent', cash_bonus_pct_gold: 'percent', cash_bonus_pct_silver: 'percent',
+    multiplier_platinum: 'x', multiplier_gold: 'x', multiplier_silver: 'x', multiplier_bronze: 'x',
+  };
+  const unitOf = (k: string): Unit => RULE_UNIT[k] || 'count';
+  const ruleToDisplay = (k: string, stored: any): string => {
+    const n = Number(stored); if (!Number.isFinite(n)) return '';
+    const u = unitOf(k);
+    if (u === 'rupees') return String(n / 100);
+    if (u === 'percent') return String(+(n * 100).toFixed(2));
+    return String(n);
+  };
+  const ruleToStored = (k: string, display: any): number => {
+    const n = Number(display); if (!Number.isFinite(n)) return NaN;
+    const u = unitOf(k);
+    if (u === 'rupees') return Math.round(n * 100);
+    if (u === 'percent') return +(n / 100).toFixed(4);
+    return n;
+  };
+
+  // One friendly, unit-aware field row.
+  const renderRuleField = (k: string, label: string, help?: string) => {
+    const u = unitOf(k);
+    return (
+      <View key={k} style={styles.ruleField}>
+        <Text style={styles.ruleLabel}>{label}</Text>
+        {help ? <Text style={styles.ruleHelp}>{help}</Text> : null}
+        <View style={styles.ruleInputWrap}>
+          {u === 'rupees' ? <Text style={styles.ruleAdorn}>₹</Text> : null}
+          <TextInput
+            value={String(rulesDraft[k] ?? '')}
+            onChangeText={(t) => setDraftField(k, t.replace(/[^0-9.]/g, ''))}
+            keyboardType="decimal-pad"
+            style={[styles.ruleInput, { color: C.foreground }]}
+            placeholderTextColor={C.muted}
+          />
+          {u === 'percent' ? <Text style={styles.ruleAdorn}>%</Text> : null}
+          {u === 'x' ? <Text style={styles.ruleAdorn}>×</Text> : null}
+        </View>
+      </View>
+    );
   };
 
   // Credit-weight keys for live "Sum: X.XX" indicator
@@ -578,27 +629,38 @@ const AdminPayoutsScreen: React.FC = () => {
                 {rulesTab === 'perjob' ? (
                   <View>
                     <Text style={styles.tabHelp}>
-                      Per-job pay accrual rules — applied as agents complete jobs.
+                      What an agent earns as they complete jobs. Amounts are in ₹, commission/bonus in %.
                     </Text>
-                    {[
-                      'base_completion_paise','addon_commission_pct',
-                      'rating_5_paise','rating_4_paise','rating_3_paise',
-                      'referral_bonus_paise',
-                      'multiplier_platinum','multiplier_gold','multiplier_silver','multiplier_bronze',
-                      'monthly_target_jobs','monthly_target_bonus_paise',
-                      'streak_bonus_paise','streak_threshold_months',
-                      'tier_platinum_paise','tier_gold_paise','tier_silver_paise',
-                    ].map(k => (
-                      <View key={k} style={{ marginBottom: 8 }}>
-                        <Text style={styles.label}>{k}</Text>
-                        <TextInput
-                          value={String(rulesDraft[k] ?? '')}
-                          onChangeText={(t) => setDraftField(k, t)}
-                          keyboardType="numeric"
-                          style={[styles.input, { color: C.foreground, borderColor: C.border }]}
-                        />
-                      </View>
-                    ))}
+
+                    <Text style={styles.subSection}>Every job</Text>
+                    {renderRuleField('base_completion_paise', 'Base pay per completed job', 'Flat amount an agent earns for finishing any job.')}
+                    {renderRuleField('addon_commission_pct', 'Add-on commission', 'Agent’s share of any add-ons sold during the job.')}
+
+                    <Text style={styles.subSection}>Customer rating bonus</Text>
+                    {renderRuleField('rating_5_paise', 'Bonus for a 5★ rating', 'Extra pay when the customer rates the job 5 stars.')}
+                    {renderRuleField('rating_4_paise', 'Bonus for a 4★ rating')}
+                    {renderRuleField('rating_3_paise', 'Bonus for a 3★ rating')}
+
+                    <Text style={styles.subSection}>Referral</Text>
+                    {renderRuleField('referral_bonus_paise', 'Referral bonus', 'Paid when an agent brings in a new customer.')}
+
+                    <Text style={styles.subSection}>Tier pay multiplier</Text>
+                    <Text style={styles.ruleHelp}>Multiplies the base pay by the agent’s tier — e.g. 1.5 means +50%.</Text>
+                    {renderRuleField('multiplier_platinum', 'Platinum multiplier')}
+                    {renderRuleField('multiplier_gold', 'Gold multiplier')}
+                    {renderRuleField('multiplier_silver', 'Silver multiplier')}
+                    {renderRuleField('multiplier_bronze', 'Bronze multiplier')}
+
+                    <Text style={styles.subSection}>Monthly target</Text>
+                    {renderRuleField('monthly_target_jobs', 'Jobs needed in a month', 'Complete this many jobs in a month to earn the target bonus.')}
+                    {renderRuleField('monthly_target_bonus_paise', 'Target bonus', 'Paid once the monthly job target is reached.')}
+
+                    <Text style={styles.subSection}>Streak & tier rewards</Text>
+                    {renderRuleField('streak_bonus_paise', 'Streak bonus', 'Reward for consecutive active months.')}
+                    {renderRuleField('streak_threshold_months', 'Streak length (months)', 'Active months in a row needed to earn the streak bonus.')}
+                    {renderRuleField('tier_platinum_paise', 'Platinum monthly reward')}
+                    {renderRuleField('tier_gold_paise', 'Gold monthly reward')}
+                    {renderRuleField('tier_silver_paise', 'Silver monthly reward')}
                   </View>
                 ) : null}
 
@@ -606,7 +668,7 @@ const AdminPayoutsScreen: React.FC = () => {
                 {rulesTab === 'weights' ? (
                   <View>
                     <Text style={styles.tabHelp}>
-                      Weights for the 9 PDF parameters. Each is NUMERIC(4,3); the nine must sum to 1.000.
+                      How much each factor counts toward an agent’s monthly performance score. All nine must add up to 1.000 (100%).
                     </Text>
                     <View style={[styles.sumPill, {
                       borderColor: weightSumOk ? C.success : C.danger,
@@ -649,78 +711,27 @@ const AdminPayoutsScreen: React.FC = () => {
                 {rulesTab === 'tiers' ? (
                   <View>
                     <Text style={styles.tabHelp}>
-                      Credit thresholds for each tier and the cash/leave benefits awarded monthly.
+                      Score needed to reach each tier, and the monthly cash / leave rewards each tier earns.
                     </Text>
 
-                    <Text style={styles.subSection}>Credit thresholds</Text>
-                    {[
-                      { k: 'tier_credits_platinum', label: 'Platinum credits threshold', def: 800 },
-                      { k: 'tier_credits_gold',     label: 'Gold credits threshold',     def: 600 },
-                      { k: 'tier_credits_silver',   label: 'Silver credits threshold',   def: 400 },
-                      { k: 'tier_credits_bronze',   label: 'Bronze credits threshold',   def: 200 },
-                    ].map(({ k, label, def }) => (
-                      <View key={k} style={{ marginBottom: 8 }}>
-                        <Text style={styles.label}>{label} <Text style={{ color: C.muted }}>· default {def}</Text></Text>
-                        <TextInput
-                          value={String(rulesDraft[k] ?? '')}
-                          onChangeText={(t) => setDraftField(k, t)}
-                          placeholder={String(def)}
-                          placeholderTextColor={C.muted}
-                          keyboardType="numeric"
-                          style={[styles.input, { color: C.foreground, borderColor: C.border }]}
-                        />
-                      </View>
-                    ))}
+                    <Text style={styles.subSection}>Points to reach each tier</Text>
+                    {renderRuleField('tier_credits_platinum', 'Platinum — points needed')}
+                    {renderRuleField('tier_credits_gold', 'Gold — points needed')}
+                    {renderRuleField('tier_credits_silver', 'Silver — points needed')}
+                    {renderRuleField('tier_credits_bronze', 'Bronze — points needed')}
 
-                    <Text style={styles.subSection}>Cash bonus % (of turnover)</Text>
-                    {[
-                      { k: 'cash_bonus_pct_platinum', label: 'Platinum cash bonus %', def: 0.15 },
-                      { k: 'cash_bonus_pct_gold',     label: 'Gold cash bonus %',     def: 0.10 },
-                      { k: 'cash_bonus_pct_silver',   label: 'Silver cash bonus %',   def: 0.05 },
-                    ].map(({ k, label, def }) => (
-                      <View key={k} style={{ marginBottom: 8 }}>
-                        <Text style={styles.label}>{label} <Text style={{ color: C.muted }}>· default {def}</Text></Text>
-                        <TextInput
-                          value={String(rulesDraft[k] ?? '')}
-                          onChangeText={(t) => setDraftField(k, t)}
-                          placeholder={String(def)}
-                          placeholderTextColor={C.muted}
-                          keyboardType="numeric"
-                          style={[styles.input, { color: C.foreground, borderColor: C.border }]}
-                        />
-                      </View>
-                    ))}
+                    <Text style={styles.subSection}>Monthly cash bonus</Text>
+                    <Text style={styles.ruleHelp}>A share of the agent’s turnover, paid monthly by tier.</Text>
+                    {renderRuleField('cash_bonus_pct_platinum', 'Platinum cash bonus')}
+                    {renderRuleField('cash_bonus_pct_gold', 'Gold cash bonus')}
+                    {renderRuleField('cash_bonus_pct_silver', 'Silver cash bonus')}
 
-                    <Text style={styles.subSection}>Leave days</Text>
-                    {[
-                      { k: 'leave_days_platinum', label: 'Platinum leave days', def: 2 },
-                      { k: 'leave_days_gold',     label: 'Gold leave days',     def: 1 },
-                    ].map(({ k, label, def }) => (
-                      <View key={k} style={{ marginBottom: 8 }}>
-                        <Text style={styles.label}>{label} <Text style={{ color: C.muted }}>· default {def}</Text></Text>
-                        <TextInput
-                          value={String(rulesDraft[k] ?? '')}
-                          onChangeText={(t) => setDraftField(k, t)}
-                          placeholder={String(def)}
-                          placeholderTextColor={C.muted}
-                          keyboardType="numeric"
-                          style={[styles.input, { color: C.foreground, borderColor: C.border }]}
-                        />
-                      </View>
-                    ))}
+                    <Text style={styles.subSection}>Paid leave earned</Text>
+                    {renderRuleField('leave_days_platinum', 'Platinum leave days / month')}
+                    {renderRuleField('leave_days_gold', 'Gold leave days / month')}
 
-                    <Text style={styles.subSection}>Benchmarks</Text>
-                    <View style={{ marginBottom: 8 }}>
-                      <Text style={styles.label}>Benchmark job minutes <Text style={{ color: C.muted }}>· default 60</Text></Text>
-                      <TextInput
-                        value={String(rulesDraft['benchmark_job_minutes'] ?? '')}
-                        onChangeText={(t) => setDraftField('benchmark_job_minutes', t)}
-                        placeholder="60"
-                        placeholderTextColor={C.muted}
-                        keyboardType="numeric"
-                        style={[styles.input, { color: C.foreground, borderColor: C.border }]}
-                      />
-                    </View>
+                    <Text style={styles.subSection}>Benchmark</Text>
+                    {renderRuleField('benchmark_job_minutes', 'Expected minutes per job', 'Used to score how fast an agent works vs the target.')}
                   </View>
                 ) : null}
               </ScrollView>
@@ -827,6 +838,17 @@ const makeStyles = (C: any) => StyleSheet.create({
     borderWidth: 1, borderRadius: 8, padding: 10, fontSize: 13,
     backgroundColor: C.surfaceElevated,
   },
+  // Friendly rule field (plain label + help + ₹/%/× input)
+  ruleField: { marginBottom: 12 },
+  ruleLabel: { fontSize: 13.5, color: C.foreground, fontWeight: '700' },
+  ruleHelp: { fontSize: 11, color: C.muted, marginTop: 2, marginBottom: 6, lineHeight: 15 },
+  ruleInputWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4,
+    borderWidth: 1, borderColor: C.border, borderRadius: 10,
+    paddingHorizontal: 12, backgroundColor: C.surfaceElevated,
+  },
+  ruleInput: { flex: 1, paddingVertical: 10, fontSize: 15, fontWeight: '700' },
+  ruleAdorn: { fontSize: 15, fontWeight: '800', color: C.muted },
   inputMultiline: { minHeight: 60, textAlignVertical: 'top' },
   modalActions: {
     flexDirection: 'row', gap: 10, marginTop: 14, justifyContent: 'flex-end',
