@@ -34,6 +34,8 @@ const AdminBookingsScreen = () => {
   const [refundAmt, setRefundAmt] = useState('');   // rupees string
   const [refundReason, setRefundReason] = useState('');
   const [refundLoading, setRefundLoading] = useState(false);
+  const [confirmSettle, setConfirmSettle] = useState(false); // inline settle confirm (in-modal)
+  const [settleErr, setSettleErr] = useState('');
 
   const refundableRupees = (b: any) =>
     Math.max(0, (Number(b?.amount_paise) || 0) - (Number(b?.refunded_paise) || 0)) / 100;
@@ -61,7 +63,11 @@ const AdminBookingsScreen = () => {
     setRefundBooking(b);
     setRefundAmt(String(refundableRupees(b)));
     setRefundReason('');
+    setConfirmSettle(false);
+    setSettleErr('');
   };
+
+  const closeRefundModal = () => { setRefundBooking(null); setConfirmSettle(false); setSettleErr(''); };
 
   const submitRefund = async () => {
     if (!refundBooking) return;
@@ -96,31 +102,20 @@ const AdminBookingsScreen = () => {
   };
 
   // Close the refund case at the already-refunded amount — waive the balance.
-  const closeCase = () => {
+  // Confirmed INLINE inside the modal (a nested Alert would render behind it on web).
+  const doCloseCase = async () => {
     if (!refundBooking) return;
-    const bal = refundableRupees(refundBooking);
-    Alert.alert(
-      'Close & settle',
-      `Mark this account settled at the amount already refunded? The remaining ₹${bal.toLocaleString('en-IN')} balance is waived — no further refund. This can't be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Mark settled', style: 'destructive',
-          onPress: async () => {
-            setRefundLoading(true);
-            try {
-              const res = await paymentAPI.closeRefund({ booking_id: refundBooking.id, note: refundReason || undefined }) as any;
-              setBookings((prev) => prev.map((b) => b.id === refundBooking.id
-                ? { ...b, payment_status: res.data?.payment_status || 'refunded', refund_status: res.data?.refund_status || 'processed' } : b));
-              setRefundBooking(null);
-              Alert.alert('Settled', 'Account marked settled — refund case closed.');
-            } catch (err: any) {
-              Alert.alert('Could not close', err?.message || 'Please try again.');
-            } finally { setRefundLoading(false); }
-          },
-        },
-      ]
-    );
+    setSettleErr('');
+    setRefundLoading(true);
+    try {
+      const res = await paymentAPI.closeRefund({ booking_id: refundBooking.id, note: refundReason || undefined }) as any;
+      setBookings((prev) => prev.map((b) => b.id === refundBooking.id
+        ? { ...b, payment_status: res.data?.payment_status || 'refunded', refund_status: res.data?.refund_status || 'processed' } : b));
+      closeRefundModal();
+      Alert.alert('Settled', 'Account marked settled — refund case closed.');
+    } catch (err: any) {
+      setSettleErr(err?.message || 'Could not close the case. Please try again.');
+    } finally { setRefundLoading(false); }
   };
 
   const fetchBookings = async (isRefresh = false) => {
@@ -452,18 +447,18 @@ const AdminBookingsScreen = () => {
         visible={!!refundBooking}
         transparent
         animationType="fade"
-        onRequestClose={() => setRefundBooking(null)}
+        onRequestClose={closeRefundModal}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Refund booking</Text>
+            <Text style={styles.modalTitle}>{confirmSettle ? 'Close & settle' : 'Refund booking'}</Text>
             {refundBooking && (
               <>
                 <Text style={styles.modalSub}>
                   #{refundBooking.id?.slice(0, 8).toUpperCase()}{refundBooking.customer_name ? ` · ${refundBooking.customer_name}` : ''}
                 </Text>
 
-                {/* Complete details the admin needs while refunding */}
+                {/* Complete details — shown in both the refund + settle views */}
                 <View style={styles.detailBox}>
                   <Text style={styles.detailService}>{serviceLabel(refundBooking)}</Text>
                   <View style={styles.detailRow}>
@@ -481,50 +476,72 @@ const AdminBookingsScreen = () => {
                     </View>
                   )}
                   <View style={[styles.detailRow, styles.detailRowLast]}>
-                    <Text style={styles.detailKBold}>Refundable balance</Text>
+                    <Text style={styles.detailKBold}>{confirmSettle ? 'Balance to waive' : 'Refundable balance'}</Text>
                     <Text style={styles.detailVBold}>{rupees((Number(refundBooking.amount_paise) || 0) - (Number(refundBooking.refunded_paise) || 0))}</Text>
                   </View>
                 </View>
 
-                <Text style={styles.modalLabel}>Refund amount (₹)</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  value={refundAmt}
-                  onChangeText={setRefundAmt}
-                  keyboardType="numeric"
-                  placeholder="0"
-                  placeholderTextColor={C.muted}
-                />
-                <TouchableOpacity onPress={() => setRefundAmt(String(refundableRupees(refundBooking)))}>
-                  <Text style={styles.modalFullLink}>Use full balance</Text>
-                </TouchableOpacity>
+                {confirmSettle ? (
+                  /* ── Inline settle confirmation (stays on top of this modal) ── */
+                  <>
+                    <Text style={styles.settleConfirmText}>
+                      Mark this account settled at the amount already refunded ({rupees(refundBooking.refunded_paise)})? The remaining {rupees((Number(refundBooking.amount_paise) || 0) - (Number(refundBooking.refunded_paise) || 0))} is waived — no further refund. This can't be undone.
+                    </Text>
+                    {settleErr ? <Text style={styles.settleErrText}>{settleErr}</Text> : null}
+                    <View style={styles.modalActions}>
+                      <TouchableOpacity style={[styles.modalBtn, styles.modalCancel]} onPress={() => setConfirmSettle(false)} disabled={refundLoading}>
+                        <Text style={styles.modalCancelText}>Back</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={[styles.modalBtn, styles.settleConfirmBtn]} onPress={doCloseCase} disabled={refundLoading}>
+                        {refundLoading
+                          ? <ActivityIndicator size="small" color={C.primaryFg} />
+                          : <Text style={styles.modalConfirmText}>Mark settled</Text>}
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                ) : (
+                  /* ── Refund form ── */
+                  <>
+                    <Text style={styles.modalLabel}>Refund amount (₹)</Text>
+                    <TextInput
+                      style={styles.modalInput}
+                      value={refundAmt}
+                      onChangeText={setRefundAmt}
+                      keyboardType="numeric"
+                      placeholder="0"
+                      placeholderTextColor={C.muted}
+                    />
+                    <TouchableOpacity onPress={() => setRefundAmt(String(refundableRupees(refundBooking)))}>
+                      <Text style={styles.modalFullLink}>Use full balance</Text>
+                    </TouchableOpacity>
 
-                <Text style={styles.modalLabel}>Reason (optional)</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  value={refundReason}
-                  onChangeText={setRefundReason}
-                  placeholder="e.g. customer request"
-                  placeholderTextColor={C.muted}
-                />
+                    <Text style={styles.modalLabel}>Reason (optional)</Text>
+                    <TextInput
+                      style={styles.modalInput}
+                      value={refundReason}
+                      onChangeText={setRefundReason}
+                      placeholder="e.g. customer request"
+                      placeholderTextColor={C.muted}
+                    />
 
-                <View style={styles.modalActions}>
-                  <TouchableOpacity style={[styles.modalBtn, styles.modalCancel]} onPress={() => setRefundBooking(null)} disabled={refundLoading}>
-                    <Text style={styles.modalCancelText}>Close</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.modalBtn, styles.modalConfirm]} onPress={submitRefund} disabled={refundLoading}>
-                    {refundLoading
-                      ? <ActivityIndicator size="small" color={C.primaryFg} />
-                      : <Text style={styles.modalConfirmText}>Refund ₹{Number(refundAmt) || 0}</Text>}
-                  </TouchableOpacity>
-                </View>
+                    <View style={styles.modalActions}>
+                      <TouchableOpacity style={[styles.modalBtn, styles.modalCancel]} onPress={closeRefundModal} disabled={refundLoading}>
+                        <Text style={styles.modalCancelText}>Close</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={[styles.modalBtn, styles.modalConfirm]} onPress={submitRefund} disabled={refundLoading}>
+                        {refundLoading
+                          ? <ActivityIndicator size="small" color={C.primaryFg} />
+                          : <Text style={styles.modalConfirmText}>Refund ₹{Number(refundAmt) || 0}</Text>}
+                      </TouchableOpacity>
+                    </View>
 
-                {/* Settle at partial: close the case & waive the remaining balance */}
-                {refundableRupees(refundBooking) > 0 && (
-                  <TouchableOpacity style={styles.settleBtn} onPress={closeCase} disabled={refundLoading} activeOpacity={0.8}>
-                    <Check size={15} weight="bold" color={C.success} />
-                    <Text style={styles.settleBtnText}>Mark settled & close — waive ₹{refundableRupees(refundBooking).toLocaleString('en-IN')}</Text>
-                  </TouchableOpacity>
+                    {refundableRupees(refundBooking) > 0 && (
+                      <TouchableOpacity style={styles.settleBtn} onPress={() => { setSettleErr(''); setConfirmSettle(true); }} disabled={refundLoading} activeOpacity={0.8}>
+                        <Check size={15} weight="bold" color={C.success} />
+                        <Text style={styles.settleBtnText}>Mark settled & close — waive ₹{refundableRupees(refundBooking).toLocaleString('en-IN')}</Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
                 )}
               </>
             )}
@@ -637,6 +654,9 @@ const makeStyles = (C: any) => StyleSheet.create({
     borderWidth: 1.5, borderColor: C.success, backgroundColor: C.successBg,
   },
   settleBtnText: { color: C.success, fontWeight: '800', fontSize: 13 },
+  settleConfirmText: { fontSize: 13.5, color: C.foreground, lineHeight: 20, marginTop: 14 },
+  settleErrText: { fontSize: 12.5, color: C.danger, fontWeight: '600', marginTop: 10 },
+  settleConfirmBtn: { backgroundColor: C.success },
 });
 
 export default AdminBookingsScreen;
