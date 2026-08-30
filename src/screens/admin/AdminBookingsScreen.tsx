@@ -37,6 +37,15 @@ const AdminBookingsScreen = () => {
     Math.max(0, (Number(b?.amount_paise) || 0) - (Number(b?.refunded_paise) || 0)) / 100;
 
   const rupees = (paise: any) => `₹${((Number(paise) || 0) / 100).toLocaleString('en-IN')}`;
+  const refundStatusLabel = (s?: string) => {
+    switch (s) {
+      case 'processed': return 'Credited ✓';
+      case 'failed': return 'Failed';
+      case 'processing': return 'Processing';
+      case 'initiated': return 'Initiated';
+      default: return 'Queued at PayU';
+    }
+  };
   // Human label of the service the customer actually selected.
   const serviceLabel = (b: any) => {
     if (!b) return '';
@@ -69,10 +78,14 @@ const AdminBookingsScreen = () => {
       }) as any;
       const newStatus = res.data?.payment_status || (isFull ? 'refunded' : 'partially_refunded');
       const newRefunded = res.data?.refunded_paise ?? ((Number(refundBooking.refunded_paise) || 0) + amount_paise);
+      const bookingStatus = res.data?.booking_status || (isFull ? 'cancelled' : refundBooking.status);
       setBookings((prev) => prev.map((b) => b.id === refundBooking.id
-        ? { ...b, payment_status: newStatus, refunded_paise: newRefunded } : b));
+        ? { ...b, payment_status: newStatus, refunded_paise: newRefunded, refund_status: res.data?.refund_status || 'queued', status: bookingStatus } : b));
       setRefundBooking(null);
-      Alert.alert('Refund', isFull ? 'Full refund initiated.' : `Partial refund of ₹${rs} initiated.`);
+      Alert.alert('Refund',
+        isFull
+          ? 'Full refund initiated & booking cancelled. The customer has been notified — funds are credited to their source account in 5–7 working days.'
+          : `Partial refund of ₹${rs} initiated. Customer notified — credited in 5–7 working days.`);
     } catch (err: any) {
       Alert.alert('Refund failed', err?.message || 'Could not process the refund.');
     } finally {
@@ -245,13 +258,18 @@ const AdminBookingsScreen = () => {
           </TouchableOpacity>
         </View>
       )}
-      {item.payment_status === 'refunded' && (
-        <Text style={styles.refundedNote}>✓ Fully refunded</Text>
-      )}
-      {item.payment_status === 'partially_refunded' && (
-        <Text style={styles.refundedNote}>
-          Partially refunded: ₹{((Number(item.refunded_paise) || 0) / 100).toLocaleString('en-IN')}
-        </Text>
+      {(Number(item.refunded_paise) || 0) > 0 && (
+        <View style={{ marginTop: 10 }}>
+          <Text style={styles.refundedNote}>
+            {item.payment_status === 'refunded' ? '↩️ Fully refunded' : 'Partially refunded'} {rupees(item.refunded_paise)} · {refundStatusLabel(item.refund_status)}
+          </Text>
+          {['queued', 'initiated', 'processing', undefined, null].includes(item.refund_status) && (
+            <Text style={styles.refundSubNote}>Credited to the customer's source account in 5–7 working days</Text>
+          )}
+          {item.refund_status === 'failed' && (
+            <Text style={[styles.refundSubNote, { color: C.danger }]}>Refund failed at gateway — retry or contact PayU</Text>
+          )}
+        </View>
       )}
     </View>
     );
@@ -445,7 +463,8 @@ const makeStyles = (C: any) => StyleSheet.create({
   emptyTitle: { fontSize: 18, fontWeight: '700', color: C.foreground },
   refundBtn: { backgroundColor: C.warningBg },
   refundText: { color: C.warning, fontWeight: '700', fontSize: 13 },
-  refundedNote: { marginTop: 10, fontSize: 12, color: C.muted, fontWeight: '600' },
+  refundedNote: { fontSize: 12, color: C.muted, fontWeight: '700' },
+  refundSubNote: { fontSize: 11, color: C.muted, marginTop: 2, fontStyle: 'italic' },
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: 24 },
   modalCard: { width: '100%', maxWidth: 420, backgroundColor: C.surface, borderRadius: 18, padding: 20 },
