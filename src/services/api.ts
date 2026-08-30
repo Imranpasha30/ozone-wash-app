@@ -483,6 +483,11 @@ export const adminAPI = {
   getLedger: (params?: { from?: string; to?: string; limit?: number }) =>
     api.get('/admin/ledger', { params }),
 
+  // AMC plan catalog — edit display name / headline / features (never price).
+  getAmcPlans: () => api.get('/admin/amc-plans'),
+  updateAmcPlan: (plan: string, fields: { display_name?: string; headline?: string; features?: string[]; display_order?: number; active?: boolean }) =>
+    api.put(`/admin/amc-plans/${plan}`, fields),
+
   // Admin alerts (slot conflicts, no-team-available, technician overcommit).
   // The conflict detector queues these automatically after booking create /
   // job assignment. Admin sees them on the dashboard banner.

@@ -75,6 +75,8 @@ const AdminPricingScreen = () => {
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [matrix, setMatrix] = useState<PricingRow[]>([]);
   const [edit, setEdit] = useState<{ row: PricingRow; field: EditField; value: string } | null>(null);
+  const [amcPlans, setAmcPlans] = useState<any[]>([]);
+  const [amcEdit, setAmcEdit] = useState<{ plan: string; display_name: string; headline: string; features: string } | null>(null);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -82,6 +84,7 @@ const AdminPricingScreen = () => {
       const res: any = await adminAPI.getPricing();
       setTiers(res.data?.tiers || []);
       setMatrix(res.data?.matrix || []);
+      try { const a: any = await adminAPI.getAmcPlans(); setAmcPlans(a.data?.plans || []); } catch (_) {}
     } catch (e: any) {
       Alert.alert('Failed to load pricing', e?.message || 'Try again');
     } finally {
@@ -135,6 +138,22 @@ const AdminPricingScreen = () => {
       Alert.alert('Save failed', e?.message || 'Could not update price.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const saveAmc = async () => {
+    if (!amcEdit) return;
+    const features = amcEdit.features.split(',').map((s) => s.trim()).filter(Boolean);
+    const plan = amcEdit.plan;
+    const display_name = amcEdit.display_name.trim();
+    if (!display_name) { Alert.alert('Name required', 'Enter a plan name.'); return; }
+    setAmcEdit(null);
+    try {
+      await adminAPI.updateAmcPlan(plan, { display_name, headline: amcEdit.headline.trim(), features });
+      const a: any = await adminAPI.getAmcPlans();
+      setAmcPlans(a.data?.plans || []);
+    } catch (e: any) {
+      Alert.alert('Save failed', e?.message || 'Could not update plan.');
     }
   };
 
@@ -192,6 +211,69 @@ const AdminPricingScreen = () => {
       ) : (
         <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
           <WebContainer variant="default">
+          {/* AMC plan names / copy — editable; prices stay in the matrix below */}
+          {amcPlans.length > 0 && (
+            <View style={styles.tierCard}>
+              <View style={styles.tierHeader}>
+                <Text style={styles.tierTitle}>AMC Plan Names &amp; Copy</Text>
+              </View>
+              <Text style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>
+                How each plan appears in the app &amp; billing. Prices come from the matrix below — not edited here.
+              </Text>
+              {amcPlans.map((p) => (
+                <TouchableOpacity
+                  key={p.plan}
+                  style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderTopWidth: 1, borderTopColor: C.border }}
+                  onPress={() => setAmcEdit({ plan: p.plan, display_name: p.display_name || '', headline: p.headline || '', features: (p.features || []).join(', ') })}
+                  activeOpacity={0.7}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: C.foreground }}>{p.display_name}</Text>
+                    <Text style={{ fontSize: 12, color: C.muted, marginTop: 2 }} numberOfLines={1}>
+                      {p.headline}{p.features?.length ? ` · ${p.features.length} features` : ''}
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: C.primary }}>Edit</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          <Modal visible={!!amcEdit} transparent animationType="fade" onRequestClose={() => setAmcEdit(null)}>
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+              <View style={{ width: '100%', maxWidth: 440, backgroundColor: C.surface, borderRadius: 18, padding: 20 }}>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: C.foreground }}>Edit AMC plan</Text>
+                {amcEdit && (
+                  <>
+                    {(['display_name', 'headline', 'features'] as const).map((f) => (
+                      <View key={f}>
+                        <Text style={{ fontSize: 12, color: C.muted, fontWeight: '600', marginTop: 14, marginBottom: 6 }}>
+                          {f === 'display_name' ? 'Display name' : f === 'headline' ? 'Headline' : 'Features (comma-separated)'}
+                        </Text>
+                        <TextInput
+                          style={{ borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15, color: C.foreground, backgroundColor: C.background, minHeight: f === 'features' ? 60 : undefined, textAlignVertical: f === 'features' ? 'top' : 'auto' }}
+                          value={(amcEdit as any)[f]}
+                          onChangeText={(t) => setAmcEdit({ ...amcEdit, [f]: t })}
+                          placeholder={f === 'display_name' ? 'e.g. Quarterly AMC' : f === 'headline' ? 'e.g. 4 visits / year' : 'Feature 1, Feature 2, ...'}
+                          placeholderTextColor={C.muted}
+                          multiline={f === 'features'}
+                        />
+                      </View>
+                    ))}
+                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
+                      <TouchableOpacity style={{ flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center', backgroundColor: C.surfaceElevated, borderWidth: 1, borderColor: C.border }} onPress={() => setAmcEdit(null)}>
+                        <Text style={{ color: C.foreground, fontWeight: '700' }}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={{ flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center', backgroundColor: C.primary }} onPress={saveAmc}>
+                        <Text style={{ color: C.primaryFg, fontWeight: '700' }}>Save</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+              </View>
+            </View>
+          </Modal>
+
           {tiers.map((t) => {
             const slot = byTier.get(t.id);
             if (!slot) return null;
