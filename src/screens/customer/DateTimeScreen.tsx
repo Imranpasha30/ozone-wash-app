@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, ActivityIndicator, Alert,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import useBookingStore from '../../store/booking.store';
 import api from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
@@ -43,6 +43,13 @@ const DateTimeScreen = () => {
   const [v2Slots, setV2Slots] = useState<SlotV2[]>([]);
   const [meta, setMeta] = useState<SlotMeta | null>(null);
   const [loading, setLoading] = useState(false);
+  const [slotJustFilled, setSlotJustFilled] = useState(false);
+  // Refs so the focus/interval poller reads the latest date+slot without
+  // re-subscribing on every render.
+  const selectedDateRef = useRef('');
+  const selectedSlotRef = useRef('');
+  selectedDateRef.current = selectedDate;
+  selectedSlotRef.current = selectedSlot;
 
   // Build next 30 days (spans into next month) — grouped by month in the grid.
   const buildDays = () => {
@@ -62,12 +69,16 @@ const DateTimeScreen = () => {
   const dateLabel = (d: Date) => d.getDate();
   const monthLabel = (d: Date) => d.toLocaleDateString('en-IN', { month: 'short' });
 
-  const fetchSlots = async (dateStr: string) => {
-    setLoading(true);
-    setSlots([]);
-    setV2Slots([]);
-    setMeta(null);
-    setSelectedSlot('');
+  const fetchSlots = async (dateStr: string, opts: { silent?: boolean } = {}) => {
+    const silent = opts.silent === true;
+    if (!silent) {
+      setLoading(true);
+      setSlots([]);
+      setV2Slots([]);
+      setMeta(null);
+      setSelectedSlot('');
+      setSlotJustFilled(false);
+    }
     try {
       // Duration-aware slots: pass the draft's tank sizes + number of distinct
       // service locations so the backend sizes the service window correctly.
@@ -98,12 +109,27 @@ const DateTimeScreen = () => {
           .map((s) => `${dateStr}T${s.time}:00`);
         setSlots(available);
       }
+      // Near-live: if a silent refresh finds the slot the user already picked has
+      // just filled up, drop the selection and flag an inline notice.
+      if (silent) {
+        const sel = selectedSlotRef.current;
+        const selTime = sel && sel.startsWith(dateStr) ? sel.split('T')[1]?.slice(0, 5) : null;
+        if (selTime) {
+          const hit = rawSlots.find((s) => s.time === selTime);
+          const stillFree = hit ? hit.available !== false : false;
+          if (!stillFree) {
+            setSelectedSlot('');
+            setSlotJustFilled(true);
+          }
+        }
+      }
     } catch (e: any) {
-      const d = e?.response?.data || e || {};
-      const msg = d?.message;
-      Alert.alert('Error', msg || 'Could not fetch slots. Try another date.');
+      if (!silent) {
+        const d = e?.response?.data || e || {};
+        Alert.alert('Error', d?.message || 'Could not fetch slots. Try another date.');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -112,6 +138,19 @@ const DateTimeScreen = () => {
     setSelectedDate(key);
     fetchSlots(key);
   };
+
+  // Keep the grid near-live: silent-refresh on focus + every 30s while a date is
+  // selected and the screen is focused, so a slot that just filled is reflected
+  // before the user reaches payment.
+  useFocusEffect(
+    useCallback(() => {
+      if (selectedDateRef.current) fetchSlots(selectedDateRef.current, { silent: true });
+      const id = setInterval(() => {
+        if (selectedDateRef.current) fetchSlots(selectedDateRef.current, { silent: true });
+      }, 30000);
+      return () => clearInterval(id);
+    }, [])
+  );
 
   const handleNext = () => {
     if (!selectedDate) return Alert.alert('Select a date');
@@ -192,6 +231,12 @@ const DateTimeScreen = () => {
           <Clock size={16} weight="regular" color={C.primary} />
           <Text style={styles.label}>Available Slots</Text>
         </View>
+        {slotJustFilled && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.warningBg, borderRadius: 12, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: C.warning + '55' }}>
+            <Info size={16} weight="fill" color={C.warning} />
+            <Text style={{ flex: 1, fontSize: 13, color: C.warning, fontWeight: '600' }}>That time just filled up — please pick another slot.</Text>
+          </View>
+        )}
         {!selectedDate ? (
           <View style={styles.hintBox}>
             <HandPalm size={24} weight="regular" color={C.muted} />
@@ -239,7 +284,7 @@ const DateTimeScreen = () => {
                         active && styles.slotBtnActive,
                         !s.available && styles.slotBtnDisabled,
                       ]}
-                      onPress={() => setSelectedSlot(iso)}
+                      onPress={() => { setSelectedSlot(iso); setSlotJustFilled(false); }}
                       disabled={!s.available}
                     >
                       <Text style={[styles.slotText, active && styles.slotTextActive]}>

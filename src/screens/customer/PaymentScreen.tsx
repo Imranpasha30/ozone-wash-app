@@ -658,7 +658,17 @@ const PaymentScreen = () => {
       setShowRazorpay(true);
       armPaymentTimeout(bookingId);
     } catch (err: any) {
-      Alert.alert('Booking Failed', err.message || 'Something went wrong. Please try again.');
+      // 409 = the slot filled between selection and pay. Guide the user back to
+      // the (now near-live) date screen to pick another time instead of a dead end.
+      if (err?.status === 409) {
+        Alert.alert(
+          'That time just filled up',
+          err.message || 'Someone grabbed that slot. Please pick another time.',
+          [{ text: 'Pick another time', onPress: () => navigation.navigate('DateTimeSelect') }]
+        );
+      } else {
+        Alert.alert('Booking Failed', err.message || 'Something went wrong. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

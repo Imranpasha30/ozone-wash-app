@@ -73,7 +73,7 @@ const cache = new Map<string, CacheEntry>();
 const inFlight = new Map<string, Promise<any>>();
 
 const TTL: Record<string, number> = {
-  '/bookings/slots':    5 * 60 * 1000,  // 5 min — slot availability
+  '/bookings/slots':    20 * 1000,      // 20 s — near-live slot availability
   '/bookings/price':   2 * 60 * 1000,   // 2 min — pricing
   '/amc/plans':       10 * 60 * 1000,   // 10 min — static plan list
   '/ecoscore/leaderboard': 5 * 60 * 1000,
