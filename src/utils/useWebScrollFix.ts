@@ -37,28 +37,38 @@ export const useWebScrollFix = () => {
       return n instanceof HTMLElement ? n : null;
     };
 
-    let node = resolveNode();
-    const apply = () => {
-      if (!node) node = resolveNode();
-      if (!node) return;
+    let ro: any = null;
+    const apply = (): boolean => {
+      const node = resolveNode();
+      if (!node) return false;
       const top = node.getBoundingClientRect().top;
       const available = Math.max(160, Math.round(window.innerHeight - top));
       node.style.setProperty('height', `${available}px`, 'important');
       node.style.setProperty('max-height', `${available}px`, 'important');
       node.style.setProperty('overflow-y', 'auto', 'important');
       node.style.setProperty('overflow-x', 'hidden', 'important');
+      // Attach a ResizeObserver the first time we successfully resolve the node,
+      // so later content/layout shifts keep the viewport clamp fresh.
+      if (!ro && (window as any).ResizeObserver) {
+        ro = new (window as any).ResizeObserver(() => apply());
+        try { ro.observe(node); } catch (_) {}
+      }
+      return true;
     };
 
     apply();
     window.addEventListener('resize', apply);
-    // Re-measure after layout settles (fonts, async data, header height).
-    const timers = [30, 120, 300, 600, 1000, 1500].map((ms) => setTimeout(apply, ms));
-    const ro = (window as any).ResizeObserver ? new (window as any).ResizeObserver(apply) : null;
-    try { if (node && ro) ro.observe(node); } catch (_) {}
+    // POLL until the scroll node actually mounts — many screens gate the
+    // ScrollView behind a `loading` flag, so it appears only AFTER async data
+    // arrives (which can be well past a few fixed timers). Re-apply every 200 ms
+    // for ~12 s; harmless + idempotent, and the clamp is a plain div height so
+    // it scrolls regardless of whether the flex ancestor chain is bounded.
+    let ticks = 0;
+    const iv = setInterval(() => { apply(); if (++ticks >= 60) clearInterval(iv); }, 200);
 
     return () => {
       window.removeEventListener('resize', apply);
-      timers.forEach(clearTimeout);
+      clearInterval(iv);
       ro?.disconnect();
     };
   }, [screenH]);

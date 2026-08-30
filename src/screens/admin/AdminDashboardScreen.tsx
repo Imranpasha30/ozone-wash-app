@@ -126,6 +126,7 @@ const AdminDashboardScreen = () => {
           { label: 'Agents',    icon: Users,         route: 'AdminTeams' },
           { label: 'Customers', icon: UserCircle,    route: 'AdminCustomers' },
           { label: 'Revenue',   icon: CurrencyInr,   route: 'AdminRevenue' },
+          { label: 'Ledger',    icon: Receipt,       route: 'AdminLedger' },
           { label: 'Incidents', icon: Siren,         route: 'AdminIncidents' },
           { label: 'AMC',       icon: Crown,         route: 'AdminAmc' },
           { label: 'Auto Wash', icon: Car,           route: 'AdminAutoWash' },
