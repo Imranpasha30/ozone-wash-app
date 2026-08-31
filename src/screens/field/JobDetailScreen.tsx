@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
-  ActivityIndicator, Alert, Linking, Platform, StatusBar,
+  ActivityIndicator, Alert, Linking, Platform, StatusBar, Modal,
 } from 'react-native';
 import { capturePhoto } from '../../services/cameraCapture';
 import { useWebScrollFix } from '../../utils/useWebScrollFix';
@@ -14,6 +14,7 @@ import {
   ArrowLeft, Calendar, Phone, CheckCircle, ArrowsClockwise,
   Hourglass, Key, ClipboardText, Siren, ArrowRight, MapPin, NavigationArrow, QrCode,
   Trophy, Crown, Star, Lightning, Flask, Warning, Camera, Receipt, XCircle, Wrench,
+  Users, Lock, X, HandPalm,
 } from '../../components/Icons';
 
 const TANK_TYPES = ['overhead', 'underground', 'sump', 'sintex'] as const;
@@ -54,6 +55,13 @@ const JobDetailScreen = () => {
   const [tankReason, setTankReason] = useState('');
   const [tankSaving, setTankSaving] = useState(false);
   const [tankConfirmed, setTankConfirmed] = useState(false);
+
+  // Duty delegation (leader hands the job/day to a member)
+  const [delegateOpen, setDelegateOpen] = useState(false);
+  const [members, setMembers] = useState<any[]>([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [delegateScope, setDelegateScope] = useState<'job' | 'day'>('job');
+  const [delegateBusy, setDelegateBusy] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -271,6 +279,35 @@ const JobDetailScreen = () => {
     }
   };
 
+  const openDelegate = async () => {
+    setDelegateOpen(true); setDelegateScope('job'); setMembersLoading(true);
+    try {
+      const res = await jobAPI.getJobTeamMembers(jobId) as any;
+      setMembers(res.data?.members || []);
+    } catch (e: any) {
+      Alert.alert('Error', errInfo(e).message || 'Could not load team members');
+    } finally { setMembersLoading(false); }
+  };
+
+  const doDelegate = async (agentId: string) => {
+    setDelegateBusy(true);
+    try {
+      await jobAPI.delegateJob(jobId, agentId, delegateScope);
+      setDelegateOpen(false);
+      Alert.alert('Delegated', delegateScope === 'day'
+        ? 'Duty delegated for the whole day. Your teammate can now work the team’s jobs today.'
+        : 'Duty delegated for this job. Your teammate can now work it.');
+      fetchData();
+    } catch (e: any) {
+      Alert.alert('Could not delegate', errInfo(e).message || 'Please try again.');
+    } finally { setDelegateBusy(false); }
+  };
+
+  const revokeDeleg = async (delegationId: string) => {
+    try { await jobAPI.revokeDelegation(jobId, delegationId); fetchData(); }
+    catch (e: any) { Alert.alert('Error', errInfo(e).message || 'Could not remove delegation'); }
+  };
+
   const callCustomer = () => {
     if (job?.customer_phone) {
       Linking.openURL(`tel:${job.customer_phone}`);
@@ -435,8 +472,52 @@ const JobDetailScreen = () => {
           </>
         )}
 
+        {/* Duty & delegation — who can work this job */}
+        {(job.status === 'scheduled' || job.status === 'in_progress') && (
+          <View style={styles.dutyCard}>
+            <View style={styles.cardTitleRow}>
+              {(job as any).can_work
+                ? <Users size={16} weight="fill" color={C.primary} />
+                : <Lock size={16} weight="fill" color={C.muted} />}
+              <Text style={styles.cardTitle}>Who works this job</Text>
+            </View>
+            <Text style={styles.dutyHint}>
+              {(job as any).is_leader
+                ? 'You’re the crew leader — you can work it, or hand the duty to a teammate for this job or your whole day.'
+                : (job as any).can_work
+                  ? 'Your leader delegated this to you — you can work it.'
+                  : 'View-only. Only the crew leader or a delegated member can work this job. Ask your leader to delegate it to you.'}
+            </Text>
+
+            {Array.isArray((job as any).delegates) && (job as any).delegates.length > 0 && (
+              <View style={{ marginTop: 10, gap: 6 }}>
+                {(job as any).delegates.map((d: any) => (
+                  <View key={d.id} style={styles.delegRow}>
+                    <HandPalm size={13} weight="fill" color={C.success} />
+                    <Text style={styles.delegText} numberOfLines={1}>
+                      {d.name || d.phone} · {d.scope === 'day' ? 'whole day' : 'this job'}
+                    </Text>
+                    {(job as any).is_leader && (
+                      <TouchableOpacity onPress={() => revokeDeleg(d.id)}>
+                        <Text style={styles.delegRevoke}>Remove</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {(job as any).is_leader && (
+              <TouchableOpacity style={styles.delegBtn} onPress={openDelegate} activeOpacity={0.85}>
+                <Users size={15} weight="bold" color={C.primaryFg} />
+                <Text style={styles.delegBtnText}>Delegate duty to a teammate</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
         {/* Actions */}
-        {job.status === 'scheduled' && (
+        {job.status === 'scheduled' && (job as any).can_work && (
           <>
             {enRoute ? (
               <View style={styles.enRouteDone}>
@@ -479,7 +560,7 @@ const JobDetailScreen = () => {
           </>
         )}
 
-        {job.status === 'in_progress' && (
+        {job.status === 'in_progress' && (job as any).can_work && (
           <>
             {/* Car wash jobs use the 6-step wash flow, not the tank SOP checklist.
                 This button is the ONLY route into AutoWashJob — without it the
@@ -843,6 +924,59 @@ const JobDetailScreen = () => {
         )}
         </WebContainer>
       </ScrollView>
+
+      {/* Delegate-duty modal */}
+      <Modal visible={delegateOpen} transparent animationType="fade" onRequestClose={() => setDelegateOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHead}>
+              <Text style={styles.modalTitle}>Delegate duty</Text>
+              <TouchableOpacity onPress={() => setDelegateOpen(false)}><X size={18} weight="bold" color={C.muted} /></TouchableOpacity>
+            </View>
+            <Text style={styles.modalSub}>Hand this job to a teammate. They can work it; you keep access too.</Text>
+
+            <View style={styles.scopeRow}>
+              {(['job', 'day'] as const).map((s) => (
+                <TouchableOpacity
+                  key={s}
+                  style={[styles.scopeChip, delegateScope === s && styles.scopeChipActive]}
+                  onPress={() => setDelegateScope(s)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.scopeChipText, delegateScope === s && styles.scopeChipTextActive]}>
+                    {s === 'job' ? 'Just this job' : 'My whole day'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {membersLoading ? (
+              <ActivityIndicator color={C.primary} style={{ marginVertical: 20 }} />
+            ) : members.length === 0 ? (
+              <Text style={styles.dutyHint}>No other active members in your crew to delegate to.</Text>
+            ) : (
+              <ScrollView style={{ maxHeight: 280 }}>
+                {members.map((m) => (
+                  <TouchableOpacity key={m.id} style={styles.memberRow} onPress={() => doDelegate(m.id)} disabled={delegateBusy} activeOpacity={0.7}>
+                    <View style={styles.memberAvatar}>
+                      <Text style={styles.memberAvatarText}>{String(m.name || m.phone || '?').slice(0, 2).toUpperCase()}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.memberName}>{m.name || 'Member'}</Text>
+                      <Text style={styles.memberPhone}>{m.phone}{m.role === 'leader' ? ' · leader' : ''}</Text>
+                    </View>
+                    {delegateBusy ? <ActivityIndicator size="small" color={C.primary} /> : <ArrowRight size={16} weight="bold" color={C.primary} />}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+
+            <TouchableOpacity style={styles.modalCancel} onPress={() => setDelegateOpen(false)}>
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -1094,6 +1228,47 @@ const makeStyles = (C: any) => StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 10, marginTop: 16,
   },
   dmgLoggedText: { fontSize: 13, fontWeight: '600', color: C.success },
+  // Duty & delegation
+  dutyCard: {
+    backgroundColor: C.surface, borderRadius: 16, padding: 16, marginTop: 16,
+    borderWidth: 1, borderColor: C.border,
+  },
+  dutyHint: { fontSize: 12.5, color: C.muted, lineHeight: 18, marginTop: 8 },
+  delegRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  delegText: { flex: 1, fontSize: 12.5, color: C.foreground, fontWeight: '600' },
+  delegRevoke: { fontSize: 12, color: C.danger, fontWeight: '700' },
+  delegBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: C.primary, borderRadius: 12, paddingVertical: 12, marginTop: 12,
+  },
+  delegBtnText: { color: C.primaryFg, fontWeight: '800', fontSize: 13 },
+  // Delegate modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  modalCard: { width: '100%', maxWidth: 440, backgroundColor: C.surface, borderRadius: 18, padding: 18 },
+  modalHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: C.foreground },
+  modalSub: { fontSize: 12.5, color: C.muted, marginTop: 4, marginBottom: 12, lineHeight: 18 },
+  scopeRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
+  scopeChip: {
+    flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center',
+    backgroundColor: C.surfaceElevated, borderWidth: 1.5, borderColor: C.border,
+  },
+  scopeChipActive: { backgroundColor: C.primaryBg, borderColor: C.primary },
+  scopeChipText: { fontSize: 13, fontWeight: '700', color: C.muted },
+  scopeChipTextActive: { color: C.primary },
+  memberRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10,
+    borderTopWidth: 1, borderTopColor: C.border,
+  },
+  memberAvatar: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: C.primaryBg,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  memberAvatarText: { fontSize: 14, fontWeight: '800', color: C.primary },
+  memberName: { fontSize: 15, fontWeight: '700', color: C.foreground },
+  memberPhone: { fontSize: 12, color: C.muted, marginTop: 1 },
+  modalCancel: { marginTop: 14, paddingVertical: 13, borderRadius: 12, borderWidth: 1.5, borderColor: C.border, alignItems: 'center' },
+  modalCancelText: { fontSize: 14, fontWeight: '700', color: C.muted },
 });
 
 export default JobDetailScreen;

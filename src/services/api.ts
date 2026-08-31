@@ -303,6 +303,19 @@ export const jobAPI = {
     return api.post(`/jobs/${jobId}/transfer`, { new_team_id, reason, force });
   },
 
+  // Duty delegation (leader → member): pick a member, delegate this job or the
+  // whole day, revoke.
+  getJobTeamMembers: (jobId: string) =>
+    api.get(`/jobs/${jobId}/team-members`),
+  delegateJob: (jobId: string, agent_id: string, scope: 'job' | 'day' = 'job') => {
+    invalidateCache('/jobs');
+    return api.post(`/jobs/${jobId}/delegate`, { agent_id, scope });
+  },
+  revokeDelegation: (jobId: string, delegationId: string) => {
+    invalidateCache('/jobs');
+    return api.delete(`/jobs/${jobId}/delegate/${delegationId}`);
+  },
+
   // Route optimization (field team)
   optimizeRoute: (lat?: number, lng?: number) =>
     api.get('/jobs/route-optimize', { params: lat && lng ? { lat, lng } : {} }),
