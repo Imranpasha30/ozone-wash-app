@@ -256,11 +256,6 @@ const ComplianceStepScreen = () => {
   const [sigOpen, setSigOpen] = useState(false);
   const [sigUploading, setSigUploading] = useState(false);
   const [beforeHint, setBeforeHint] = useState(''); // step-1 before-photo shown on step 8
-  // Local capture URIs (file:// native / data: web) — always renderable, so the
-  // tile previews the shot the INSTANT it's taken rather than waiting on the
-  // upload. A slow/failed upload or an unreachable R2 URL never blanks the tile.
-  const [localMain, setLocalMain] = useState('');
-  const [localExtras, setLocalExtras] = useState<string[]>([]);
   const draftKey = `compliance_draft_${jobId}_${stepNumber}`;
   const draftLoaded = useRef(false);
 
@@ -619,7 +614,6 @@ const ComplianceStepScreen = () => {
   const captureMainPhoto = async () => {
     const uri = await capturePhoto();
     if (!uri) return; // cancelled
-    setLocalMain(uri); // instant preview — don't wait on the upload
     await uploadPhoto(uri);
   };
 
@@ -646,7 +640,6 @@ const ComplianceStepScreen = () => {
   const captureExtraPhoto = async (slot: number) => {
     const uri = await capturePhoto();
     if (!uri) return; // cancelled
-    setLocalExtras((prev) => { const next = [...prev]; next[slot] = uri; return next; }); // instant preview
     const setSlot = (url: string) => setData((d) => {
       const next = [...d.extra_photo_urls];
       next[slot] = url;
@@ -1238,10 +1231,10 @@ const ComplianceStepScreen = () => {
               <Text style={styles.label}>Mandatory Photo: {stepInfo?.mandatoryPhotoLabel}</Text>
             </View>
             <TouchableOpacity style={styles.photoBtn} onPress={captureMainPhoto} activeOpacity={0.7}>
-              {uploading && !localMain && !data[photoField] ? (
+              {uploading && !data[photoField] ? (
                 <ActivityIndicator color={C.primary} />
-              ) : (localMain || data[photoField]) ? (
-                <Image source={{ uri: localMain || data[photoField] }} style={styles.photoPreview} />
+              ) : data[photoField] ? (
+                <Image source={{ uri: data[photoField] }} style={styles.photoPreview} />
               ) : (
                 <View style={styles.photoPlaceholder}>
                   <View style={styles.photoIconContainer}>
@@ -1271,10 +1264,10 @@ const ComplianceStepScreen = () => {
                       disabled={extraUploading !== null}
                       activeOpacity={0.7}
                     >
-                      {extraUploading === slot && !localExtras[slot] && !data.extra_photo_urls[slot] ? (
+                      {extraUploading === slot ? (
                         <ActivityIndicator color={C.primary} />
-                      ) : (localExtras[slot] || data.extra_photo_urls[slot]) ? (
-                        <Image source={{ uri: localExtras[slot] || data.extra_photo_urls[slot] }} style={styles.extraThumb} />
+                      ) : data.extra_photo_urls[slot] ? (
+                        <Image source={{ uri: data.extra_photo_urls[slot] }} style={styles.extraThumb} />
                       ) : (
                         <View style={styles.photoPlaceholder}>
                           <Camera size={22} weight="regular" color={C.muted} />
