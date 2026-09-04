@@ -276,7 +276,10 @@ export default function AutoWashBookingScreen() {
     try {
       const [yyyy, mm, dd] = dateStr.split('-').map(Number);
       const [startH] = slot.split('-')[0].split(':').map(Number);
-      const scheduled = new Date(Date.UTC(yyyy, (mm || 1) - 1, dd || 1, startH || 9, 0, 0)).toISOString();
+      const p2 = (n: number) => String(n).padStart(2, '0');
+      // Naive IST wall-clock (no Z) — the backend casts it as IST, matching the
+      // tank flow. Sending a Z-suffixed instant would land 5.5h off post-migration.
+      const scheduled = `${yyyy}-${p2(mm || 1)}-${p2(dd || 1)}T${p2(startH || 9)}:00:00`;
       const res = await autoWashAPI.createBooking({
         vehicle_id: currentVehicle.id,
         package_code: selectedPackage,
@@ -288,6 +291,7 @@ export default function AutoWashBookingScreen() {
         gated_community: gatedCommunity,
         notes: notes || undefined,
         subscription_code: selectedPlan || undefined,
+        payment_method: 'online',
         // Each additional stop creates its own job at the same slot.
         additional_stops: additionalStops.map((s) => ({
           vehicle_id: s.vehicle_id,
@@ -297,17 +301,18 @@ export default function AutoWashBookingScreen() {
         })),
       });
       const bookingId = res.data?.job?.id;
+      const grandTotal = res.data?.grand_total_paise ?? res.data?.quote?.total_paise ?? 0;
       setSubmitted(true);
-      // Direct navigation instead of Alert.alert — Alert is native-only and
-      // silently no-ops on react-native-web, leaving the user stranded on the
-      // payment screen and re-clicking. `replace` so the back button doesn't
-      // return them to the payment step.
+      // Online prepaid → go to PayU checkout; ₹0 (covered/subscription) → detail.
+      // `reset` so back doesn't return to the booking form.
       if (bookingId) {
         navigation.reset({
           index: 1,
           routes: [
             { name: 'CustomerTabs' },
-            { name: 'AutoWashBookingDetail', params: { id: bookingId } },
+            grandTotal > 0
+              ? { name: 'AutoWashPayment', params: { job_id: bookingId, amount_paise: grandTotal, summary: 'Car wash booking' } }
+              : { name: 'AutoWashBookingDetail', params: { id: bookingId } },
           ],
         });
       } else {

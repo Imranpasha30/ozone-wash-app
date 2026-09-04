@@ -246,7 +246,10 @@ const PaymentScreen = () => {
   // ── AMC upsell at checkout ────────────────────────────────────────────────
   // One-time customers can add an AMC while paying: the bill switches to the
   // annual plan invoice and today's service becomes visit #1 of the plan.
-  const showUpsell = !isPremium && draft.plan === 'one_time' && !draft.pricing?.amc_covered;
+  // AMC upsell removed from Review & Pay — the service plan is chosen ONLY on the
+  // booking page (TankDetails). Review & Pay just shows the chosen plan + discount
+  // as a read-only summary; it never re-asks or re-applies a discount.
+  const showUpsell = false;
   const applyUpsell = async (plan: '' | 'half_yearly' | 'quarterly' | 'monthly') => {
     if (upsellLoading) return;
     setUpsellLoading(true);
@@ -549,7 +552,8 @@ const PaymentScreen = () => {
         amc_plan: draft.amc_plan || undefined,
         payment_method: draft.payment_method,
         plan: draft.plan || 'one_time',
-        purchase_amc_plan: draft.purchase_amc_plan || undefined,
+        // purchase_amc_plan intentionally NOT sent — the AMC/service plan is
+        // chosen on the booking page; no checkout upsell that could re-discount.
       }) as any;
 
       const bookingId = bookingRes.data?.booking?.id;

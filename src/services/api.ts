@@ -970,6 +970,13 @@ export const autoWashAPI = {
   bookingHistory:   (params?: { limit?: number; offset?: number }) =>
                        cachedGet('/auto-wash/bookings/history', { params }),
 
+  // Online payment (PayU) — mirrors paymentAPI but keyed on the auto-wash job.
+  // createOrder returns { gateway, order_id, payment_url, payment_params, job_id }.
+  createPaymentOrder: (job_id: string, channel?: string) =>
+    api.post('/auto-wash/payments/create-order', { job_id, channel }),
+  verifyPayment: (data: any) =>
+    api.post('/auto-wash/payments/verify', data),
+
   // Subscriptions
   createSubscription:  (body: { plan_type: string; vehicle_ids?: string[] }) => {
     invalidateCache('/auto-wash/subscriptions');
