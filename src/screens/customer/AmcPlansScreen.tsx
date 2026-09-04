@@ -241,18 +241,15 @@ const AmcPlansScreen = () => {
                     </View>
                   ) : (
                     <View style={styles.priceBlock}>
-                      {/* Headline is PER WASH so the plan's value is obvious:
-                          e.g. ₹1,575/wash (2-visit AMC) reads as cheaper than a
-                          ₹3,500 one-time clean. Annual total shown as the subtitle. */}
                       <View style={styles.priceRow}>
                         <Text style={[styles.priceNum, isPopular && styles.priceNumPopular]}>
-                          {fmt(perCleanPaise)}
+                          {fmt(p.total_paise)}
                         </Text>
-                        <Text style={styles.pricePer}>{p.services_per_year > 1 ? '/wash' : ' one-time'}</Text>
+                        <Text style={styles.pricePer}>/year</Text>
                       </View>
                       {p.services_per_year > 1 ? (
                         <Text style={styles.perCleanLine}>
-                          <Text style={styles.perCleanValue}>{fmt(p.total_paise)}</Text>/year · {p.services_per_year} washes
+                          ≈ <Text style={styles.perCleanValue}>{fmt(perCleanPaise)}</Text> per clean
                         </Text>
                       ) : null}
                       <Text style={styles.gstSplit}>
